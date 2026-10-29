@@ -11,6 +11,7 @@ import { renderDaevanion } from './daevanion.js';
 import { esc, int, toast } from '../util.js';
 import { portraitUrl } from '../portrait.js';
 import { appearanceItems } from '../character-layout.js';
+import { accountResourcesHtml, wireAccountResources } from './account-resources.js';
 
 const REFRESH_MS = 60e3;
 
@@ -66,7 +67,7 @@ function heroHtml(me, extra = '', tabs = '') {
  * Ficha completa do personagem: cabeçalho, menu (Personagem · Skills · Daevanion) e a aba escolhida.
  * base = início do link das abas (ex.: "#/inicio" ou "#/conta/<id>").
  */
-export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '', withParty = false, withFavorites = false } = {}) {
+export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '', withParty = false, withAccount = false } = {}) {
   setTooltipContext(me);
   // O menu do personagem fica dentro do cabeçalho (mais compacto).
   const tabs = `<nav class="hero-tabs" aria-label="Menu do personagem">
@@ -76,7 +77,7 @@ export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = 
   const body = root.querySelector('.sub-body');
   if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
   else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
-  else body.innerHTML = characterMain(me, { withParty, withFavorites });
+  else body.innerHTML = characterMain(me, { withParty, withAccount });
 }
 
 /** Casas em grade que se esticam para preencher toda a largura do container. */
@@ -123,7 +124,7 @@ function statTile(s) {
 // ---------- Favoritos: contas de outras pessoas, listadas como uma party; clicar abre a ficha ----------
 const fav = { open: false, busy: false, results: null, error: '' };
 
-function favoritesHtml() {
+export function favoritesHtml() {
   const list = getFavorites();
   const region = load('region', getMe()?.region || 'nae');
   const results = fav.results ? (fav.results.length ? fav.results.map((c, i) => `
@@ -140,16 +141,16 @@ function favoritesHtml() {
     </form>${fav.error ? `<p class="small" style="color:var(--danger)">${esc(fav.error)}</p>` : ''}<div class="fav-results">${results}</div>` : ''}
     <div class="fav-list">${list.length ? list.map(p => {
       const c = classInfo(p.class);
-      return `<a class="fav-row" href="#/conta/${encodeURIComponent(p.characterId)}" data-tip="${esc(p.name)} · ${esc(p.serverName)}">
+      return `<a class="fav-row" href="#/favoritos/${encodeURIComponent(p.characterId)}" data-tip="${esc(p.name)} · ${esc(p.serverName)}">
         <span class="fav-avatar">${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
         <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i style="color:${c.color};font-style:normal">${esc(c.name)}</i> · Nv. ${p.level}</span></span>
-        <span class="fav-stats"><b>CP ${int(p.combatPower || 0)}</b><span>GP ${p.itemLevel != null ? int(p.itemLevel) : '—'}</span></span>
+        <span class="fav-stats"><b>CP ${int(p.combatPower || 0)}</b><span>GS ${p.itemLevel != null ? int(p.itemLevel) : '—'}</span></span>
         <button class="fav-x" data-fav="remove" data-id="${esc(p.characterId)}" aria-label="Remover dos favoritos" title="Remover">×</button>
       </a>`; }).join('') : (fav.open ? '' : '<p class="muted small">Busque e favorite contas para acompanhá-las aqui, como uma party.</p>')}</div>`;
 }
 
 /** Eventos do bloco de favoritos (delegados na raiz da página; só redesenha o bloco). */
-function wireFavorites(root) {
+export function wireFavorites(root) {
   const redraw = () => { const el = root.querySelector('.fav-block'); if (el) el.innerHTML = favoritesHtml(); };
   // Tempo real: reconsulta a PlayNC a cada minuto (um favorito por vez) e redesenha só a lista.
   let syncing = false;
@@ -201,7 +202,7 @@ function wireFavorites(root) {
   });
 }
 
-function characterMain(me, { withParty = false, withFavorites = false } = {}) {
+function characterMain(me, { withParty = false, withAccount = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
   const look = appearanceItems(me);
   const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
@@ -234,7 +235,7 @@ function characterMain(me, { withParty = false, withFavorites = false } = {}) {
           <div class="card-head"><h2>Atributos</h2></div>
           <div class="stat-grid" style="--stat-rows:${Math.ceil(base.length / 2) || 1}">${base.map(statTile).join('')}</div>
           ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact" style="--stat-rows:${Math.ceil(board.length / 2) || 1}">${board.map(statTile).join('')}</div>` : ''}
-          ${withFavorites ? `<div class="fav-block">${favoritesHtml()}</div>` : ''}
+          ${withAccount ? `<div class="account-resources">${accountResourcesHtml(me)}</div>` : ''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>
@@ -253,13 +254,13 @@ export function renderHome(root, [tab = ''] = []) {
         <p class="muted">O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o
         Lotus Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.<br>
         Ou vincule agora pela busca.</p>
-        <div class="head-actions"><a class="btn primary" href="#/conta">Buscar meu personagem</a></div>
+        <div class="head-actions"><a class="btn primary" href="#/favoritos/vincular">Buscar meu personagem</a></div>
       </div>`;
     return;
   }
 
   function render() {
-    characterSheet(root, me, { tab, base: '#/inicio', withFavorites: true });
+    characterSheet(root, me, { tab, base: '#/inicio', withAccount: true });
   }
 
   // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
@@ -284,7 +285,7 @@ export function renderHome(root, [tab = ''] = []) {
     render();
   });
 
-  wireFavorites(root);
+  wireAccountResources(root, () => me);
   const onFocus = () => { if (root.isConnected) refresh(); else removeEventListener('focus', onFocus); };
   addEventListener('focus', onFocus);
   const timer = setInterval(refresh, REFRESH_MS);

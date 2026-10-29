@@ -1,6 +1,5 @@
-import { load, save } from '../store.js';
+import { load } from '../store.js';
 import { classInfo } from '../data/classes.js';
-import { sampleEncounters } from '../data/samples.js';
 import { normalizeEncounter, summarize, smooth } from '../encounter.js';
 import { dpsChart } from '../chart.js';
 import { classIcon, entityIcon } from '../icons.js';
@@ -53,16 +52,8 @@ export function renderDps(root, [id]) {
     root.className = 'page';
     root.innerHTML = `
       <div class="empty card">
-        <h1>Nenhuma luta contra chefe final ainda</h1>
-        <p class="muted">Abra o jogo com a captura ligada (<b>capture\\bin\\daeva-capture.exe</b>, veja o README).<br>A luta aparece aqui ao vivo, com os nomes, classes e skills reais da party.</p>
-        <div class="head-actions">
-          <button class="btn" data-act="samples">Ver demonstração</button>
-        </div>
+        <h1>Nenhuma luta registrada.</h1>
       </div>`;
-    root.addEventListener('click', e => {
-      const act = e.target.closest('[data-act]')?.dataset.act;
-      if (act === 'samples') { save('encounters', sampleEncounters()); dispatchEvent(new HashChangeEvent('hashchange')); }
-    });
     return;
   }
 

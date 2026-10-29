@@ -17,13 +17,15 @@ import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
 import { load, save, notifyChange } from './store.js';
 import { listenStream } from './stream.js';
+import { startAccountFeed } from './account-state.js';
 
 const view = document.getElementById('view');
-const routes = { inicio: renderHome, boss: renderDps, treinamento: renderTraining, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
+const routes = { inicio: renderHome, boss: renderDps, treinamento: renderTraining, bestiario: renderBestiary, favoritos: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
 
 function route() {
   hideTooltip();
   const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  if (name === 'conta') return void location.replace('#/favoritos' + (params.length ? '/' + params.map(encodeURIComponent).join('/') : ''));
   if (name === 'dps') return void location.replace('#/boss' + (params.length ? '/' + params.map(encodeURIComponent).join('/') : ''));
   // Skills e Daevanion agora vivem dentro do Início (menu do personagem).
   if (['skills', 'daevanion'].includes(name)) return void location.replace('#/inicio/' + name);
@@ -63,6 +65,7 @@ function refreshOnData(e) {
   if (view.firstElementChild?.classList.contains('training-page')) return;
   // Native widget state updates its own controls; combat must not replace a slider mid-drag.
   if (view.firstElementChild?.classList.contains('widgets-page')) return;
+  if (view.firstElementChild?.classList.contains('favorites-page')) return;
   if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea')) return;
   route();
 }
@@ -118,6 +121,7 @@ await loadIconManifest();
 await loadMonsterCatalog();
 await loadPetCatalog();
 startCollection();
+startAccountFeed();
 startLive();
 listenStream('reload', () => location.reload());
 startTrainingRecorder();
