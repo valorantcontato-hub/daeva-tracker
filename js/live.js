@@ -61,6 +61,7 @@ export function startLive() {
   const es = startLive.es = new EventSource('/api/live/stream');
   es.onmessage = e => {
     const snap = JSON.parse(e.data);
+    if (snap?.type === 'positions') { lastPos = snap; [...posSubs].forEach(fn => fn(snap)); return; }
     // Identidade (teleporte/relogin): vincula o personagem sem esperar uma luta.
     if (snap?.type === 'identity') {
       if (isPrimary() && snap.self?.name && !linking) {
@@ -83,6 +84,16 @@ export function startLive() {
     [...subs].forEach(fn => fn(current));
   };
 }
+
+let lastPos = null;
+const posSubs = new Set();
+/** Posições ao vivo (jogador e monstros) vindas da captura; chama já com a última recebida. */
+export function onPositions(fn) {
+  posSubs.add(fn);
+  if (lastPos) fn(lastPos);
+  return () => posSubs.delete(fn);
+}
+export const lastPositions = () => lastPos;
 
 export const liveFight = () => current;
 export function onSnapshot(fn) {

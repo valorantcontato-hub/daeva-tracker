@@ -28,6 +28,7 @@ const WIDGETS = {
   party: { width: 320, height: 270 },
   skills: { width: 340, height: 340 },
   farm: { width: 300, height: 300 },
+  radar: { width: 280, height: 380 },
 };
 const MARGIN = 16;
 const UPDATE_CHECK_MS = 15 * 60e3;

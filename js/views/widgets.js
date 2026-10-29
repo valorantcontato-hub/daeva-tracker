@@ -10,7 +10,7 @@ import { mergeMonsterCatalog } from '../monster-catalog.js';
 import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { getMe, findSkill, findProfileByName } from '../profiles.js';
-import { onLive } from '../live.js';
+import { onLive, onPositions, lastPositions } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 
@@ -18,6 +18,7 @@ export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
   farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Favoritos do bestiário, com o progresso de almas lido do jogo.' },
+  radar: { title: 'Mini mapa', icon: '◎', width: 280, height: 380, desc: 'Radar ao seu redor: mostra onde estão os monstros que você está farmando (os marcados com ★ nos Mascotes).' },
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
@@ -39,8 +40,59 @@ function myPlayer(S) {
   return S.players.find(p => p.isLocal) || S.players.find(p => me && p.name.toLowerCase() === me.name?.toLowerCase()) || null;
 }
 
+// ---------- Mini mapa ----------
+// Posições vêm dos pacotes de movimento do jogo (captura). Unidade assumida: 1 unidade = 1 cm; ajuste
+// RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo.
+const RADAR_UNIT_M = 0.01;
+const RADAR_RANGES = [50, 100, 200, 400];
+const normName = s => String(s || '').normalize('NFKC').trim().toLowerCase();
+
+/** Nomes (normalizados) dos monstros marcados com ★: pets do catálogo e monstros do catálogo geral. */
+function farmingNames() {
+  const { focus } = readBestiary();
+  const names = new Set();
+  for (const pet of getPetCatalog()) if (focus.includes('pet-' + pet.id)) for (const m of pet.mobs || []) names.add(normName(m.name));
+  for (const m of mergeMonsterCatalog(load('monsters', []))) if (focus.includes(m.id)) names.add(normName(m.name));
+  return names;
+}
+
+function radarBody() {
+  const P = lastPositions();
+  if (!P || Date.now() - Date.parse(P.capturedAt) > 10000) return '<div class="wg-empty">Sem posições do jogo. Com a captura ligada, entre no jogo e ande um pouco.</div>';
+  if (!P.self) return `<div class="wg-empty">Lendo posições (${P.entities} entidades), mas ainda não achei a sua. Ande um pouco.</div>`;
+  const range = RADAR_RANGES.includes(load('radarRange', 100)) ? load('radarRange', 100) : 100;
+  const farming = farmingNames();
+  const showAll = load('radarAll', false) || !farming.size;
+  const mobs = P.mobs
+    .filter(m => showAll || farming.has(normName(m.name)))
+    .map(m => ({ ...m, dx: (m.x - P.self.x) * RADAR_UNIT_M, dy: (m.y - P.self.y) * RADAR_UNIT_M }))
+    .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
+    .sort((a, b) => a.d - b.d);
+  const R = 92, k = R / range;
+  const dots = mobs.slice(0, 120).map(m => {
+    const f = m.d > range ? range / m.d : 1;
+    return `<circle cx="${100 + m.dx * f * k}" cy="${100 - m.dy * f * k}" r="${m.d > range ? 2 : 3.2}" class="rd-dot ${m.d > range ? 'far' : ''}"><title>${esc(m.name)} · ${Math.round(m.d)} m</title></circle>`;
+  }).join('');
+  const rows = mobs.slice(0, 6).map(m => `<div class="rd-row"><span class="rd-dot-i"></span><b>${esc(m.name || 'Monstro')}</b><span class="muted">${m.d >= 1000 ? (m.d / 1000).toFixed(1) + ' km' : Math.round(m.d) + ' m'}</span></div>`).join('');
+  return `
+    <svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">
+      <circle cx="100" cy="100" r="${R}" class="rd-ring"/><circle cx="100" cy="100" r="${R / 2}" class="rd-ring"/>
+      <path d="M100 8v184M8 100h184" class="rd-axis"/>
+      ${dots}
+      <path d="M100 93l5 11h-10z" class="rd-me"/>
+      <text x="196" y="196" class="rd-lbl" text-anchor="end">${range} m</text>
+    </svg>
+    <div class="rd-bar">
+      <button class="mini" data-act="range" title="Alcance do radar">Alcance: ${range} m</button>
+      <button class="mini ${showAll ? 'on' : ''}" data-act="all" title="Mostrar todos os monstros, não só os marcados com ★">${showAll ? 'Todos' : '★ Farmando'}</button>
+    </div>
+    ${rows || '<div class="wg-empty">Nenhum monstro desses por perto.</div>'}
+    ${!farming.size ? '<div class="muted small" style="padding:4px 2px">Marque monstros com ★ nos Mascotes para filtrar.</div>' : ''}`;
+}
+
 // ---------- Corpo de cada widget ----------
 const BODIES = {
+  radar: radarBody,
   party() {
     const S = currentFight();
     if (!S) return `<div class="wg-empty">${bossOnly() ? 'Nenhuma luta contra chefe ainda.' : 'Sem lutas ainda.'}</div>`;
@@ -125,6 +177,7 @@ export function renderWidget(root, [id]) {
   };
 
   const off = onLive(() => paint() || off());
+  if (id === 'radar') { const offPos = onPositions(() => paint() || offPos()); }
   // Mudou algo (em outra janela: evento "storage"; nesta: "a2t:changed"): repinta o widget.
   let lastBossOnly = bossOnly();
   const onData = () => {
@@ -140,6 +193,8 @@ export function renderWidget(root, [id]) {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'close') overlay() ? overlay().closeSelf() : window.close();
     if (act === 'lock') overlay()?.set(id, { locked: true });
+    if (act === 'range') { const i = RADAR_RANGES.indexOf(load('radarRange', 100)); save('radarRange', RADAR_RANGES[(i + 1) % RADAR_RANGES.length]); paint(); }
+    if (act === 'all') { save('radarAll', !load('radarAll', false)); paint(); }
   });
 
   paint();
