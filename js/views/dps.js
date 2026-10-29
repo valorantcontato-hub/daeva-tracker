@@ -26,26 +26,14 @@ export function skillIconHtml(player, skill, size = 24) {
   return entityIcon('skill', skill.name, { size, icon: src, color: classInfo(playerClass(player)).color });
 }
 
-let lastPlayer = null;
-
-async function importLogs() {
-  let data;
-  try {
-    data = await pickJson();
-  } catch {
-    return toast('Arquivo não é um JSON válido');
-  }
-  if (!data) return;
-  try {
-    const imported = (Array.isArray(data) ? data : [data]).map(normalizeEncounter);
-    const list = load('encounters', []).filter(e => !imported.some(i => i.id === e.id));
-    if (!save('encounters', [...imported, ...list])) return toast('Sem espaço para salvar o log');
-    toast(imported.length > 1 ? `${imported.length} encontros importados` : 'Encontro importado');
-    location.hash = '#/dps/' + encodeURIComponent(imported[0].id);
-  } catch (e) {
-    toast(e.message);
-  }
+/** Só as skills ativas (sem passivas nem stigmas), pela categoria do perfil oficial. Sem perfil, mostra todas. */
+export function activeSkills(p) {
+  const known = p.skills.map(s => ({ s, ref: findSkill(p.name, s.name, playerClass(p), s.id) }));
+  const hasProfile = !!findProfileByName(p.name) || known.some(k => k.ref);
+  return hasProfile ? known.filter(k => k.ref?.category === 'Active').map(k => k.s) : p.skills;
 }
+
+let lastPlayer = null;
 
 const encDps = e => {
   let t = 0;
@@ -65,13 +53,11 @@ export function renderDps(root, [id]) {
         <h1>Nenhuma luta ainda</h1>
         <p class="muted">Abra o jogo com a captura ligada (<b>capture\\bin\\daeva-capture.exe</b>, veja o README).<br>A luta aparece aqui ao vivo, com os nomes, classes e skills reais da party.</p>
         <div class="head-actions">
-          <button class="btn primary" data-act="import">Importar log</button>
           <button class="btn" data-act="samples">Ver demonstração</button>
         </div>
       </div>`;
     root.addEventListener('click', e => {
       const act = e.target.closest('[data-act]')?.dataset.act;
-      if (act === 'import') importLogs();
       if (act === 'samples') { save('encounters', sampleEncounters()); dispatchEvent(new HashChangeEvent('hashchange')); }
     });
     return;
@@ -96,7 +82,6 @@ export function renderDps(root, [id]) {
     <aside class="enc-list" aria-label="Encontros">
       <div class="enc-list-head">
         <span class="muted small">Encontros (${list.length})</span>
-        <button class="btn sm" data-act="import">Importar</button>
       </div>
       ${list.map(e => `
         <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/dps/${encodeURIComponent(e.id)}">
@@ -126,19 +111,13 @@ export function renderDps(root, [id]) {
           </div>
           </div>
         </div>
-        <div class="head-actions">
-          <button class="btn" data-act="import">Importar log</button>
-          <button class="btn" data-act="export">Exportar</button>
-          <button class="btn ghost danger" data-act="delete">Excluir</button>
-        </div>
       </div>
 
       <div class="kpis">
         <div class="kpi"><div class="l">DPS da party</div><div class="v">${compact(S.dps)}</div></div>
         <div class="kpi"><div class="l">Dano total</div><div class="v">${compact(S.total)}</div></div>
-        ${S.bossHp?.max ? `<div class="kpi"><div class="l">HP do chefe</div><div class="v">${pct(S.bossHp.current / S.bossHp.max, 1)}<small>${duration(S.duration)}</small></div><div class="stat"><div class="bar" style="margin-top:6px"><i style="width:${(S.bossHp.current / S.bossHp.max) * 100}%;background:var(--danger)"></i></div></div></div>`
-          : `<div class="kpi"><div class="l">Duração</div><div class="v">${duration(S.duration)}</div></div>`}
-        <div class="kpi"><div class="l">Maior DPS</div><div class="v" style="color:${classInfo(top.class).color}">${esc(top.name)}<small>${compact(top.dps)}</small></div></div>
+        <div class="kpi"><div class="l">${S.isBoss === false ? 'Duração' : 'Tempo do boss'}</div><div class="v">${duration(S.duration)}</div></div>
+        <div class="kpi"><div class="l">Maior DPS</div><div class="v top" style="color:${classInfo(top.class).color}"><span>${esc(top.name)}</span><small>${compact(top.dps)}</small></div></div>
       </div>
 
       <div class="card">
@@ -187,7 +166,7 @@ export function renderDps(root, [id]) {
   function renderSkills() {
     const p = S.players.find(x => x.name === state.player);
     const c = classInfo(p.class);
-    const rows = p.skills.map(s => ({
+    const rows = activeSkills(p).map(s => ({
       ...s,
       share: p.damage ? s.damage / p.damage : 0,
       avg: s.hits ? s.damage / s.hits : 0,
@@ -255,14 +234,6 @@ export function renderDps(root, [id]) {
       return renderSkills();
     }
 
-    const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'import') importLogs();
-    if (act === 'export') download(`${enc.boss}-${enc.startedAt.slice(0, 10)}.json`.replace(/[^\w.-]+/g, '_'), enc);
-    if (act === 'delete' && confirm(`Excluir o encontro "${enc.boss}"?`)) {
-      save('encounters', load('encounters', []).filter(x => x.id !== enc.id));
-      if (location.hash === '#/dps') dispatchEvent(new HashChangeEvent('hashchange'));
-      else location.hash = '#/dps';
-    }
   });
 
   root.querySelector('[data-act="pick"]').addEventListener('change', e => {

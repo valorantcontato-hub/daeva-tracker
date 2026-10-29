@@ -178,7 +178,7 @@ function setWidget(id, patch) {
 // Janela estreita por padrão (não ocupa a tela toda) e volta onde o usuário deixou.
 function mainBounds() {
   // Tamanho fixo, estreito, estilo celular (menu embaixo), cabendo na altura da tela.
-  const size = { width: 580, height: Math.min(820, screen.getPrimaryDisplay().workArea.height - 40) };
+  const size = { width: 580, height: Math.min(940, screen.getPrimaryDisplay().workArea.height - 30) };
   const b = cfg.mainBounds;
   if (!b || !Number.isFinite(b.x) || !Number.isFinite(b.y)) return size;
   // Só reaproveita a posição se a janela ainda aparece em alguma tela.

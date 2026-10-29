@@ -7,7 +7,7 @@ import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { getMe, findSkill, findProfileByName } from '../profiles.js';
 import { onLive } from '../live.js';
-import { getEncounters, playerClass, skillIconHtml, skillLabel } from './dps.js';
+import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { ROMAN, LAST, tierOf, isElite, clampKills } from './bestiary.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 
@@ -34,13 +34,6 @@ function currentFight() {
 function myPlayer(S) {
   const me = getMe();
   return S.players.find(p => p.isLocal) || S.players.find(p => me && p.name.toLowerCase() === me.name?.toLowerCase()) || null;
-}
-
-/** Só skills ativas do perfil PlayNC (Active). Sem perfil para comparar, mostra todas. */
-function activeSkills(p) {
-  const known = p.skills.map(s => ({ s, ref: findSkill(p.name, s.name, p.class, s.id) }));
-  const hasProfile = !!findProfileByName(p.name) || known.some(k => k.ref);
-  return hasProfile ? known.filter(k => k.ref?.category === 'Active').map(k => k.s) : p.skills;
 }
 
 // ---------- Corpo de cada widget ----------

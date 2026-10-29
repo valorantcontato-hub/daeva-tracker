@@ -36,20 +36,20 @@ function tile(item, { skin = false } = {}) {
     </div>`;
 }
 
-/** "Justice [Nezekan]" -> rótulo "Justice" e subtítulo "Nezekan" (valor vem do tabuleiro de Daevanion). */
+/** "Justice [Nezekan]" -> rótulo "Justice" (o tabuleiro de origem aparece no tooltip). */
 function statTile(s) {
   const m = /^(.*?)\s*\[(.*)\]$/.exec(s.name);
   const label = m ? m[1] : s.name;
   return `
     <div class="stat-tile" style="--c:${STAT_COLORS[s.type] || 'var(--accent)'}" data-tip="${esc([s.name, ...(s.effects || [])].join('\n'))}">
       <span class="stat-ico">${statIcon(s.type)}</span>
-      <span class="stat-name">${esc(label)}${m ? `<small>${esc(m[2])}</small>` : ''}</span>
+      <span class="stat-name">${esc(label)}</span>
       <b>${int(s.value)}</b>
     </div>`;
 }
 
-/** Cabeçalho do personagem. "extra" é HTML opcional (botões) mostrado ao lado dos números. */
-function heroHtml(me, extra = '') {
+/** Cabeçalho do personagem. "extra" é HTML opcional (botões) ao lado dos números; "tabs" é o menu do personagem. */
+function heroHtml(me, extra = '', tabs = '') {
   const c = classInfo(me.class);
   return `
     <section class="hero card" style="--c:${c.color}">
@@ -67,6 +67,7 @@ function heroHtml(me, extra = '') {
           ${extra}
         </div>
       </div>
+      ${tabs}
     </section>`;
 }
 
@@ -76,11 +77,11 @@ function heroHtml(me, extra = '') {
  */
 export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '' } = {}) {
   setTooltipContext(me);
-  root.innerHTML = heroHtml(me, extra) + `
-    <nav class="subtabs" aria-label="Menu do personagem">
-      ${TABS.map(([k, l]) => `<a class="subtab ${k === tab ? 'active' : ''}" href="${base}${k ? '/' + k : ''}">${l}</a>`).join('')}
-    </nav>
-    <div class="sub-body"></div>`;
+  // O menu do personagem fica dentro do cabeçalho (mais compacto).
+  const tabs = `<nav class="hero-tabs" aria-label="Menu do personagem">
+      ${TABS.map(([k, l]) => `<a class="${k === tab ? 'active' : ''}" href="${base}${k ? '/' + k : ''}">${l}</a>`).join('')}
+    </nav>`;
+  root.innerHTML = heroHtml(me, extra, tabs) + '<div class="sub-body"></div>';
   const body = root.querySelector('.sub-body');
   if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
   else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
@@ -121,7 +122,7 @@ function characterMain(me) {
       <section class="card stats-card">
         <div class="card-head"><h2>Atributos</h2></div>
         <div class="stat-grid">${base.map(statTile).join('')}</div>
-        ${board.length ? `<div class="card-head" style="margin-top:18px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+        ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
       </section>
     </div>`;
 }
@@ -143,12 +144,8 @@ export function renderHome(root, [tab = ''] = []) {
     return;
   }
 
-  const autostartBox = () => window.desktop?.status().then(s => { const box = root.querySelector('#autostart'); if (box) box.checked = !!s.autostart; });
-  const switchHtml = window.desktop ? `<label class="switch small" title="A captura já fica rodando quando o jogo abrir, e o app reconhece o personagem sozinho"><input type="checkbox" id="autostart"> Abrir com o Windows</label>` : '';
-
   function render() {
-    characterSheet(root, me, { tab, base: '#/inicio', extra: switchHtml });
-    autostartBox();
+    characterSheet(root, me, { tab, base: '#/inicio' });
   }
 
   // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
@@ -162,9 +159,6 @@ export function renderHome(root, [tab = ''] = []) {
     } catch { /* sem internet ou PlayNC fora do ar: mantém o que já está na tela */ }
   }
 
-  root.addEventListener('change', e => {
-    if (e.target.id === 'autostart') window.desktop?.setAutostart(e.target.checked);
-  });
   const timer = setInterval(refresh, REFRESH_MS);
   render();
   refresh();

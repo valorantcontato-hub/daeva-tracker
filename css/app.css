@@ -617,3 +617,50 @@ html.desktop body { border: 1px solid var(--border); min-height: 100vh; }
 .lang-switch button.active { background: var(--accent); color: var(--accent-ink); }
 .lang-switch button:disabled { opacity: .6; cursor: wait; }
 html.desktop .lang-switch { -webkit-app-region: no-drag; }
+
+/* ---------- Compactação: ficha, equipamentos, atributos e DPS ---------- */
+.slot { width: 44px; height: 44px; }
+.gear-card { min-width: max-content; padding: 12px; gap: 10px; }
+.gear-col .card-head { margin-bottom: 8px; }
+.gear, .gear-row { gap: 5px; }
+.arcana-block { padding-top: 8px; }
+.arcana-block .card-head { margin-bottom: 6px; }
+.slot .enchant { font-size: 10px; right: 2px; bottom: 2px; }
+
+/* menu do personagem dentro do cabeçalho */
+.hero-tabs { margin-left: auto; align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: none; }
+.hero-tabs a { padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.hero-tabs a:hover { color: var(--text); }
+.hero-tabs a.active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+.hero { padding: 8px 10px; gap: 10px; }
+.portrait { width: 76px; }
+.hero-name { font-size: 20px; }
+.hero-stats > div:not(.head-actions) { padding: 2px 8px; }
+.home-page { gap: 8px; }
+.home-main { gap: 8px; }
+
+/* atributos e Daevanion: de 2 em 2, menores */
+.stats-card { padding: 10px; min-width: 0; }
+.stats-card .card-head { margin-bottom: 6px; }
+.stats-card h2 { font-size: 14px; }
+.stats-card h3 { font-size: 12px; }
+.stat-grid, .stat-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.stat-tile { gap: 7px; padding: 5px 7px; border-radius: 9px; }
+.stat-ico, .stat-grid.compact .stat-ico { width: 24px; height: 24px; border-radius: 7px; }
+.stat-ico svg, .stat-grid.compact .stat-ico svg { width: 14px; height: 14px; }
+.stat-name { font-size: 11px; }
+.stat-tile b, .stat-grid.compact b { font-size: 14px; }
+
+/* DPS: quatro cartões lado a lado, menores */
+.kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.kpi { padding: 6px 9px; border-radius: 10px; }
+.kpi .l { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .v { font-size: 16px; margin-top: 0; }
+.kpi .v.top { display: flex; flex-direction: column; font-size: 13px; line-height: 1.2; }
+.kpi .v.top span { overflow: hidden; text-overflow: ellipsis; }
+.kpi .v.top small { margin: 0; font-size: 11px; }
+.stat-tile { gap: 5px; padding: 5px 6px; }
+.stat-ico, .stat-grid.compact .stat-ico { width: 22px; height: 22px; }
+.stat-ico svg, .stat-grid.compact .stat-ico svg { width: 13px; height: 13px; }
+.stat-name { font-size: 10.5px; letter-spacing: -.2px; }
+.stat-tile b, .stat-grid.compact b { font-size: 13.5px; }
