@@ -12,7 +12,6 @@ contextBridge.exposeInMainWorld('overlay', {
 contextBridge.exposeInMainWorld('desktop', {
   rounded: process.argv.includes('--lotus-rounded'),
   status: () => ipcRenderer.invoke('app:status'),
-  setMovement: enabled => ipcRenderer.invoke('app:movement', enabled),
   onStatus: cb => ipcRenderer.on('app:status', (_e, s) => cb(s)),
   installUpdate: () => ipcRenderer.invoke('app:install-update'),
   recheckNpcap: () => ipcRenderer.invoke('app:recheck-npcap'),
