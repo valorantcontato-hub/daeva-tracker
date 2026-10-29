@@ -1,7 +1,7 @@
 // daeva-capture: lê o tráfego do AION 2 de forma passiva (Npcap) usando o motor do
 // Aion2DpsMeter e envia a luta ao vivo para o Lotus Tracker (POST /api/live).
 //
-//   daeva-capture [--url http://localhost:47173] [--all-damage] [--replay arquivo.pcap]
+//   daeva-capture [--url http://localhost:47173] [--all-damage] [--replay arquivo.pcap] [--record segundos]
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -38,6 +38,35 @@ var http = new HttpClient { BaseAddress = new Uri(url), Timeout = TimeSpan.FromS
 var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
+using var recorder = new DaevaCapture.PacketRecorder();
+var recordDir = Path.Combine(configDir, "recordings");
+var recordTrigger = Path.Combine(configDir, "record.start");
+var recordStatus = Path.Combine(configDir, "record.status");
+void StartRecording(int seconds)
+{
+    var file = recorder.Start(recordDir, seconds);
+    Console.WriteLine($"Gravando pacotes por {seconds}s em {file}");
+    try { File.WriteAllText(recordStatus, JsonSerializer.Serialize(new { state = "recording", file, seconds, endsAt = DateTime.UtcNow.AddSeconds(seconds).ToString("o") })); } catch { }
+}
+void PollRecording()
+{
+    try
+    {
+        if (!recorder.Active && File.Exists(recordTrigger))
+        {
+            int.TryParse(File.ReadAllText(recordTrigger).Trim(), out var secs);
+            File.Delete(recordTrigger);
+            StartRecording(Math.Clamp(secs == 0 ? 300 : secs, 10, 900));
+        }
+        if (recorder.Tick())
+        {
+            Console.WriteLine("Gravação concluída.");
+            File.WriteAllText(recordStatus, JsonSerializer.Serialize(new { state = "done", file = recorder.Path }));
+        }
+    }
+    catch (Exception ex) { Console.Error.WriteLine("Gravação: " + ex.Message); }
+}
+if (int.TryParse(Arg("--record", ""), out var recordSeconds)) StartRecording(Math.Clamp(recordSeconds, 10, 900));
 
 engine.Store.EncounterEnded += r => outbox.Enqueue(Dto(r, "end"));
 // O jogo só diz o nome do seu personagem em certos momentos (teleporte, entrada em DG). Lembramos o
@@ -75,6 +104,7 @@ Guid lastId = Guid.Empty;
 while (!cts.IsCancellationRequested)
 {
     engine.Tick();
+    PollRecording();
     var r = engine.Store.GetDisplayRecord();
     if (r is { InProgress: true } && (r.Id != lastId || r.TotalDamage != lastDamage))
     {

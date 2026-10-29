@@ -2,13 +2,15 @@
 // (Personagem · Skills · Daevanion). Atualiza sozinho.
 import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
-import { getMe, getParty, refreshProfile, removePartyMember } from '../profiles.js';
+import { getMe, getParty, refreshProfile, removePartyMember, REGIONS, searchCharacters, fetchProfile, getFavorites, addFavorite, removeFavorite } from '../profiles.js';
+import { load, save } from '../store.js';
 import { setTooltipContext } from '../tooltip.js';
+import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
-import { esc, int } from '../util.js';
+import { esc, int, toast } from '../util.js';
 import { portraitUrl } from '../portrait.js';
-import { appearanceItems, combatStats } from '../character-layout.js';
+import { appearanceItems } from '../character-layout.js';
 
 const REFRESH_MS = 60e3;
 
@@ -45,10 +47,9 @@ function heroHtml(me, extra = '', tabs = '') {
         ${me.image ? `<img src="${esc(portraitUrl(me))}" alt="" draggable="false">` : classIcon(me.class, 120)}
       </div>
       <div class="hero-info">
-        <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
+        <div class="eyebrow hero-top"><span>${esc(me.serverName)}</span><span class="hero-sep">·</span><div class="meta hero-class">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div></div>
         <div class="hero-name-row">
           <h1 class="hero-name">${esc(me.name)}</h1>
-          <div class="meta hero-class">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
         </div>
         ${me.title ? `<div class="hero-title">${esc(me.title)}</div>` : ''}
         <div class="hero-stats">
@@ -65,7 +66,7 @@ function heroHtml(me, extra = '', tabs = '') {
  * Ficha completa do personagem: cabeçalho, menu (Personagem · Skills · Daevanion) e a aba escolhida.
  * base = início do link das abas (ex.: "#/inicio" ou "#/conta/<id>").
  */
-export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '', withParty = false } = {}) {
+export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '', withParty = false, withFavorites = false } = {}) {
   setTooltipContext(me);
   // O menu do personagem fica dentro do cabeçalho (mais compacto).
   const tabs = `<nav class="hero-tabs" aria-label="Menu do personagem">
@@ -75,7 +76,7 @@ export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = 
   const body = root.querySelector('.sub-body');
   if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
   else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
-  else body.innerHTML = characterMain(me, { withParty });
+  else body.innerHTML = characterMain(me, { withParty, withFavorites });
 }
 
 /** Casas em grade que se esticam para preencher toda a largura do container. */
@@ -107,10 +108,104 @@ function partyCard(me) {
     </section>`;
 }
 
-function characterMain(me, { withParty = false } = {}) {
+/** "Justice [Nezekan]" -> rótulo "Justice" (o tabuleiro de origem aparece no tooltip). */
+function statTile(s) {
+  const m = /^(.*?)\s*\[(.*)\]$/.exec(s.name);
+  const label = m ? m[1] : s.name;
+  return `
+    <div class="stat-tile" style="--c:${STAT_COLORS[s.type] || 'var(--accent)'}" data-tip="${esc([s.name, ...(s.effects || [])].join('\n'))}">
+      <span class="stat-ico">${statIcon(s.type)}</span>
+      <span class="stat-name">${esc(label)}</span>
+      <b>${int(s.value)}</b>
+    </div>`;
+}
+
+// ---------- Favoritos: contas de outras pessoas, listadas como uma party; clicar abre a ficha ----------
+const fav = { open: false, busy: false, results: null, error: '' };
+
+function favoritesHtml() {
+  const list = getFavorites();
+  const region = load('region', getMe()?.region || 'nae');
+  const results = fav.results ? (fav.results.length ? fav.results.map((c, i) => `
+      <div class="fav-row">
+        <span class="fav-txt"><b>${esc(c.name)}</b><span class="muted">${esc(c.serverName)} · Nv. ${c.level}</span></span>
+        <button class="btn sm" data-fav="add" data-i="${i}">+ Favoritar</button>
+      </div>`).join('') : '<p class="muted small">Nenhum personagem encontrado.</p>') : '';
+  return `
+    <div class="card-head fav-head"><h3>Favoritos</h3><button class="btn sm" data-fav="toggle" aria-expanded="${fav.open}">${fav.open ? 'Fechar' : '+ Buscar'}</button></div>
+    ${fav.open ? `<form class="fav-search" data-fav-form>
+      <input type="text" name="name" placeholder="Nome do personagem" required minlength="2" maxlength="30" autocomplete="off" aria-label="Nome do personagem">
+      <select name="region" aria-label="Região">${REGIONS.map(([k, l]) => `<option value="${k}" ${k === region ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <button class="btn primary sm" ${fav.busy ? 'disabled' : ''}>${fav.busy ? 'Buscando…' : 'Buscar'}</button>
+    </form>${fav.error ? `<p class="small" style="color:var(--danger)">${esc(fav.error)}</p>` : ''}<div class="fav-results">${results}</div>` : ''}
+    <div class="fav-list">${list.length ? list.map(p => {
+      const c = classInfo(p.class);
+      return `<a class="fav-row" href="#/conta/${encodeURIComponent(p.characterId)}" data-tip="${esc(p.name)} · ${esc(p.serverName)}">
+        <span class="fav-avatar">${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
+        <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i style="color:${c.color};font-style:normal">${esc(c.name)}</i> · Nv. ${p.level}</span></span>
+        <span class="fav-stats"><b>CP ${int(p.combatPower || 0)}</b><span>GP ${p.itemLevel != null ? int(p.itemLevel) : '—'}</span></span>
+        <button class="fav-x" data-fav="remove" data-id="${esc(p.characterId)}" aria-label="Remover dos favoritos" title="Remover">×</button>
+      </a>`; }).join('') : (fav.open ? '' : '<p class="muted small">Busque e favorite contas para acompanhá-las aqui, como uma party.</p>')}</div>`;
+}
+
+/** Eventos do bloco de favoritos (delegados na raiz da página; só redesenha o bloco). */
+function wireFavorites(root) {
+  const redraw = () => { const el = root.querySelector('.fav-block'); if (el) el.innerHTML = favoritesHtml(); };
+  // Tempo real: reconsulta a PlayNC a cada minuto (um favorito por vez) e redesenha só a lista.
+  let syncing = false;
+  const sync = async () => {
+    if (!root.isConnected) return clearInterval(timer);
+    if (syncing || document.hidden) return;
+    syncing = true;
+    try {
+      for (const p of getFavorites()) {
+        if (!root.isConnected) break;
+        try { await refreshProfile(p); if (!fav.busy && !fav.open) redraw(); } catch { /* mantém o último valor */ }
+      }
+    } finally { syncing = false; }
+  };
+  const timer = setInterval(sync, 60e3);
+  setTimeout(sync, 800);
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('[data-fav]');
+    if (!b) return;
+    e.preventDefault();
+    const act = b.dataset.fav;
+    if (act === 'toggle') {
+      fav.open = !fav.open;
+      if (!fav.open) { fav.results = null; fav.error = ''; }
+      redraw();
+      root.querySelector('.fav-search input')?.focus();
+    } else if (act === 'remove') {
+      removeFavorite(b.dataset.id);
+      redraw();
+    } else if (act === 'add') {
+      const ref = fav.results?.[+b.dataset.i];
+      if (!ref) return;
+      b.disabled = true;
+      b.textContent = 'Adicionando…';
+      try { addFavorite(await fetchProfile(ref)); fav.open = false; fav.results = null; toast(`${ref.name} adicionado aos favoritos`); } catch (err) { toast(err.message); }
+      redraw();
+    }
+  });
+  root.addEventListener('submit', async e => {
+    const form = e.target.closest('[data-fav-form]');
+    if (!form) return;
+    e.preventDefault();
+    const f = form.elements;
+    save('region', f.region.value);
+    fav.busy = true; fav.error = ''; fav.results = null; redraw();
+    try { fav.results = await searchCharacters(f.name.value, f.region.value); } catch (err) { fav.error = err.message; }
+    fav.busy = false;
+    redraw();
+  });
+}
+
+function characterMain(me, { withParty = false, withFavorites = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
   const look = appearanceItems(me);
-  const totals = combatStats(me);
+  const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
+  const board = (me.stats || []).filter(s => !BASE_STATS.includes(s.type));
   // Equipamentos em 4 colunas (dois pares por linha, como a janela do jogo).
   const gear = [];
   for (let i = 0; i < GEAR.length; i += 2) gear.push(...GEAR[i], ...(GEAR[i + 1] || []));
@@ -135,10 +230,11 @@ function characterMain(me, { withParty = false } = {}) {
       </section>
 
       <div class="side-col">
-        <section class="card stats-card combat-card">
+        <section class="card stats-card">
           <div class="card-head"><h2>Atributos</h2></div>
-          <div class="combat-totals">${totals.map(s=>`<div class="combat-stat" data-tip="${esc(s.label)}${s.value===null?' · Aguardando dados do jogo':''}"><span>${esc(s.label)}</span><b>${s.value===null?'—':s.percent?s.value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':int(s.value)}</b></div>`).join('')}</div>
-          ${totals.some(s=>s.value===null)?'<p class="combat-source muted">Os totais de combate ainda não estão disponíveis na captura. O perfil público fornece apenas os atributos básicos.</p>':''}
+          <div class="stat-grid" style="--stat-rows:${Math.ceil(base.length / 2) || 1}">${base.map(statTile).join('')}</div>
+          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact" style="--stat-rows:${Math.ceil(board.length / 2) || 1}">${board.map(statTile).join('')}</div>` : ''}
+          ${withFavorites ? `<div class="fav-block">${favoritesHtml()}</div>` : ''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>
@@ -163,7 +259,7 @@ export function renderHome(root, [tab = ''] = []) {
   }
 
   function render() {
-    characterSheet(root, me, { tab, base: '#/inicio' });
+    characterSheet(root, me, { tab, base: '#/inicio', withFavorites: true });
   }
 
   // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
@@ -188,6 +284,7 @@ export function renderHome(root, [tab = ''] = []) {
     render();
   });
 
+  wireFavorites(root);
   const onFocus = () => { if (root.isConnected) refresh(); else removeEventListener('focus', onFocus); };
   addEventListener('focus', onFocus);
   const timer = setInterval(refresh, REFRESH_MS);

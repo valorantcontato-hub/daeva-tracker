@@ -1084,3 +1084,291 @@ html.home-fit .combat-source { margin-top: 10px; font-size: 10.5px; }
 .account-page .equipment-and-look .gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
 .hero-stats > .head-actions { border: 0; background: none; padding: 0; min-width: 0; border-radius: 0; }
 .account-page .hero-stats .btn { height: 28px; }
+
+/* ======= Traçado dos containers: idêntico ao dos cards "Animes do ano" do Funima ======= */
+/*   .card { border: 2px solid rgba(255,255,255,.08); border-radius: 14px; transition: border-color .25s }
+     .card:hover, .card:focus-within { border-color: rgba(255,255,255,.22) }                              */
+.card, .home-main > .gear-card, .home-main .stats-card {
+  border: 2px solid rgba(255, 255, 255, .08);
+  border-radius: 14px;
+  transition: border-color .25s;
+}
+.card:hover, .card:focus-within,
+.home-main > .gear-card:hover, .home-main > .gear-card:focus-within,
+.home-main .stats-card:hover, .home-main .stats-card:focus-within { border-color: rgba(255, 255, 255, .22); }
+/* barras do topo e de baixo com o mesmo traço */
+.topbar { border-bottom: 2px solid rgba(255, 255, 255, .08); }
+@media (max-width: 640px) { .tabs { border-top: 2px solid rgba(255, 255, 255, .08); } }
+
+/* Início: o container de cima não encosta mais na barra de título */
+html.home-fit #view { padding-top: 12px; }
+
+/* Início: itens mais próximos e títulos em negrito, sem a barra lateral */
+.home-main .card-head h2, .home-main .card-head h3 { font-size: 14px; font-weight: 700; color: #fff; }
+.home-main .card-head h2::before, .home-main .card-head h3::before { content: none; }
+html.home-fit .home-main { gap: 6px; }
+html.home-fit .equipment-and-look { gap: 6px; }
+html.home-fit .gear-card, html.home-fit .stats-card { padding: 8px; gap: 4px; }
+html.home-fit .tile-grid { gap: 2px; }
+html.home-fit .tile-grid .slot { height: min(100%, calc((100cqw - (var(--cols) - 1)*2px)/var(--cols))); }
+html.home-fit .stat-grid { gap: 3px; }
+html .hero, html .card.hero { border: 2px solid rgba(255, 255, 255, .08); border-radius: 14px; }
+html .hero:hover { border-color: rgba(255, 255, 255, .22); }
+/* Atributos e Daevanion: cartões coloridos, 2 por linha, com ícone (como no print) */
+.home-main .stat-tile {
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: 11px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 20%, var(--surface)), color-mix(in srgb, var(--c) 6%, var(--surface)));
+  padding: 4px 8px 4px 5px; gap: 7px;
+}
+.home-main .stat-tile:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 28%, var(--surface)), color-mix(in srgb, var(--c) 10%, var(--surface))); border-color: var(--c); }
+.home-main .stat-ico, html.home-fit .stat-ico { display: grid; background: color-mix(in srgb, var(--c) 22%, transparent); border-radius: 8px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+.home-main .stat-name { color: #e4e6eb; font-weight: 500; }
+.home-main .stat-tile b { font-weight: 700; color: #fff; }
+html.home-fit .stat-grid { gap: 5px; }
+
+/* Cantos arredondados. A janela só é recortada quando o Electron a criou transparente (html.round-window);
+   num app antigo, de janela opaca, o recorte deixaria os cantos pretos e quadrados. */
+/* O fundo do <html> precisa ser (quase) invisível mas não "transparent": senão o do <body> sobe para a tela toda e vira o quadrado atrás dos cantos. */
+html.round-window { background: rgba(0, 0, 0, .01); }
+html.round-window body { background: var(--bg); border: 0; clip-path: inset(0 round 20px); min-height: 100vh; }
+html.round-window .topbar { border-radius: 20px 20px 0 0; }
+html.round-window .tabs { border-radius: 0 0 20px 20px; }
+.card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 16px; }
+.home-main .stat-tile { border-radius: 12px; }
+.slot, .home-main .slot, .gear-card .slot { border-radius: 8px; }
+.btn, .chip, .hero-tabs .btn { border-radius: 11px; }
+
+/* Servidor em cima, com classe e nível ao lado */
+.hero-top { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.hero-top .hero-class { margin: 0; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.hero-top .hero-class span { color: var(--muted); }
+
+/* Atributos/Daevanion preenchem o card inteiro, sem sobra embaixo */
+html.home-fit .stats-card { display: flex; flex-direction: column; }
+html.home-fit .stats-card .card-head { flex: none; }
+html.home-fit .stats-card .stat-grid { flex: var(--stat-rows) 1 0; min-height: 0; grid-template-rows: repeat(var(--stat-rows), minmax(0, 1fr)); gap: 6px; }
+html.home-fit .stats-card .stat-tile { height: 100%; min-height: 0; }
+html.home-fit .stats-card .card-head + .stat-grid + .card-head { margin-top: 10px !important; }
+
+/* Atributos: cartões sóbrios (sem brilho colorido) e ícones oficiais do jogo */
+.home-main .stat-tile {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, .09); background: rgba(255, 255, 255, .035);
+}
+.home-main .stat-tile:hover { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .2); }
+.home-main .stat-ico { position: relative; background: none; box-shadow: none; border-radius: 0; width: 30px; height: 30px; }
+.home-main .stat-ico svg { opacity: .0; width: 100%; height: 100%; }
+.home-main .stat-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.home-main .stat-ico:not(:has(img)) svg { opacity: 1; }
+html.home-fit .stat-ico { max-height: none; }
+html.home-fit .home-main .stat-ico, html .home-main .stats-card .stat-ico { background: none; box-shadow: none; border-radius: 0; width: 30px; height: 30px; }
+html.home-fit .home-main .stat-ico img { z-index: 1; }
+
+/* Atributos: sem traçado; só um fundo mais escuro ao passar o mouse */
+.home-main .stat-tile { border: 0; background: rgba(255, 255, 255, .035); }
+.home-main .stat-tile:hover { border: 0; background: rgba(0, 0, 0, .35); }
+
+/* Containers gerais: sem efeito ao passar o mouse */
+.card:hover, .card:focus-within,
+.home-main > .gear-card:hover, .home-main > .gear-card:focus-within,
+.home-main .stats-card:hover, .home-main .stats-card:focus-within,
+html .hero:hover { border-color: rgba(255, 255, 255, .08); }
+.card, .home-main > .gear-card, .home-main .stats-card { transition: none; }
+
+/* ======= Botão de tema e tema claro ======= */
+.theme-btn { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
+.theme-btn:hover { color: var(--text); }
+.theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-btn .ico-sun { display: none; }
+:root[data-theme="light"] .theme-btn .ico-moon { display: none; }
+:root[data-theme="light"] .theme-btn .ico-sun { display: inline; }
+html.desktop .theme-btn { -webkit-app-region: no-drag; }
+
+:root[data-theme="light"] {
+  --bg: #eef2f7; --surface: #ffffff; --surface-2: #e4e9f1; --border: #d3dae6;
+  --text: #172033; --muted: #5f6b80; --accent: #1f7ae0; --accent-ink: #ffffff;
+  --lotus-mark: url('../icons/lotus-light.svg');
+  --shadow: 0 8px 24px rgba(30, 55, 100, .12);
+  color-scheme: light;
+}
+:root[data-theme="light"] .card, :root[data-theme="light"] .home-main > .gear-card, :root[data-theme="light"] .home-main .stats-card,
+:root[data-theme="light"] html .hero, :root[data-theme="light"] .hero { border-color: rgba(30, 55, 100, .14); background: var(--surface); }
+:root[data-theme="light"] .card:hover, :root[data-theme="light"] .card:focus-within, :root[data-theme="light"] .hero:hover,
+:root[data-theme="light"] .home-main > .gear-card:hover, :root[data-theme="light"] .home-main .stats-card:hover { border-color: rgba(30, 55, 100, .14); }
+:root[data-theme="light"] .topbar { border-bottom-color: rgba(30, 55, 100, .14); background: var(--bg); }
+:root[data-theme="light"] .tabs { border-top-color: rgba(30, 55, 100, .14); background: var(--surface); }
+:root[data-theme="light"] .home-main .card-head h2, :root[data-theme="light"] .home-main .card-head h3 { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-tile { background: rgba(30, 55, 100, .05); }
+:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(30, 55, 100, .12); }
+:root[data-theme="light"] .home-main .stat-name { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-tile b { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-ico img { filter: invert(1) brightness(.35); }
+:root[data-theme="light"] .hero-name, :root[data-theme="light"] .hero-stats b { color: var(--text); }
+:root[data-theme="light"] .hero-tabs a:not(.active), :root[data-theme="light"] .account-page .hero-tabs a:not(.active) { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+:root[data-theme="light"] .home-main .stat-tile, :root[data-theme="light"] .combat-stat { border-color: transparent; }
+:root[data-theme="light"] .combat-stat span, :root[data-theme="light"] .combat-stat b { color: var(--text); }
+:root[data-theme="light"] .lang-switch, :root[data-theme="light"] .theme-btn { background: var(--surface); }
+:root[data-theme="light"] .pet-card, :root[data-theme="light"] .enc-item { color: var(--text); }
+:root[data-theme="light"] .slot { box-shadow: 0 1px 2px rgba(30, 55, 100, .2); }
+:root[data-theme="light"] .tabs a.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+:root[data-theme="light"] .hero-tabs a.active, :root[data-theme="light"] .lang-switch button.active { background: var(--accent); color: #fff; }
+
+/* Tema claro: efeitos ao passar o mouse sem cores fixas do escuro */
+:root[data-theme="light"] .training-run-row:hover, :root[data-theme="light"] .prow:hover,
+:root[data-theme="light"] .item-row:hover, :root[data-theme="light"] .enc-item:hover { background: rgba(30, 55, 100, .09); }
+:root[data-theme="light"] .tile-grid .slot:hover { box-shadow: 0 0 0 1px var(--accent), 0 4px 10px rgba(30, 55, 100, .28); }
+:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(30, 55, 100, .12); border: 0; }
+:root[data-theme="light"] .hero-tabs a:not(.active):hover, :root[data-theme="light"] .tabs a:not(.active):hover { background: rgba(30, 55, 100, .1); color: var(--text); }
+:root[data-theme="light"] .chip:not(.active):hover, :root[data-theme="light"] .btn:not(.primary):hover { background: rgba(30, 55, 100, .1); color: var(--text); }
+
+/* Tooltip: sempre escuro, também no tema claro (senão o texto some no fundo escuro) */
+:root[data-theme="light"] .tooltip { --text: #e6e9ef; --muted: #8a93a6; --border: #3a2850; --surface-2: #21182e; color: #e6e9ef; }
+
+/* ======= Nova paleta: cinza-azulado neutro no escuro e destaque azul no lugar do roxo ======= */
+:root {
+  --bg: #0e1116; --surface: #161a21; --surface-2: #1e232c; --border: #2b313c;
+  --text: #e8ebf1; --muted: #8c95a5; --accent: #3b9eff; --accent-ink: #ffffff;
+}
+:root[data-theme="light"] { --accent: #1f7ae0; }
+.hero::before { filter: none; }
+:root:not([data-theme="light"]) .hero::before { filter: drop-shadow(0 0 14px #3b9eff30); }
+.tooltip { background: #171a20; border-color: #323945; }
+.topbar, .home-main .card-head h2::before { border-bottom-color: rgba(255, 255, 255, .07); }
+
+/* Botões dos menus: botões do personagem (Personagem / Skills / Daevanion) e barra de baixo */
+.hero-tabs a, html.home-fit .hero-tabs a, .account-page .hero-tabs a {
+  border: 0; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-weight: 600; text-align: center;
+}
+.hero-tabs a:not(.active), html.home-fit .hero-tabs a:not(.active), .account-page .hero-tabs a:not(.active) { background: var(--surface-2); border: 0; }
+.hero-tabs a:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); color: var(--text); }
+.hero-tabs a.active, .lang-switch button.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+.tabs a { border-radius: 14px; margin: 6px 3px; }
+.tabs a.active { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent); box-shadow: none; }
+.tabs a:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+:root[data-theme="light"] .tabs a.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+:root[data-theme="light"] .hero-tabs a:not(.active) { background: var(--surface-2); color: var(--text); }
+:root[data-theme="light"] .hero-tabs a.active, :root[data-theme="light"] .lang-switch button.active { background: var(--accent); color: #fff; }
+html.home-fit .hero-tabs a.active, html .account-page .hero-tabs a.active, .hero-tabs a.active { background: var(--accent); color: #fff; }
+.tabs a.active { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+.tab-ico { filter: grayscale(1) brightness(1.25); }
+.tabs a.active .tab-ico { filter: none; color: var(--accent); }
+.slot .skin-mark { background: var(--accent); }
+html .tabs a.active { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent); box-shadow: none; }
+html .tabs a.active .tab-ico { color: var(--accent); }
+html .slot .skin-mark { background: var(--accent); }
+/* Sem brilho nos botões ativos */
+html .hero-tabs a.active, html .lang-switch button.active, .hero-tabs a.active, .lang-switch button.active { box-shadow: none; }
+
+/* Atributos/Daevanion no Início: cartões compactos (altura fixa), sem esticar */
+html.home-fit .stats-card .stat-grid { flex: none; grid-template-rows: none; grid-auto-rows: 30px; gap: 6px; }
+html.home-fit .stats-card .stat-tile { height: 100%; }
+html.home-fit .stats-card .stat-ico { width: 22px; height: 22px; }
+html.home-fit .stats-card .stat-name { font-size: 11px; }
+
+/* Avatar do personagem com o mesmo traçado grosso dos containers */
+.hero .portrait, html.home-fit .hero .portrait { border: 2px solid rgba(255, 255, 255, .08); border-radius: 12px; overflow: hidden; }
+:root[data-theme="light"] .hero .portrait { border-color: rgba(30, 55, 100, .14); }
+
+/* Menu de baixo: ícone de casa no Início e seleção neutra (sem o azul-claro) */
+.ico-home { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+.tab-ico { filter: none; }
+.tab-ico:not(:has(svg)) { filter: grayscale(1) brightness(1.25); }
+html .tabs a.active, :root[data-theme="light"] .tabs a.active { background: var(--surface-2); color: var(--text); box-shadow: none; }
+html .tabs a.active .tab-ico { color: var(--text); filter: none; }
+html .tabs a.active .tab-ico:not(:has(svg)) { filter: grayscale(1) brightness(1.6); }
+html .btn.primary { background: var(--accent); color: #fff; }
+html .btn.primary:hover { filter: brightness(1.1); }
+
+/* Moldura por cima da imagem dos itens (a sombra interna ficava escondida atrás dela) */
+.arcana-block .slot:not(.blank)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--g1) 55%, #fff 25%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
+}
+.arcana-block .slot { border-radius: 9px; }
+.arcana-block .slot img { object-fit: cover; }
+/* Itens: sem traçado ao passar o mouse */
+.tile-grid .slot:hover, :root[data-theme="light"] .tile-grid .slot:hover { box-shadow: none; }
+
+/* Favoritos (abaixo do Daevanion): contas listadas como uma party; clicar abre a ficha */
+.fav-block { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; flex: 1; min-height: 0; }
+.fav-head { display: flex; align-items: center; justify-content: space-between; margin: 0; }
+.fav-head .btn { height: 26px; padding: 0 10px; font-size: 12px; }
+.fav-search { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.fav-search input { grid-column: 1 / -1; }
+.fav-search input, .fav-search select { background: var(--surface-2); border: 0; border-radius: 10px; padding: 6px 10px; font-size: 12px; min-width: 0; }
+.fav-results, .fav-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.fav-results::-webkit-scrollbar, .fav-list::-webkit-scrollbar { display: none; }
+.fav-list { flex: 1; }
+.fav-results { max-height: 110px; }
+.fav-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, .035); color: inherit; text-decoration: none; }
+a.fav-row:hover { background: rgba(0, 0, 0, .35); }
+.fav-avatar { flex: none; width: 28px; height: 28px; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.fav-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fav-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.fav-txt b { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-txt .muted { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-x { flex: none; width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; }
+.fav-x:hover { background: rgba(0, 0, 0, .35); color: var(--text); }
+:root[data-theme="light"] .fav-row { background: rgba(30, 55, 100, .05); }
+:root[data-theme="light"] a.fav-row:hover { background: rgba(30, 55, 100, .12); }
+
+/* Início com o mesmo dimensionamento da tela Contas: cartões do tamanho do conteúdo, sem esticar */
+html.home-fit .home-main { align-items: start; }
+html.home-fit .gear-card, html.home-fit .stats-card { height: auto; min-height: 0; }
+html.home-fit .gear-block { flex: none; }
+html.home-fit .tile-grid { flex: none; grid-template-rows: none; }
+html.home-fit .tile-grid .slot { width: 100%; height: auto; max-height: none; aspect-ratio: 1; justify-self: stretch; }
+html.home-fit .arcana-block { flex: none; margin-top: 0; padding-top: 8px; }
+html.home-fit .stats-card .stat-grid { grid-auto-rows: 34px; }
+html.home-fit .stats-card .stat-ico { width: 24px; height: 24px; }
+html.home-fit .fav-block { flex: none; }
+html.home-fit .fav-list { max-height: 150px; flex: none; }
+html.home-fit .equipment-and-look > .gear-block, html.home-fit .gear-card .arcana-block { flex: none; min-height: auto; height: auto; }
+html.home-fit .gear-card { overflow: visible; }
+html.home-fit .gear-card, html.home-fit .stats-card { padding: 12px; gap: 10px; }
+html.home-fit .tile-grid { gap: 5px; }
+html.home-fit .stats-card .stat-grid { gap: 6px; grid-auto-rows: 38px; }
+/* Conteúdo do tamanho natural: se passar da altura da janela, rola sem barra visível */
+html.home-fit #view { overflow-y: auto; scrollbar-width: none; }
+html.home-fit #view::-webkit-scrollbar { display: none; }
+html.home-fit, html.home-fit body { overflow: hidden; }
+html.home-fit .home-page { height: auto; grid-template-rows: auto auto; }
+.fav-stats { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.fav-stats b { font-size: 12px; font-weight: 700; color: var(--text); }
+.fav-stats span { font-size: 11px; color: var(--muted); }
+
+/* Skills e Daevanion dentro do Início: mesmo cabeçalho e cartões da ficha */
+html.home-fit .sub-body { min-width: 0; }
+html.home-fit .sub-body .page-head { display: none; }
+html.home-fit .sub-body .page { padding: 0; gap: 10px; }
+html.home-fit .sub-body .card { padding: 12px; }
+
+/* Mascotes: cartões horizontais com ícone redondo, barra de progresso e nível */
+.pet2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pet2 { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; color: inherit; cursor: pointer;
+  background: var(--surface); border: 2px solid rgba(255, 255, 255, .08); border-radius: 14px; }
+.pet2:hover { background: var(--surface-2); }
+.pet2-ico { flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--surface-2);
+  box-shadow: 0 0 0 2px #e0605a; }
+.pet2.maxed .pet2-ico { box-shadow: 0 0 0 2px #4fd1c5; }
+.pet2-ico img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; display: block; }
+.pet2-ico b { font-size: 13px; color: var(--muted); }
+.pet2-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pet2-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pet2-bar { display: block; height: 6px; border-radius: 99px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.pet2-bar i { display: block; height: 100%; border-radius: inherit; background: #e0605a; }
+.pet2.maxed .pet2-bar i { background: linear-gradient(90deg, #d9a441, #5ec8e8); }
+.pet2-info { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0; }
+.pet2-badge { flex: none; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .07); color: var(--muted); font-weight: 700; font-size: 11px; }
+.pet2-badge.lv { color: var(--text); }
+.pet2-badge.max { color: var(--text); background: rgba(94, 200, 232, .16); }
+.pet2-count { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pet2-flag { position: absolute; top: 8px; right: 10px; color: #e9b949; font-size: 13px; }
+.pet2.focused { border-color: rgba(233, 185, 73, .45); }
+:root[data-theme="light"] .pet2 { border-color: rgba(30, 55, 100, .14); }
+:root[data-theme="light"] .pet2-bar, :root[data-theme="light"] .pet2-badge { background: rgba(30, 55, 100, .1); }
+.img-credit { margin: 10px 2px 0; font-size: 11px; color: var(--muted); }
+.img-credit a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.rec-card { margin-top: 12px; }
+.rec-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }

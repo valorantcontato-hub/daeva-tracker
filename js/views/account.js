@@ -4,7 +4,7 @@ import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import {
   REGIONS, searchCharacters, fetchProfile, getMe, getParty, setMe, upsertPartyMember,
-  removePartyMember, refreshProfile, findProfileById,
+  removePartyMember, refreshProfile, findProfileById, isFavorite, removeFavorite,
 } from '../profiles.js';
 import { characterSheet } from './home.js';
 import { esc, int, toast } from '../util.js';
@@ -47,7 +47,7 @@ export function renderAccount(root, [id, tab = ''] = []) {
     const isMe = me?.characterId === viewing.characterId;
     const extra = `<div class="head-actions">
       <button class="btn sm" data-act="refresh">Atualizar</button>
-      ${isMe ? '' : '<button class="btn sm danger" data-act="remove-viewing">Remover da party</button>'}
+      ${isMe ? '' : isFavorite(viewing.characterId) ? '<button class="btn sm danger" data-act="remove-fav">Remover dos favoritos</button>' : '<button class="btn sm danger" data-act="remove-viewing">Remover da party</button>'}
     </div>`;
     characterSheet(profileEl, viewing, { tab, base: '#/conta/' + encodeURIComponent(viewing.characterId), extra });
   }
@@ -104,6 +104,11 @@ export function renderAccount(root, [id, tab = ''] = []) {
     const act = btn.dataset.act;
     if (act === 'me') return addFromResult(+btn.dataset.i, true);
     if (act === 'party') return addFromResult(+btn.dataset.i, false);
+    if (act === 'remove-fav') {
+      removeFavorite(viewing.characterId);
+      location.hash = '#/inicio';
+      return;
+    }
     if (act === 'remove-viewing') {
       removePartyMember(viewing.characterId);
       location.hash = '#/inicio';

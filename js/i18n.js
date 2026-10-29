@@ -56,7 +56,7 @@ const EXACT = {
   'Sem abates registrados': 'No recorded kills', 'Progresso registrado': 'Recorded progress',
   'Foto do monstro': 'Monster photo', 'Foto indisponível': 'Photo unavailable', 'Sem foto': 'No photo',
   // Navegação e topo
-  'Início': 'Home', 'Bestiário': 'Bestiary', 'Conta': 'Account', 'Alternar tema claro/escuro': 'Toggle light/dark theme',
+  'Início': 'Home', 'Imagens dos monstros:': 'Monster images:', 'Imagens:': 'Images:', 'Bestiário': 'Bestiary', 'Mascotes': 'Pets', 'Conta': 'Account', 'Contas': 'Accounts', 'Alternar tema claro/escuro': 'Toggle light/dark theme',
   'Alternar tema': 'Toggle theme', 'Seções': 'Sections', 'Idioma': 'Language', 'Janela': 'Window', 'Minimizar': 'Minimize', 'Fechar': 'Close',
   // Ficha do personagem
   'Personagem': 'Character', 'Menu do personagem': 'Character menu', 'Equipamentos': 'Equipment', 'Aparência': 'Appearance',

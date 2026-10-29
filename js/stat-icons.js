@@ -26,7 +26,12 @@ export const STAT_COLORS = {
 
 export const BASE_STATS = ['STR', 'DEX', 'INT', 'CON', 'AGI', 'WIS'];
 
+// Ícones oficiais do jogo (os mesmos da ficha em aion2.plaync.com); se não carregar, o traço acima aparece.
+const CDN = 'https://assets.playnccdn.com/static-aion2/characters/img/info/stat_';
+const FILE = { STR: 'str', DEX: 'dex', INT: 'int', CON: 'con', AGI: 'agi', WIS: 'wis' };
+
 export function statIcon(type) {
   const d = P[type] || P.INT;
-  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  const file = FILE[type] || (P[type] ? 'lords_' + type.toLowerCase() : '');
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>${file ? `<img src="${CDN}${file}.png" alt="" loading="lazy" draggable="false" onerror="this.remove()">` : ''}`;
 }

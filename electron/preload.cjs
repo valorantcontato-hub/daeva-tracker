@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('overlay', {
 });
 
 contextBridge.exposeInMainWorld('desktop', {
+  rounded: process.argv.includes('--lotus-rounded'),
   status: () => ipcRenderer.invoke('app:status'),
   onStatus: cb => ipcRenderer.on('app:status', (_e, s) => cb(s)),
   installUpdate: () => ipcRenderer.invoke('app:install-update'),

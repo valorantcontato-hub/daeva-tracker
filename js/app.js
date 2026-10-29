@@ -29,7 +29,7 @@ function route() {
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');
-  document.documentElement.classList.toggle('home-fit', key === 'inicio' && !params[0]);
+  document.documentElement.classList.toggle('home-fit', key === 'inicio');
   document.querySelectorAll('[data-route]').forEach(a => {
     const on = a.dataset.route === key;
     a.classList.toggle('active', on);
@@ -81,9 +81,20 @@ if (typeof EventSource !== 'undefined') {
 // App desktop: janela sem barra do Windows; o topo do app arrasta a janela e tem minimizar/fechar.
 if (window.desktop) {
   document.documentElement.classList.add('desktop');
+  if (window.desktop.rounded) document.documentElement.classList.add('round-window');
   document.getElementById('win-min').addEventListener('click', () => window.desktop.minimize());
   document.getElementById('win-close').addEventListener('click', () => window.desktop.close());
 }
+
+// Tema claro/escuro (escuro é o padrão; o <script> do index.html já aplica o salvo antes de pintar).
+const themeBtn = document.getElementById('theme-btn');
+const applyTheme = t => { document.documentElement.dataset.theme = t; themeBtn?.setAttribute('aria-pressed', t === 'light'); };
+applyTheme(load('theme', 'dark') === 'light' ? 'light' : 'dark');
+themeBtn?.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  save('theme', next);
+  applyTheme(next);
+});
 
 // Idioma (PT/EN): troca a interface e os nomes reais do jogo (vindos do site oficial no idioma escolhido).
 const langBtns = [...document.querySelectorAll('.lang-switch [data-lang]')];
