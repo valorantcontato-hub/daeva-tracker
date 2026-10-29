@@ -14,6 +14,8 @@ import { loadIconManifest } from './icons.js';
 import { loadMonsterCatalog } from './monster-catalog.js';
 import { startLive, onPositions } from './live.js';
 import { startSightings } from './sightings.js';
+import { initDragScroll } from './drag-scroll.js';
+import { startStreamSync } from './stream-sync.js';
 import { openStreamMode } from './stream-mode.js';
 import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
@@ -109,6 +111,8 @@ if (needsRelocalization()) relocalizeProfiles().then(notifyChange, () => {});
 
 lockApp();
 initTooltips();
+initDragScroll();
+startStreamSync();
 if (!location.hash.startsWith('#/w/')) startSightings(onPositions); // só a janela principal envia e baixa os avistamentos
 setTooltipContext(getMe()); // já começa a buscar os detalhes dos itens, para o tooltip abrir na hora
 await loadIconManifest();
