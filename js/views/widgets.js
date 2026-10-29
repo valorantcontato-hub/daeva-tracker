@@ -27,11 +27,18 @@ export const WIDGETS = {
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
 /** Combate ao vivo. O painel de DPS da party ("party") só aparece em chefe de DG instanciada; o de skills também em mobs e bonecos. */
+const LINGER_MS = 15000; // painéis de combate ficam 15 s na tela depois que a luta (ou o dano) termina
+const lingering = {};
 function currentFight(id) {
   const enc = liveFight();
-  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) return null;
+  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) {
+    const last = lingering[id];
+    if (last && Date.now() - last.at < LINGER_MS) return { ...last.S, live: false, lingerLeft: LINGER_MS - (Date.now() - last.at) };
+    return null;
+  }
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
+  lingering[id] = { S, at: Date.now() };
   return S;
 }
 
@@ -280,7 +287,7 @@ export function renderWidget(root, [id]) {
     let visible = true;
     if (id !== 'radar') {
       const fight = currentFight(id);
-      const remaining = activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
+      const remaining = fight?.lingerLeft ?? activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
       visible = remaining > 0;
       wg.classList.toggle('combat-idle', !visible);
       if (visible) idleTimer = setTimeout(paint, remaining + 10);
