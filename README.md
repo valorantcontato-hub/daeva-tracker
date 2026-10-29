@@ -128,9 +128,9 @@ Envia snapshots no mesmo formato da ponte de captura (números simulados). `tool
 
 ## Direção do personagem no Mini mapa
 
-No app Windows, **Widgets → Ativar leitura de movimento** solicita administrador e reinicia a captura. A opção começa desligada e o Lotus salva a escolha depois que o usuário a habilita. A leitura e a solicitação de elevação são executadas pelo motor C# incluído no app, sem scripts externos. Depois de ativá-la, entre novamente no personagem se o aplicativo pedir identificação.
+No app Windows, a leitura de movimento inicia automaticamente junto com o Lotus, sem botão de ativação. A leitura e a solicitação de administrador são executadas pelo motor C# incluído no app, sem scripts externos. O Windows continua controlando a autorização de administrador. Entre novamente no personagem se o aplicativo pedir identificação.
 
-Esse modo opcional lê somente a chave temporária do protocolo no processo local do AION 2. A chave fica em memória, não é enviada ao servidor de atualizações nem salva pelo aplicativo. O modo comum continua usando apenas captura de rede. Desativar a opção ou fechar o Lotus encerra a captura elevada; a captura comum volta ao desativar.
+A leitura consulta a chave temporária do protocolo no processo local do AION 2. A chave fica em memória, não é enviada ao servidor de atualizações nem salva pelo aplicativo. Fechar o Lotus encerra a captura elevada. Se a autorização do Windows for recusada, o app mantém a captura comum; reabra e autorize para usar movimento em tempo real.
 
 Os comandos de movimento fornecem posição e direção do personagem, normalmente perto de 10 atualizações/s. A seta mantém a última direção recebida quando os dados param. Girar somente a câmera, sem uma atualização enviada pelo jogo, não gira a seta. A identificação do perfil continua obrigatória: posições de outros jogadores não são usadas como a sua.
 

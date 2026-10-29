@@ -48,7 +48,7 @@ const status = {
   progress: 0,
   npcap: existsSync(join(process.env.WINDIR || 'C:\\Windows', 'System32', 'Npcap', 'wpcap.dll')),
   capture: 'stopped', // stopped | running | missing
-  movementEnabled: false, // escolha explícita salva; solicita administrador no Windows
+  movementEnabled: true, // leitura nativa automática; respeita a confirmação do Windows
   autostart: app.isPackaged && app.getLoginItemSettings().openAtLogin,
 };
 const AUTOSTART = process.argv.includes('--autostart');
@@ -80,7 +80,7 @@ let captureProc = null;
 let captureRestarts = 0;
 let captureGeneration = 0;
 let captureStopFile = '';
-let readMovement = false;
+let readMovement = true;
 
 function stopCapture() {
   captureGeneration++;
@@ -96,7 +96,7 @@ function startCapture() {
   if (!status.npcap) return setStatus({ capture: 'stopped' });
   const generation = ++captureGeneration;
   captureStopFile = join(app.getPath('userData'), `capture-${process.pid}-${randomUUID()}.stop`);
-  const args = ['--url', BASE, '--owner-pid', String(process.pid), '--stop-file', captureStopFile, ...(readMovement ? ['--read-movement', '--launch-elevated'] : [])];
+  const args = ['--url', BASE, '--owner-pid', String(process.pid), '--stop-file', captureStopFile, ...(readMovement ? ['--launch-elevated'] : ['--passive-only'])];
   const options = { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] };
   captureProc = spawn(exe, args, options);
   const startedAt = Date.now();
@@ -105,12 +105,15 @@ function startCapture() {
   captureProc.once('exit', () => { if (Date.now() - startedAt > 60e3) captureRestarts = 0; });
   captureProc.stdout.on('data', d => process.stdout.write('[captura] ' + d));
   captureProc.stderr.on('data', d => process.stderr.write('[captura] ' + d));
-  captureProc.on('exit', () => {
+  captureProc.on('exit', code => {
     if (generation !== captureGeneration) return;
     captureProc = null;
     setStatus({ capture: 'stopped' });
     // Reinicia se cair (com espera crescente, até 1 min).
-    if (readMovement) { readMovement = false; setStatus({ movementEnabled: false }); }
+    if (readMovement && code === 1223) {
+      readMovement = false;
+      setStatus({ movementEnabled: false, movementState: 'permission', movementMessage: 'Reabra o Lotus e autorize o administrador para a leitura de movimento.' });
+    }
     if (!app.isQuitting) setTimeout(() => { if (generation === captureGeneration) startCapture(); }, Math.min(60e3, 2000 * 2 ** captureRestarts++));
   });
 }
@@ -250,21 +253,6 @@ ipcMain.on('widget:close-self', e => {
   for (const [id, w] of wins) if (w.webContents === e.sender) setWidget(id, { visible: false });
 });
 ipcMain.handle('app:status', () => status);
-ipcMain.handle('app:movement', (event, enabled) => {
-  if (BrowserWindow.fromWebContents(event.sender) !== mainWin) throw new Error('Abra o menu Widgets no aplicativo.');
-  try {
-    const recording = JSON.parse(readFileSync(join(app.getPath('appData'), 'DaevaTracker', 'record.status'), 'utf8'));
-    if (recording.state === 'recording' && Date.parse(recording.endsAt) > Date.now()) throw new Error('Aguarde a gravação terminar antes de reiniciar a captura.');
-  } catch (error) { if (error.message?.startsWith('Aguarde')) throw error; }
-  stopCapture();
-  readMovement = enabled === true;
-  cfg.movementEnabled = readMovement;
-  writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2));
-  setStatus({ capture: 'stopped', movementEnabled: readMovement, movementState: readMovement ? 'starting' : 'off', movementMessage: '' });
-  const pending = captureGeneration;
-  setTimeout(() => { if (pending === captureGeneration && !app.isQuitting) startCapture(); }, 750);
-  return readMovement;
-});
 // Botões da barra de título desenhada dentro do app (só valem para a janela principal).
 ipcMain.on('win:minimize', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.minimize(); });
 ipcMain.on('win:close', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.close(); });
@@ -339,8 +327,8 @@ app.whenReady().then(async () => {
     if (e.code !== 'EADDRINUSE') throw e;
   }
   loadCfg();
-  readMovement = cfg.movementEnabled === true;
-  setStatus({ movementEnabled: readMovement });
+  delete cfg.movementEnabled; // migra a preferência antiga; movimento agora é integrado e automático.
+  setStatus({ movementEnabled: true, movementState: 'starting', movementMessage: 'Inicializando leitura nativa de movimento.' });
   createMain();
   for (const id of Object.keys(WIDGETS)) if (cfg[id].visible) openWidget(id);
   startCapture();

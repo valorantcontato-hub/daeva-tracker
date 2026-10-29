@@ -42,8 +42,8 @@ var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.C
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder(engine.Dispatcher);
 using var tracker = new DaevaCapture.PositionTracker();
-// Opt-in da sessão: a captura comum continua sem leitura da memória do jogo.
-using var movement = args.Contains("--read-movement") ? new DaevaCapture.LiveMovement(engine.Dispatcher, engine.Store.GetLocalProfile, outbox.Enqueue) : null;
+// Movimento é parte nativa da captura. O modo passivo é uma recuperação interna caso a elevação seja recusada.
+using var movement = args.Contains("--passive-only") ? null : new DaevaCapture.LiveMovement(engine.Dispatcher, engine.Store.GetLocalProfile, outbox.Enqueue);
 var stopFile=Arg("--stop-file", "");
 int.TryParse(Arg("--owner-pid", "0"),out int ownerPid);
 long lastPositions = 0;
