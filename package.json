@@ -1,0 +1,58 @@
+{
+  "name": "daeva-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tracker leve para AION 2: DPS da party, skills, perfis reais e bestiário, com widgets de overlay.",
+  "author": "Daeva Tracker",
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "web": "node server.mjs",
+    "replay": "node tools/replay.mjs",
+    "build:capture": "powershell -NoProfile -ExecutionPolicy Bypass -File capture/setup.ps1 -Out capture/dist -SelfContained",
+    "dist": "npm run build:capture && electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always"
+  },
+  "build": {
+    "appId": "app.daevatracker",
+    "productName": "Daeva Tracker",
+    "files": [
+      "index.html",
+      "css/**",
+      "js/**",
+      "icons/**",
+      "electron/**",
+      "server.mjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "capture/dist",
+        "to": "capture"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "valorantcontato-hub",
+        "repo": "daeva-tracker",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
+}

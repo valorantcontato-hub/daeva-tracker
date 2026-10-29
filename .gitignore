@@ -1,0 +1,7 @@
+node_modules/
+dist/
+capture/vendor/
+capture/bin/
+capture/obj/
+capture/dist/
+.claude/

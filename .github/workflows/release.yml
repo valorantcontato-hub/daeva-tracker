@@ -1,0 +1,71 @@
+# Publica uma nova versão do Daeva Tracker no GitHub Releases. Os apps instalados baixam sozinhos.
+#  - tag v*           : versão manual (ex.: git tag v0.2.0 && git push --tags)
+#  - todo dia (cron)  : se o motor de captura (Aion2DpsMeter) mudou — ex.: opcodes após um patch
+#                       do jogo — gera uma versão patch nova automaticamente.
+#  - manual           : Actions > Release > Run workflow
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versão e motor
+        id: plan
+        shell: pwsh
+        run: |
+          $engine = (git ls-remote https://github.com/domel1998/Aion2DPSMeter.git HEAD).Split("`t")[0].Substring(0, 7)
+          $latest = $null
+          try { $latest = gh release view --json tagName,body | ConvertFrom-Json } catch { }
+          $tag = $latest.tagName
+          if ('${{ github.event_name }}' -eq 'push') {
+            $version = '${{ github.ref_name }}'.TrimStart('v')
+          } elseif ($latest -and $latest.body -match "engine: $engine" -and '${{ github.event_name }}' -eq 'schedule') {
+            Write-Host "Motor $engine já publicado em $tag. Nada a fazer."
+            "skip=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          } else {
+            $base = if ($tag) { [version]$tag.TrimStart('v') } else { [version]((Get-Content package.json | ConvertFrom-Json).version) }
+            $version = "$($base.Major).$($base.Minor).$($base.Build + 1)"
+          }
+          "skip=false" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "engine=$engine" >> $env:GITHUB_OUTPUT
+
+      - if: steps.plan.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - if: steps.plan.outputs.skip == 'false'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - if: steps.plan.outputs.skip == 'false'
+        name: Build
+        shell: pwsh
+        run: |
+          npm ci
+          npm version ${{ steps.plan.outputs.version }} --no-git-tag-version --allow-same-version
+          node tools/set-publish.mjs ${{ github.repository_owner }} ${{ github.event.repository.name }}
+          npm run build:capture
+          npx electron-builder --win --publish always
+
+      - if: steps.plan.outputs.skip == 'false'
+        name: Notas da versão
+        shell: pwsh
+        run: gh release edit v${{ steps.plan.outputs.version }} --notes "Atualização automática. engine: ${{ steps.plan.outputs.engine }}"

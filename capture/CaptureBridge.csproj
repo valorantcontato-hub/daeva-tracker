@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ponte de captura: usa o motor do Aion2DpsMeter (GPL-3.0, github.com/domel1998/Aion2DPSMeter),
+    baixado pelo setup.ps1 em %LOCALAPPDATA%\DaevaTracker\engine, e envia a luta ao vivo para o Daeva Tracker.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>daeva-capture</AssemblyName>
+    <RootNamespace>DaevaCapture</RootNamespace>
+    <EngineDir Condition="'$(EngineDir)' == ''">$(LOCALAPPDATA)\DaevaTracker\engine\Aion2DPSMeter</EngineDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(EngineDir)\src\Aion2DpsMeter.Core\Aion2DpsMeter.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Tabelas reais do jogo (skills, NPCs, DGs) vão junto do executável, em Data\. -->
+  <ItemGroup>
+    <None Include="$(EngineDir)\data\*.json" Link="Data\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
