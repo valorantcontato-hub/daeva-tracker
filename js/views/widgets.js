@@ -184,7 +184,7 @@ const BODIES = {
     return `
       <header class="combat-summary">
         <div class="combat-meta"><span>Combate <b>${duration(S.duration)}</b> ${S.live ? '<i class="combat-live"></i>' : ''}</span><strong>${compact(S.dps)} <small>DPS</small></strong></div>
-        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b><span class="combat-total" title="Dano total de todos no chefe">dano <b>${compact(S.total)}</b></span></div>
+        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b><span class="combat-total" title="Dano contado de toda a party no chefe, e o seu">party <b>${compact(S.total)}</b>${myPlayer(S) ? ` · você <b>${compact(myPlayer(S).damage)}</b>` : ''}</span></div>
         ${hp == null ? '' : `<div class="combat-hp"><i style="width:${hp * 100}%"></i><span>${int(S.bossHp.current)} / ${int(S.bossHp.max)} · ${pct(hp, 0)}</span></div>`}
       </header>
       <div class="combat-ranking">${S.players.map(p => {
