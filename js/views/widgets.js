@@ -112,6 +112,10 @@ function farmRow(e, near) {
   return '<div class="mm-row" style="--c:' + color + '"><span class="mm-ico">' + icon + '</span><div class="mm-txt"><b>' + esc(e.name) + '</b><div class="mm-sub">' + sub + '</div></div>' + dist + '</div>';
 }
 
+// Última leitura boa (sua posição + monstros): o widget continua mostrando isso enquanto não chegam dados novos.
+let lastRadar = load('radarLast', null);
+let lastRadarSaved = 0;
+
 function radarBody() {
   const P = lastPositions();
   const fresh = P && Date.now() - Date.parse(P.capturedAt) <= 10000;
@@ -120,23 +124,26 @@ function radarBody() {
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
-  // Monstros visíveis, já com distância em metros e o mascote/tipo a que pertencem.
+  // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
+  if (selfOk) {
+    lastRadar = { self: { x: P.self.x, y: P.self.y }, mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
+    if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast', lastRadar); }
+  }
+
+  // Monstros com distância em metros e o tipo do mascote a que pertencem (a partir da última leitura boa).
   const typeOf = new Map();
   for (const e of entries) for (const n of e.names) if (!typeOf.has(n)) typeOf.set(n, e);
   let mobs = [];
-  if (selfOk) {
-    mobs = P.mobs.map(m => ({ ...m, dx: (m.x - P.self.x) * RADAR_UNIT_M, dy: (m.y - P.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type }))
+  if (lastRadar) {
+    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type }))
       .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
       .filter(m => showAll || typeOf.has(normName(m.name)))
       .sort((a, b) => a.d - b.d);
   }
   const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
 
-  let top;
-  if (selfOk) top = radarSvg(P, mobs, range);
-  else if (!fresh) top = '<div class="mm-note">Sem posições do jogo. Com a captura ligada, entre no jogo e <b>monte</b>.</div>';
-  else if (!P.self) top = '<div class="mm-note">O jogo só informa a <b>sua</b> posição enquanto você está montado. Monte para ver o radar.</div>';
-  else top = '<div class="mm-note">Sua última posição tem ' + Math.round(P.self.ageMs / 1000) + ' s. Monte e ande para atualizar.</div>';
+  // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
+  const top = radarSvg(P, mobs, range);
 
   const rows = entries.map(e => ({ e, near: nearestOf(e) }))
     .sort((a, b) => (a.near ? a.near.d : 1e12) - (b.near ? b.near.d : 1e12) || a.e.name.localeCompare(b.e.name))
