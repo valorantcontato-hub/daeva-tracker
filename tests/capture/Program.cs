@@ -86,6 +86,13 @@ var clientRows=recorded.Where(r=>r.TryGetProperty("type",out var t)&&t.GetString
 Check(clientRows.Count==1,"client segments recorded only while requested recording active");
 Check(clientRows[0].GetProperty("seq").GetUInt32()==900 && clientRows[0].GetProperty("len").GetInt32()==5000,"client TCP metadata retained");
 Check(clientRows[0].GetProperty("truncated").GetBoolean() && clientRows[0].GetProperty("hex").GetString()!.Length==8192,"bounded sample explicitly marks truncation");
+// Uma conexão nova, confirmada por pacotes do jogo, substitui a porta antiga após relogin.
+clientDispatcher.Process(new TcpPayload { Device="test",IsLoopbackDevice=true,SrcIp="127.0.0.2",DstIp="127.0.0.1",SrcPort=7000,DstPort=8100,Sequence=1000,Data=heartbeat,TimestampMs=6600 });
+int beforeReconnect=segments.Count;
+clientDispatcher.Process(Outgoing());
+Check(segments.Count==beforeReconnect,"old client flow ignored after reconnect");
+clientDispatcher.Process(new TcpPayload { Device="test",IsLoopbackDevice=true,SrcIp="127.0.0.1",DstIp="127.0.0.2",SrcPort=8100,DstPort=7000,Sequence=2000,Data=[4,5,6],TimestampMs=6700 });
+Check(segments.Count==beforeReconnect+1,"new reverse game flow observed after reconnect");
 clientDispatcher.ResetLock();
 int observed=segments.Count;clientDispatcher.Process(Outgoing());
 Check(segments.Count==observed,"reset removes client connection observation");

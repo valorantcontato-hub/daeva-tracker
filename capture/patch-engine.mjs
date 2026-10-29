@@ -74,5 +74,14 @@ export async function patchEngine(dir) {
     replace('        _lockedPort = null;', '        _lockedPort = null;\n        _daevaReverseFlow = null;');
     await writeFile(dispatcher, source);
   }
+  if (!source.includes('// Daeva outbound reconnect v1')) {
+    replace('        if (parsed)\n            _lastParsedMs = now;', `        if (parsed) {
+            _lastParsedMs = now;
+            // Daeva outbound reconnect v1: a new game stream after relogin can use another client port.
+            if (_lockedPort is not null && Opcodes.ContainsAny(p.Data, _opcodes.SignaturesB))
+                _daevaReverseFlow = $"{p.DstIp}:{p.DstPort}>{p.SrcIp}:{p.SrcPort}";
+        }`);
+    await writeFile(dispatcher, source);
+  }
 }
 if (process.argv[2]) await patchEngine(process.argv[2]);
