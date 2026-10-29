@@ -6,6 +6,7 @@ import { getLang } from './lang.js';
 
 // Texto completo em português -> inglês.
 const EXACT = {
+  "Nenhuma luta registrada.": "No fights recorded.",
   "Boneco de Treinamento": "Training Dummy",
   "Coleção do jogo": "In-game collection",
   "Monstros · abates do app": "Monsters · app kills",
@@ -58,6 +59,7 @@ const EXACT = {
   // Navegação e topo
   'Início': 'Home', 'Intelectual': 'Intellect', 'Feral': 'Feral', 'Natural': 'Natural', 'Variante': 'Variant', 'Especial': 'Special', 'Imagens dos monstros:': 'Monster images:', 'Imagens:': 'Images:', 'Bestiário': 'Bestiary', 'Mascotes': 'Pets', 'Conta': 'Account', 'Contas': 'Accounts', 'Alternar tema claro/escuro': 'Toggle light/dark theme',
   'Alternar tema': 'Toggle theme', 'Seções': 'Sections', 'Idioma': 'Language', 'Janela': 'Window', 'Minimizar': 'Minimize', 'Fechar': 'Close',
+  'Favoritos': 'Favorites', 'Dados da conta': 'Account data', 'Aguardando dados do jogo': 'Waiting for game data', 'Completa': 'Full',
   // Ficha do personagem
   'Personagem': 'Character', 'Menu do personagem': 'Character menu', 'Equipamentos': 'Equipment', 'Aparência': 'Appearance',
   'Arcanas': 'Arcana', 'Atributos': 'Attributes', 'Sem itens de aparência.': 'No appearance items.',

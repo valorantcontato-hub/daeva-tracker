@@ -6,15 +6,21 @@ import {
   REGIONS, searchCharacters, fetchProfile, getMe, getParty, setMe, upsertPartyMember,
   removePartyMember, refreshProfile, findProfileById, isFavorite, removeFavorite,
 } from '../profiles.js';
-import { characterSheet } from './home.js';
+import { characterSheet, favoritesHtml, wireFavorites } from './home.js';
 import { esc, int, toast } from '../util.js';
 
 const RACE = { 1: 'Elyos', 2: 'Asmodian' };
 
 export function renderAccount(root, [id, tab = ''] = []) {
+  if (!id) {
+    root.className = 'page favorites-page';
+    root.innerHTML = `<section class="card fav-block favorites-page-card">${favoritesHtml()}</section>`;
+    wireFavorites(root);
+    return;
+  }
   root.className = 'page account-page';
   const me = getMe();
-  let viewing = id ? findProfileById(id) : me;
+  let viewing = id === 'vincular' ? me : findProfileById(id);
 
   root.innerHTML = `
     <div class="account-grid">
@@ -49,7 +55,7 @@ export function renderAccount(root, [id, tab = ''] = []) {
       <button class="btn sm" data-act="refresh">Atualizar</button>
       ${isMe ? '' : isFavorite(viewing.characterId) ? '<button class="btn sm danger" data-act="remove-fav">Remover dos favoritos</button>' : '<button class="btn sm danger" data-act="remove-viewing">Remover da party</button>'}
     </div>`;
-    characterSheet(profileEl, viewing, { tab, base: '#/conta/' + encodeURIComponent(viewing.characterId), extra });
+    characterSheet(profileEl, viewing, { tab, base: '#/favoritos/' + encodeURIComponent(viewing.characterId), extra });
   }
 
   function renderResults(list) {
@@ -106,7 +112,7 @@ export function renderAccount(root, [id, tab = ''] = []) {
     if (act === 'party') return addFromResult(+btn.dataset.i, false);
     if (act === 'remove-fav') {
       removeFavorite(viewing.characterId);
-      location.hash = '#/inicio';
+      location.hash = '#/favoritos';
       return;
     }
     if (act === 'remove-viewing') {

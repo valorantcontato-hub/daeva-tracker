@@ -9,12 +9,14 @@ import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aggregateEvents } from './js/encounter.js';
 import { createPetFeed } from './pet-feed.mjs';
+import { createAccountFeed } from './account-feed.mjs';
 const eventClients = new Set();
 function publishEvent(channel, data) {
   const line = `event: ${channel}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const response of eventClients) response.write(line);
 }
 const pets = createPetFeed(state => publishEvent('pets', state));
+const accounts = createAccountFeed(state => publishEvent('account', state));
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const TYPES = {
@@ -301,14 +303,14 @@ async function handle(req, res) {
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'game-focus' ? gameFocusStatus?.(message) : message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'game-focus' ? gameFocusStatus?.(message) : message?.type === 'account-state' ? accounts.ingest(message) : message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
     if (path === '/api/events') return sendJson(res, 200, { version: 1 });
     if (path === '/api/events/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
-      const initial = [['live', snapshot()], ['pets', pets.snapshot()]];
+      const initial = [['live', snapshot()], ['pets', pets.snapshot()], ['account', accounts.snapshot()]];
       if (lastSelf) initial.push(['live', lastSelf]);
       if (lastPositions && Date.now() - Date.parse(lastPositions.capturedAt) < 15000) initial.push(['live', lastPositions]);
       for (const [channel, data] of initial) res.write(`event: ${channel}\ndata: ${JSON.stringify(data)}\n\n`);

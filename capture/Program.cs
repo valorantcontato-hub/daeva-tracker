@@ -40,6 +40,7 @@ var http = new HttpClient { BaseAddress = new Uri(url), Timeout = TimeSpan.FromS
 var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
+using var accountResources = new DaevaCapture.AccountResources(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder(engine.Dispatcher);
 using var tracker = new DaevaCapture.PositionTracker();
 // Movimento é parte nativa da captura. O modo passivo é uma recuperação interna caso a elevação seja recusada.

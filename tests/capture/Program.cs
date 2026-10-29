@@ -138,6 +138,54 @@ Check(elevation.FileName=="C:\\Lotus Tracker\\capture.exe"&&elevation.UseShellEx
 Check(elevation.ArgumentList.SequenceEqual(new[]{"--read-movement","--stop-file","C:\\Meu Perfil\\arquivo 'teste'.stop"}),"native launcher preserves arguments with spaces and drops recursive launch flag");
 Console.WriteLine("PASS: native elevation preserves exact arguments without a script shell.");
 
+byte[] resourceList=[0x0b,0x61,1,12,..U(AccountFrames.OdyleId),..Var(435),..Var(125)];
+Check(AccountFrames.Tickets(resourceList).Single() is {Count:435,Bonus:125},"resource ticket base and charged energy");
+try{AccountFrames.Tickets(resourceList[..^1]);throw new Exception("truncated resource list accepted");}catch(FormatException){}
+byte[] currency=[0x1b,0x56,..new byte[10],..U(930100031),..BitConverter.GetBytes(36000UL),1,7];
+Check(AccountFrames.Currencies(currency)[930100031]==36000,"Kinah stock anchor reads exact balance");
+Check(AccountFrames.Missions([0x1c,0x8d,..U(0,0,0)])==0,"zero duty missions is known, not missing");
+long resourceTime=1_800_000_000_000;
+byte[] membership=[0x3b,0xe3,1,34,..new byte[12],..BitConverter.GetBytes((ulong)(resourceTime+86_400_000))];
+Check(AccountFrames.Membership(membership)==resourceTime+86_400_000,"premium end read from membership effect");
+byte[] lootMembership=[..membership];lootMembership[3]=44;
+Check(AccountFrames.Membership(lootMembership) is null,"auto-loot-only update does not cancel premium capacity");
+var accountMessages=new List<JsonElement>();
+using var resourceReader=new AccountResources(msg=>accountMessages.Add(JsonSerializer.SerializeToElement(msg)));
+var resourceStore=new CombatStore(GameData.Empty);var resourceA=new PacketParser(resourceStore,GameData.Empty);var resourceB=new PacketParser(resourceStore,GameData.Empty);
+string resourceName="ResourceAlpha";
+void ResourceIdentity(object flow,ReadOnlySpan<byte> p,long timestamp){if(p.Length==3&&p[1]==99&&p[2]==98)resourceStore.NoteSelfProfile(100,resourceName,JobClass.Sorcerer,45,2401);}
+byte[] ResourcePacket(byte[] p)=>[..Var(p.Length+4),..p];
+PacketParser.DaevaPacket+=ResourceIdentity;
+Send(resourceA,ResourcePacket(resourceList),resourceTime);
+Send(resourceB,[6,99,98],resourceTime+100);
+Check(accountMessages.Count==0,"resource identity on another flow cannot bind account values");
+Send(resourceA,[6,99,98],resourceTime+200);
+Check(accountMessages.Count==1&&accountMessages[^1].GetProperty("odEnergy").GetProperty("current").GetInt32()==435,"same-flow self identity binds resource state");
+Send(resourceA,ResourcePacket(membership),resourceTime+300);
+Check(accountMessages[^1].GetProperty("odEnergy").GetProperty("max").GetInt32()==840,"premium capacity follows current character");
+Send(resourceA,ResourcePacket([0x1c,0x8d,..U(0,0,0)]),resourceTime+400);
+Check(accountMessages[^1].GetProperty("dutyMissions").GetProperty("completed").GetInt32()==0,"known zero missions is emitted");
+byte[] fullInventory=[..currency,..new byte[5000-currency.Length]];fullInventory[0]=0x11;
+Send(resourceA,ResourcePacket(fullInventory),resourceTime+500);
+Check(accountMessages[^1].GetProperty("kinah").GetUInt64()==36000,"full own inventory binds the current Kinah balance");
+byte[] conversionWindow=[0x8f,0x8d,0,0,0,0,1,..U(32070001,3),1,..U(32070002,1)];
+Check(AccountFrames.Conversions(conversionWindow).Count==2,"conversion list handles multiple sections");
+Send(resourceA,ResourcePacket(conversionWindow),resourceTime+600);
+Check(accountMessages[^1].GetProperty("craftOdyleEnergy").GetProperty("crafted").GetInt32()==4,"weekly craft sums 3/16 server plus 1/4 character");
+byte[] craftBody=new byte[41];craftBody[2]=1;BitConverter.GetBytes(32070002u).CopyTo(craftBody,3);BitConverter.GetBytes(32070002u).CopyTo(craftBody,9);BitConverter.GetBytes(2u).CopyTo(craftBody,37);
+Send(resourceA,ResourcePacket([0x8b,0x8d,..craftBody]),resourceTime+700);
+Check(accountMessages[^1].GetProperty("craftOdyleEnergy").GetProperty("crafted").GetInt32()==5,"craft success replaces current recipe counter rather than adding its total");
+resourceName="ResourceBeta";
+Send(resourceA,ResourcePacket([0x0b,0x61,1,4,..U(AccountFrames.OdyleId),..Var(50)]),resourceTime+20000);
+int beforeResourceIdentity=accountMessages.Count;
+Send(resourceA,[6,99,98],resourceTime+20100);
+Check(accountMessages.Count==beforeResourceIdentity+1&&accountMessages[^1].GetProperty("self").GetProperty("name").GetString()==resourceName,"new character receives only its own pending resources");
+Check(accountMessages[^1].GetProperty("dutyMissions").ValueKind==JsonValueKind.Null,"missions from old character are not inherited");
+Send(resourceA,ResourcePacket([0x3b,0xe3,0]),resourceTime+20200);
+Check(accountMessages[^1].GetProperty("odEnergy").GetProperty("max").GetInt32()==560,"non-premium capacity follows new character");
+PacketParser.DaevaPacket-=ResourceIdentity;
+Console.WriteLine("PASS: account energy/bonus, premium capacity, Kinah anchors, zero missions, truncation and character/flow isolation.");
+
 if(args.Length==2&&args[0]=="--verify-native-elevation") {
     string echo=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"lotus-native-launch-"+Guid.NewGuid().ToString("N")+".json");
     string[] expected=["C:\\Meu Perfil\\arquivo 'teste'.stop","direção e posição"];

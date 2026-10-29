@@ -17,7 +17,7 @@ export function listenStream(channel, callback) {
       if (unified) {
         const source = new EventSource('/api/events/stream');
         sources.push(source);
-        for (const name of ['live', 'pets', 'reload']) source.addEventListener(name, event => deliver(name, event));
+        for (const name of ['live', 'pets', 'account', 'reload']) source.addEventListener(name, event => deliver(name, event));
       } else {
         for (const name of ['live', 'pets', 'reload']) {
           const source = new EventSource(`/api/${name}/stream`);

@@ -30,6 +30,7 @@
       "electron/**",
       "server.mjs",
       "pet-feed.mjs",
+      "account-feed.mjs",
       "licenses/**",
       "package.json"
     ],
