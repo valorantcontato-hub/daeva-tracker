@@ -13,3 +13,8 @@ test('chefe de mundo aberto, mob comum e boneco ficam de fora', () => {
   assert.equal(isInstancedBossFight({ isBoss: true, isDummy: true, dungeonId: 12, dungeon: 'Treino' }), false);
   assert.equal(isInstancedBossFight(null), false);
 });
+
+test('sem a DG informada, o código do NPC identifica o chefe instanciado', () => {
+  assert.equal(isInstancedBossFight({ isBoss: true, boss: 'Ferocious Horn Nuakum', npcCode: 2300910, dungeonId: 0, dungeon: '' }), true);
+  assert.equal(isInstancedBossFight({ isBoss: true, boss: 'Vakron', npcCode: 2300582, dungeonId: 0, dungeon: '' }), false);
+});
