@@ -75,13 +75,28 @@ export function normalizeEncounter(raw) {
   };
 }
 
+/** Tempo mínimo (s) usado no DPS de quem bateu só um instante: evita um golpe isolado virar um DPS enorme. */
+const MIN_ACTIVE_SECONDS = 5;
+
+/**
+ * Tempo em que o jogador esteve batendo: do primeiro ao último segundo com dano dele. Numa luta com várias
+ * pessoas (boneco de treino, monstros em grupo) o combate começa quando o primeiro bate; quem entra depois não
+ * pode ter o DPS diluído pelos segundos em que ainda nem tinha começado.
+ */
+export function activeSeconds(timeline, fallback) {
+  let first = -1, last = -1;
+  for (let i = 0; i < (timeline || []).length; i++) if (timeline[i] > 0) { if (first < 0) first = i; last = i; }
+  if (first < 0) return fallback;
+  return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, last - first + 1));
+}
+
 /** Totais derivados: dano, DPS, crit e participação por jogador (ordenado por dano). */
 export function summarize(enc) {
   const dur = Math.max(1, enc.duration);
   const players = enc.players.map(p => {
     let damage = 0, hits = 0, crits = 0;
     for (const s of p.skills) { damage += s.damage; hits += s.hits; crits += s.crits; }
-    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / dur };
+    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / activeSeconds(p.timeline, dur) };
   }).sort((a, b) => b.damage - a.damage);
   const total = players.reduce((a, p) => a + p.damage, 0);
   for (const p of players) p.share = total ? p.damage / total : 0;
