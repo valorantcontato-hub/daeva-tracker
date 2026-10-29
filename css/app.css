@@ -1391,3 +1391,26 @@ html.home-fit .sub-body .card { padding: 12px; }
 /* Filtro por tipo de mascote, com ícone */
 .fam-chip { display: inline-flex; align-items: center; gap: 6px; }
 .fam-chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Tipo do mascote ao lado do nome */
+.pet2-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pet2-title .pet2-name { flex: 0 1 auto; min-width: 0; }
+.pet2-type { --c: #8c95a5; flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 5px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+.pet2-type svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.t-fera { --c: #f0605a; } .t-natura { --c: #4fd17a; } .t-cogni { --c: #5aa5f0; } .t-varian { --c: #b98cf0; } .t-special { --c: #e9b949; }
+.fam-chip .stone, .pet2-type .stone { height: 17px; width: auto; max-width: 17px; object-fit: contain; flex: none; }
+.pet2-type .stone { height: 15px; max-width: 15px; }
+.fam-chip .stone { height: 24px; max-width: 24px; margin: -4px 0; }
+.pet2-type { padding-block: 0; }
+.pet2-type .stone { height: 20px; max-width: 20px; margin: -2px 0 -2px -2px; }
+/* Cores e tamanhos finais dos tipos: Variante = amarelo, Especial = ciano (ordem das pedras do jogo) */
+.t-varian { --c: #e9b949; } .t-special { --c: #4fd1d9; }
+.fam-chip .stone { height: 30px; max-width: 30px; margin: -7px -2px -7px -4px; }
+.pet2-type .stone { height: 26px; max-width: 26px; margin: -5px -1px -5px -4px; }
+.fam-chip { padding-block: 4px; }
+/* Anel do avatar na cor do tipo (Intelectual azul, Feral vermelho, Natural verde, Variante ciano, Especial amarelo) */
+.t-varian { --c: #4fd1d9; } .t-special { --c: #e9b949; }
+.pet2 .pet2-ico, .pet2.maxed .pet2-ico { box-shadow: 0 0 0 2px var(--c, #e0605a); }
+.pet2-bar i { background: var(--c, #e0605a); }
+.pet2.maxed .pet2-bar i { background: linear-gradient(90deg, #d9a441, #5ec8e8); }
