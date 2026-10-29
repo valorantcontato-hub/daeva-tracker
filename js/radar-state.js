@@ -12,6 +12,15 @@ export function readVerifiedRadar(value) {
     && Array.isArray(value.mobs) ? value : null;
 }
 
+// No mapa do jogo, Y cresce para baixo. O ângulo normalizado da captura usa Y para cima.
+// Espelha o mesmo eixo em posições e ângulos antes da rotação opcional do radar.
+export const radarRotation = value => [0, 90, 180, 270].includes(value) ? value : 0;
+export const radarHeading = (heading, rotation = 0) => ((180 - heading + radarRotation(rotation)) % 360 + 360) % 360;
+export function radarOffset(dx, dy, rotation = 0) {
+  const angle = radarRotation(rotation) * Math.PI / 180;
+  return { x: dx * Math.cos(angle) - dy * Math.sin(angle), y: dx * Math.sin(angle) + dy * Math.cos(angle) };
+}
+
 /** Mantém a orientação quando parado; usa ângulo explícito se a captura o fornecer. */
 export function radarSelf(current, previous) {
   if (!current || !Number.isFinite(current.x) || !Number.isFinite(current.y)) return null;

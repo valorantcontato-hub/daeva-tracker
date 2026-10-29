@@ -17,6 +17,8 @@ string Arg(string name, string fallback)
     return i >= 0 && i + 1 < args.Length ? args[i + 1] : fallback;
 }
 
+// O próprio executável pede elevação; nenhum script ou runtime adicional é necessário.
+if(args.Contains("--launch-elevated"))return DaevaCapture.NativeElevation.Run(args);
 var url = Arg("--url", "http://localhost:47173").TrimEnd('/');
 var replay = Arg("--replay", "");
 var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DaevaTracker");

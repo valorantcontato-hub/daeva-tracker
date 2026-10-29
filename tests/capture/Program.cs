@@ -6,6 +6,10 @@ using DaevaCapture;
 using Aion2DpsMeter.Core.Capture;
 using K4os.Compression.LZ4;
 
+if(args.Length>=2&&args[0]=="--native-elevation-echo") {
+    File.WriteAllText(args[1],JsonSerializer.Serialize(args.Skip(2).ToArray()));return;
+}
+
 static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
 static byte[] Var(int value) { var b=new List<byte>();do{byte n=(byte)(value&127);value>>=7;b.Add((byte)(n|(value>0?128:0)));}while(value>0);return b.ToArray(); }
 static byte[] Frame(byte op, byte[] payload) => [..Var(payload.Length+6),op,0x90,..payload];
@@ -125,6 +129,21 @@ movementDecoder.Feed(105,wire.AsSpan(5,10),clock+2);
 movementDecoder.Feed(100,wire.AsSpan(0,5),clock+3);
 Check(moves.Count==1&&moves[0].Heading==45,"midstream cipher alignment, split/out-of-order TCP and retransmission");
 Console.WriteLine("PASS: RC4 vector, facing/stop layouts, invalid inputs and continuous midstream movement across TCP segments.");
+
+var elevation=NativeElevation.StartInfo("C:\\Lotus Tracker\\capture.exe",["--launch-elevated","--read-movement","--stop-file","C:\\Meu Perfil\\arquivo 'teste'.stop"]);
+Check(elevation.FileName=="C:\\Lotus Tracker\\capture.exe"&&elevation.UseShellExecute&&elevation.Verb=="runas","native Windows elevation");
+Check(elevation.ArgumentList.SequenceEqual(new[]{"--read-movement","--stop-file","C:\\Meu Perfil\\arquivo 'teste'.stop"}),"native launcher preserves arguments with spaces and drops recursive launch flag");
+Console.WriteLine("PASS: native elevation preserves exact arguments without a script shell.");
+
+if(args.Length==2&&args[0]=="--verify-native-elevation") {
+    string echo=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"lotus-native-launch-"+Guid.NewGuid().ToString("N")+".json");
+    string[] expected=["C:\\Meu Perfil\\arquivo 'teste'.stop","direção e posição"];
+    var start=NativeElevation.StartInfo(args[1],[System.Reflection.Assembly.GetExecutingAssembly().Location,"--launch-elevated","--native-elevation-echo",echo,..expected]);
+    using var child=System.Diagnostics.Process.Start(start);
+    Check(child is not null&&child.WaitForExit(30000)&&child.ExitCode==0,"native launcher must start and finish through Windows runas");
+    Check(JsonSerializer.Deserialize<string[]>(File.ReadAllText(echo))!.SequenceEqual(expected),"real elevated process receives exact Unicode and spaced arguments");
+    File.Delete(echo);Console.WriteLine("PASS: Windows native elevation executed successfully with exact arguments.");
+}
 
 // Optional local investigation: neither captures nor keys are embedded in the repository or CI.
 if(args.Length==3&&args[0]=="--local-replay") {
