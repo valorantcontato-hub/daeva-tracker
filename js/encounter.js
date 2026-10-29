@@ -42,6 +42,7 @@ export function normalizeEncounter(raw) {
     players = raw.players.map(p => ({
       name: String(p.name ?? '?'),
       class: p.class || '',
+      isLocal: !!p.isLocal,
       skills: (p.skills || []).map(s => ({
         id: Number(s.id) || 0,
         name: String(s.name || (s.id ? '#' + s.id : '?')),

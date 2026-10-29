@@ -33,9 +33,9 @@ const HEADERS = {
 const cache = new Map();
 let lastCall = 0;
 
-async function plaync(url) {
+async function plaync(url, maxAgeMs = 10 * 60e3) {
   const hit = cache.get(url);
-  if (hit && Date.now() - hit.at < 10 * 60e3) return hit.data;
+  if (hit && Date.now() - hit.at < maxAgeMs) return hit.data;
   // Educado com o servidor da NC: no máximo ~4 req/s.
   const wait = lastCall + 250 - Date.now();
   lastCall = Date.now() + Math.max(0, wait);
@@ -58,6 +58,7 @@ async function searchCharacters(q) {
   return (data.list || []).map(c => ({
     characterId: decodeURIComponent(c.characterId),
     name: String(c.name).replace(/<[^>]+>/g, ''),
+    class: classOfPcId(c.pcId),
     level: c.level,
     race: c.race,
     serverId: c.serverId,
@@ -67,11 +68,23 @@ async function searchCharacters(q) {
   }));
 }
 
+// pcId (classe + gênero + raça) -> classe. Mesma faixa usada pelo jogo no roster da party.
+const PC_CLASSES = [[5, 'gladiator'], [9, 'templar'], [13, 'ranger'], [17, 'assassin'], [21, 'spiritmaster'], [25, 'sorcerer'], [29, 'cleric'], [33, 'chanter']];
+function classOfPcId(pcId) {
+  const id = Number(pcId);
+  const hit = PC_CLASSES.find(([start]) => id >= start && id < start + 4);
+  return hit ? hit[1] : '';
+}
+
+const mapItem = e => ({ slotPos: e.slotPos, slot: e.slotPosName, name: e.name, grade: e.grade, icon: e.icon, enchant: e.enchantLevel, exceed: e.exceedLevel });
+
 async function characterDetail(q) {
   const region = q.get('region'), serverId = q.get('serverId'), characterId = q.get('characterId');
   if (!REGIONS.has(region) || !/^\d+$/.test(serverId || '') || !characterId) throw Object.assign(new Error('Parâmetros inválidos'), { status: 400 });
   const params = new URLSearchParams({ lang: 'en-US', region, serverId, characterId });
-  const [info, equip] = await Promise.all([plaync(`${SITE}/info?${params}`), plaync(`${SITE}/equipment?${params}`)]);
+  // Cache curto: a página inicial atualiza os itens do personagem com frequência.
+  const fresh = q.get('fresh') === '1' ? 60e3 : 10 * 60e3;
+  const [info, equip] = await Promise.all([plaync(`${SITE}/info?${params}`, fresh), plaync(`${SITE}/equipment?${params}`, fresh)]);
   const p = info.profile || {};
   const stats = info.stat?.statList || [];
   return {
@@ -89,9 +102,12 @@ async function characterDetail(q) {
     image: p.profileImage,
     stats: stats.filter(s => s.type !== 'ItemLevel').map(s => ({ type: s.type, name: s.name, value: s.value, effects: s.statSecondList || [] })),
     daevanion: (info.daevanion?.boardList || []).map(b => ({ name: b.name, icon: b.icon, percent: b.openPercent, open: b.openNodeCount, total: b.totalNodeCount })),
-    equipment: (equip.equipment?.equipmentList || []).map(e => ({ slot: e.slotPosName, name: e.name, grade: e.grade, icon: e.icon, enchant: e.enchantLevel, exceed: e.exceedLevel })),
+    equipment: (equip.equipment?.equipmentList || []).map(mapItem),
+    skins: (equip.equipment?.skinList || []).map(mapItem),
     skills: (equip.skill?.skillList || []).filter(s => s.acquired).map(s => ({ id: s.id, name: s.name, icon: s.icon, level: s.skillLevel, category: s.category, equipped: !!s.equip })),
-    wings: equip.petwing?.wing?.name ? { name: equip.petwing.wing.name, icon: equip.petwing.wing.icon, grade: equip.petwing.wing.grade } : null,
+    wings: equip.petwing?.wing?.name ? { name: equip.petwing.wing.name, icon: equip.petwing.wing.icon, grade: equip.petwing.wing.grade, enchant: equip.petwing.wing.enchantLevel } : null,
+    wingSkin: equip.petwing?.wingSkin?.name ? { name: equip.petwing.wingSkin.name, icon: equip.petwing.wingSkin.icon, grade: equip.petwing.wingSkin.grade } : null,
+    pet: equip.petwing?.pet?.name ? { name: equip.petwing.pet.name, icon: equip.petwing.pet.icon, level: equip.petwing.pet.level } : null,
     fetchedAt: new Date().toISOString(),
   };
 }

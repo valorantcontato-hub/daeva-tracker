@@ -21,8 +21,8 @@ async function api(path, params) {
 export const searchCharacters = (name, region, serverId) =>
   api('/api/plaync/search', serverId ? { name, region, serverId } : { name, region });
 
-export async function fetchProfile({ region, serverId, characterId }) {
-  const p = await api('/api/plaync/character', { region, serverId, characterId });
+export async function fetchProfile({ region, serverId, characterId }, { fresh = false } = {}) {
+  const p = await api('/api/plaync/character', fresh ? { region, serverId, characterId, fresh: 1 } : { region, serverId, characterId });
   p.class = classKey(p.className);
   return p;
 }
@@ -40,7 +40,7 @@ export function removePartyMember(id) { save('party', getParty().filter(x => x.c
 
 /** Atualiza o perfil salvo (eu ou party) com os dados mais recentes da PlayNC. */
 export async function refreshProfile(p) {
-  const fresh = await fetchProfile(p);
+  const fresh = await fetchProfile(p, { fresh: true });
   if (getMe()?.characterId === p.characterId) setMe(fresh);
   else upsertPartyMember(fresh);
   return fresh;
@@ -55,6 +55,14 @@ export const findProfileById = id => allProfiles().find(p => p.characterId === i
  * nas skills do perfil PlayNC do jogador ou de outro perfil da mesma classe.
  */
 export function skillIcon(playerName, skillName, cls, skillId) {
+  return findSkill(playerName, skillName, cls, skillId)?.icon || '';
+}
+
+/**
+ * Skill do perfil PlayNC correspondente à da captura (por ID e depois por nome), no perfil do
+ * próprio jogador ou de outro da mesma classe. Traz ícone e categoria (Active / Passive / Dp).
+ */
+export function findSkill(playerName, skillName, cls, skillId) {
   const key = norm(skillName);
   // O código do pacote pode trazer o nível/variação nos últimos dígitos.
   const ids = skillId ? [skillId, Math.floor(skillId / 100) * 100, Math.floor(skillId / 10000) * 10000] : [];
@@ -64,25 +72,33 @@ export function skillIcon(playerName, skillName, cls, skillId) {
   for (const id of ids) {
     for (const p of pools) {
       const s = p.skills?.find(x => x.id === id);
-      if (s?.icon) return s.icon;
+      if (s) return s;
     }
   }
   for (const p of pools) {
     const s = p.skills?.find(x => norm(x.name) === key);
-    if (s?.icon) return s.icon;
+    if (s) return s;
   }
-  return '';
+  return null;
 }
 
 // ---------- Vínculo automático a partir da captura ----------
 const tried = new Set();
 
-async function findOnServer(name, serverId, regions = REGIONS.map(r => r[0])) {
+/**
+ * Acha o personagem local na PlayNC. O mesmo nome existe em vários servidores/regiões,
+ * então filtra por servidor, classe e nível; se ainda sobrar mais de um, não chuta.
+ */
+async function findSelf(self, regions) {
+  let found = [];
   for (const region of regions) {
-    const hit = (await searchCharacters(name, region, serverId)).find(c => norm(c.name) === norm(name) && (!serverId || c.serverId === serverId));
-    if (hit) return hit;
+    const list = await searchCharacters(self.name, region, self.serverId || undefined);
+    found.push(...list.filter(c => norm(c.name) === norm(self.name)
+      && (!self.serverId || c.serverId === self.serverId)
+      && (!self.class || !c.class || c.class === self.class)));
   }
-  return null;
+  if (found.length > 1 && self.level) found = found.filter(c => c.level === self.level);
+  return found.length === 1 ? found[0] : null;
 }
 
 /**
@@ -91,12 +107,14 @@ async function findOnServer(name, serverId, regions = REGIONS.map(r => r[0])) {
  */
 export async function autoLinkFromFight(fight) {
   const self = fight.self;
-  if (self?.name && norm(getMe()?.name) !== norm(self.name) && !tried.has('me:' + self.name)) {
+  const current = getMe();
+  const wrong = !current || norm(current.name) !== norm(self?.name) || (self?.class && current.class && current.class !== self.class);
+  if (self?.name && wrong && !tried.has('me:' + self.name)) {
     tried.add('me:' + self.name);
     // Começa pela região salva da última busca manual, depois tenta as outras.
     const saved = load('region', '');
     const order = [saved, ...REGIONS.map(r => r[0])].filter((r, i, a) => r && a.indexOf(r) === i);
-    const ref = await findOnServer(self.name, self.serverId, order);
+    const ref = await findSelf(self, order);
     if (ref) {
       removePartyMember(ref.characterId);
       setMe(await fetchProfile(ref));

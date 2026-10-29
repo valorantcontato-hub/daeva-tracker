@@ -8,6 +8,7 @@ const arg = (name, def) => {
 const url = arg('url', 'http://localhost:4173') + '/api/live';
 const self = arg('self', 'Player_0001');
 const serverId = Number(arg('server', 0));
+const cls = arg('class', 'cleric');
 const skills = arg('skills', '10000:Basic Attack').split(',').map(s => {
   const [id, ...name] = s.split(':');
   return { id: Number(id), name: name.join(':') };
@@ -26,8 +27,8 @@ function dto(type, t) {
     type, id, boss: 'Kromede', npcCode: 2100100, isBoss: true, dungeon: 'Fire Temple', dungeonId: 600021,
     startedAt, duration: t, result: type === 'end' ? 'kill' : 'wipe',
     bossHp: { max: bossMax, current: bossHp },
-    self: { name: self, serverId, class: 'cleric', level: 45 },
-    players: [{ name: self, class: 'cleric', isLocal: true, heal: 0, skills: stats }],
+    self: { name: self, serverId, class: cls, level: 45 },
+    players: [{ name: self, class: cls, isLocal: true, heal: 0, skills: stats }],
     targets: [
       { npcCode: 2100100, name: 'Kromede', isBoss: true, killed: type === 'end', damage: bossMax - bossHp, maxHp: bossMax },
       { npcCode: 2000004, name: 'Odyle Spider', isBoss: false, killed: true, damage: 12000, maxHp: 12000 },

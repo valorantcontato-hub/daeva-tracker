@@ -268,10 +268,13 @@ app.whenReady().then(async () => {
     const lock = ![...wins.keys()].every(id => cfg[id].locked);
     for (const id of wins.keys()) setWidget(id, { locked: lock });
   });
-  globalShortcut.register('CommandOrControl+Shift+H', () => {
+  // Insert (ou Ctrl+Shift+H): mostra/esconde no jogo os widgets que estão ligados.
+  const toggleWidgets = () => {
     const anyVisible = [...wins.values()].some(w => w.isVisible());
     for (const w of wins.values()) anyVisible ? w.hide() : w.showInactive();
-  });
+  };
+  if (!globalShortcut.register('Insert', toggleWidgets)) console.warn('Tecla Insert já está em uso por outro programa');
+  globalShortcut.register('CommandOrControl+Shift+H', toggleWidgets);
 });
 
 app.on('before-quit', () => {

@@ -5,61 +5,72 @@ import { classInfo } from '../data/classes.js';
 import { MILESTONES } from '../data/monsters.js';
 import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
-import { getMe } from '../profiles.js';
+import { getMe, findSkill, findProfileByName } from '../profiles.js';
 import { onLive } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml } from './dps.js';
 import { ROMAN, LAST, tierOf, isElite, clampKills } from './bestiary.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 
 export const WIDGETS = {
-  party: { title: 'DPS da party', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e % do dano.' },
-  skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano por skill do jogador escolhido (toque num nome no widget de DPS).' },
-  farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Monstros marcados como “Farmando agora”, com +1 rápido e marcos 5/25/75.' },
+  party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
+  skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
+  farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Monstros marcados como “Farmando agora”, com +1 rápido e os marcos 5 / 25 / 75.' },
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
+export const bossOnly = () => load('wgBossOnly', true);
 
+/** Luta atual (ao vivo ou a última). Com "somente chefe", ignora pulls de mobs comuns. */
 function currentFight() {
-  const enc = getEncounters()[0];
+  const list = getEncounters();
+  const enc = bossOnly() ? list.find(e => e.isBoss !== false) : list[0];
   if (!enc) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
 }
 
-function selectedPlayer(S) {
-  const want = load('wgPlayer', null) || getMe()?.name;
-  return S.players.find(p => p.name === want) || S.players[0];
+/** O seu personagem na luta: marcado pela captura como local, ou o vinculado em "Minha conta". */
+function myPlayer(S) {
+  const me = getMe();
+  return S.players.find(p => p.isLocal) || S.players.find(p => me && p.name.toLowerCase() === me.name?.toLowerCase()) || null;
+}
+
+/** Só skills ativas do perfil PlayNC (Active). Sem perfil para comparar, mostra todas. */
+function activeSkills(p) {
+  const known = p.skills.map(s => ({ s, ref: findSkill(p.name, s.name, p.class, s.id) }));
+  const hasProfile = !!findProfileByName(p.name) || known.some(k => k.ref);
+  return hasProfile ? known.filter(k => k.ref?.category === 'Active').map(k => k.s) : p.skills;
 }
 
 // ---------- Corpo de cada widget ----------
 const BODIES = {
   party() {
     const S = currentFight();
-    if (!S) return '<div class="wg-empty">Sem lutas ainda.</div>';
+    if (!S) return `<div class="wg-empty">${bossOnly() ? 'Nenhuma luta contra chefe ainda.' : 'Sem lutas ainda.'}</div>`;
     const top = S.players[0]?.share || 1;
-    const sel = selectedPlayer(S)?.name;
+    const mine = myPlayer(S)?.name;
     return `
       <div class="wg-sub">
         <span style="display:flex;align-items:center;gap:6px;min-width:0">${S.live ? '<span class="live-dot"></span>' : ''}${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.boss)}</b></span>
-        <span>${duration(S.duration)} · ${compact(S.dps)}</span>
+        <span>${S.bossHp?.max ? pct(S.bossHp.current / S.bossHp.max, 0) + ' · ' : ''}${duration(S.duration)} · ${compact(S.dps)}</span>
       </div>
       ${S.players.map(p => {
         const c = classInfo(p.class);
-        return `<button class="wrow ${p.name === sel ? 'active' : ''}" style="--c:${c.color}" data-player="${esc(p.name)}">
+        return `<div class="wrow ${p.name === mine ? 'active' : ''}" style="--c:${c.color}">
           <span class="wfill" style="width:${(p.share / top) * 100}%"></span>
           ${classIcon(p.class, 20)}<b>${esc(p.name)}</b>
           <span class="num"><b>${compact(p.dps)}</b></span><span class="num muted">${pct(p.share, 0)}</span>
-        </button>`;
+        </div>`;
       }).join('')}`;
   },
 
   skills() {
     const S = currentFight();
-    const p = S && selectedPlayer(S);
-    if (!p) return '<div class="wg-empty">Sem lutas ainda.</div>';
+    const p = S && myPlayer(S);
+    if (!p) return `<div class="wg-empty">${S ? 'Seu personagem ainda não foi identificado nesta luta.' : 'Sem lutas ainda.'}</div>`;
     const c = classInfo(p.class);
-    const rows = [...p.skills].sort((a, b) => b.damage - a.damage);
+    const rows = activeSkills(p).sort((a, b) => b.damage - a.damage);
     const best = rows[0]?.damage || 1;
     return `
       <div class="wg-sub">
@@ -73,7 +84,7 @@ const BODIES = {
           <span class="num">${compact(s.damage)}</span>
           <span class="num muted">${pct(p.damage ? s.damage / p.damage : 0, 0)}</span>
           <span class="num muted">${s.hits ? pct(s.crits / s.hits, 0) : '—'}</span>
-        </div>`).join('')}`;
+        </div>`).join('') || '<div class="wg-empty">Nenhuma skill ativa usada ainda.</div>'}`;
   },
 
   farm() {
@@ -113,7 +124,7 @@ export function renderWidget(root, [id]) {
   root.innerHTML = `
     <div class="wg" id="wg">
       <div class="wg-head">
-        <h1><span>${def.icon}</span>${esc(def.title)}</h1>
+        <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
         ${overlay() ? '<button class="mini" data-act="lock" title="Travar (o clique passa para o jogo). Destrave com Ctrl+Shift+L">🔒</button>' : ''}
         <button class="mini" data-act="close" title="Fechar widget" aria-label="Fechar">✕</button>
       </div>
@@ -131,11 +142,14 @@ export function renderWidget(root, [id]) {
   };
 
   const off = onLive(() => paint() || off());
-  addEventListener('storage', function onStorage() { if (!paint()) removeEventListener('storage', onStorage); });
+  addEventListener('storage', function onStorage(e) {
+    if (!root.isConnected) return removeEventListener('storage', onStorage);
+    // Opção "somente chefe" muda o título também: redesenha o widget inteiro.
+    if (e.key === 'a2t:wgBossOnly') return renderWidget(root, [id]);
+    paint();
+  });
 
   root.addEventListener('click', e => {
-    const player = e.target.closest('[data-player]');
-    if (player) { save('wgPlayer', player.dataset.player); return paint(); }
     const kill = e.target.closest('[data-kill]');
     if (kill) {
       const kills = load('kills', {});
@@ -155,59 +169,62 @@ export function renderWidget(root, [id]) {
 const CORNERS = [['', 'Livre (arrastar)'], ['tl', '↖ Superior esquerdo'], ['tr', '↗ Superior direito'], ['bl', '↙ Inferior esquerdo'], ['br', '↘ Inferior direito']];
 
 export async function renderWidgetsPage(root) {
-  root.className = 'page bestiary-page';
+  root.className = 'page widgets-page';
   const ov = overlay();
   const state = ov ? await ov.list() : {};
+
+  const card = (id, w, extra = '') => {
+    const s = state[id] || {};
+    return `
+      <section class="card widget-card" data-id="${id}">
+        <div class="widget-top">
+          <span class="widget-ico">${w.icon}</span>
+          <div class="widget-txt"><h2>${esc(w.title)}</h2><p class="muted small">${esc(w.desc)}</p></div>
+          ${ov ? `<label class="switch"><input type="checkbox" data-opt="visible" ${s.visible ? 'checked' : ''}> No jogo</label>`
+               : `<button class="btn sm primary" data-act="popup">Abrir janela</button>`}
+        </div>
+        <div class="widget-opts">
+          ${extra}
+          ${ov ? `
+            <label class="opt"><span>Posição</span><select data-opt="corner">${CORNERS.map(([k, l]) => `<option value="${k}" ${(s.corner || '') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+            <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar (clique passa para o jogo)</label>` : ''}
+          <label class="opt"><span>Opacidade</span><input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity"></label>
+        </div>
+      </section>`;
+  };
 
   root.innerHTML = `
     <div class="page-head">
       <div>
         <h1>Widgets</h1>
-        <p class="muted">Cada widget é uma janela separada que fica por cima do jogo. Arraste pela barra do título e redimensione pelas bordas.</p>
+        <p class="muted">Cada widget é uma janela separada por cima do jogo. Arraste pela barra do título e redimensione pelas bordas.</p>
       </div>
     </div>
-    ${ov ? `<div class="note">Atalhos globais: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> mostra/oculta todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b> — em tela cheia exclusiva nenhum overlay aparece por cima.</div>`
-      : `<div class="note">Você está no navegador: aqui os widgets abrem como janelas popup comuns. Para ficarem <b>sempre por cima do jogo</b>, travados e com clique atravessando, abra o <b>app desktop</b> (<kbd>npm start</kbd>, veja o README).</div>`}
-    <div class="widget-cards">
-      ${Object.entries(WIDGETS).map(([id, w]) => {
-        const s = state[id] || {};
-        return `
-        <div class="card widget-card" data-id="${id}">
-          <div class="card-head"><h2>${w.icon} ${esc(w.title)}</h2>
-            ${ov ? `<label class="switch"><input type="checkbox" data-opt="visible" ${s.visible ? 'checked' : ''}> No jogo</label>` : `<button class="btn sm primary" data-act="popup">Abrir janela</button>`}
-          </div>
-          <p class="muted small">${esc(w.desc)}</p>
-          <div class="widget-preview"><iframe src="#/w/${id}" title="Prévia ${esc(w.title)}" loading="lazy"></iframe></div>
-          <div class="widget-opts">
-            ${ov ? `
-              <select data-opt="corner" aria-label="Posição">${CORNERS.map(([k, l]) => `<option value="${k}" ${(s.corner || '') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-              <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar</label>` : ''}
-            <label class="switch small">Opacidade <input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity" style="appearance:auto;width:110px;height:auto;background:none;border:0"></label>
-          </div>
-        </div>`;
-      }).join('')}
+    ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
+      : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
+    <div class="widget-list">
+      ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
+      ${card('skills', WIDGETS.skills)}
+      ${card('farm', WIDGETS.farm)}
     </div>`;
 
   root.addEventListener('click', e => {
-    const card = e.target.closest('.widget-card');
-    if (card && e.target.closest('[data-act="popup"]')) {
-      const w = WIDGETS[card.dataset.id];
-      window.open(`${location.pathname}#/w/${card.dataset.id}`, 'daeva-' + card.dataset.id, `popup,width=${w.width},height=${w.height}`);
+    const cardEl = e.target.closest('.widget-card');
+    if (cardEl && e.target.closest('[data-act="popup"]')) {
+      const w = WIDGETS[cardEl.dataset.id];
+      window.open(`${location.pathname}#/w/${cardEl.dataset.id}`, 'daeva-' + cardEl.dataset.id, `popup,width=${w.width},height=${w.height}`);
     }
   });
   root.addEventListener('input', e => {
-    const opt = e.target.dataset.opt, card = e.target.closest('.widget-card');
-    if (!opt || !card) return;
-    const id = card.dataset.id;
-    if (opt === 'opacity') {
-      save('wgOpacity:' + id, +e.target.value);
-      card.querySelector('iframe').contentWindow?.dispatchEvent(new StorageEvent('storage'));
-    }
+    const cardEl = e.target.closest('.widget-card');
+    if (cardEl && e.target.dataset.opt === 'opacity') save('wgOpacity:' + cardEl.dataset.id, +e.target.value);
   });
   root.addEventListener('change', e => {
-    const opt = e.target.dataset.opt, card = e.target.closest('.widget-card');
-    if (!ov || !opt || !card || opt === 'opacity') return;
-    const id = card.dataset.id;
+    const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
+    if (!opt || !cardEl || opt === 'opacity') return;
+    const id = cardEl.dataset.id;
+    if (opt === 'bossOnly') return save('wgBossOnly', e.target.checked);
+    if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
     if (opt === 'corner') ov.set(id, { corner: e.target.value });
@@ -215,10 +232,10 @@ export async function renderWidgetsPage(root) {
   ov?.onState(s => {
     if (!root.isConnected) return;
     for (const [id, st] of Object.entries(s)) {
-      const card = root.querySelector(`.widget-card[data-id="${id}"]`);
-      if (!card) continue;
-      card.querySelector('[data-opt="visible"]').checked = !!st.visible;
-      card.querySelector('[data-opt="locked"]').checked = !!st.locked;
+      const cardEl = root.querySelector(`.widget-card[data-id="${id}"]`);
+      if (!cardEl) continue;
+      cardEl.querySelector('[data-opt="visible"]').checked = !!st.visible;
+      cardEl.querySelector('[data-opt="locked"]').checked = !!st.locked;
     }
   });
 }

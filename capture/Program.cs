@@ -1,7 +1,7 @@
 // daeva-capture: lê o tráfego do AION 2 de forma passiva (Npcap) usando o motor do
 // Aion2DpsMeter e envia a luta ao vivo para o Daeva Tracker (POST /api/live).
 //
-//   daeva-capture [--url http://localhost:47173] [--boss-only] [--replay arquivo.pcap]
+//   daeva-capture [--url http://localhost:47173] [--all-damage] [--replay arquivo.pcap]
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -28,8 +28,9 @@ var opcodesFile = Path.Combine(configDir, "opcodes.json");
 var opcodes = File.Exists(opcodesFile) ? Opcodes.Load(opcodesFile) : Opcodes.Default;
 var combat = new CombatOptions
 {
-    // Desligado por padrão: também registra mobs do mapa aberto (contagem do bestiário).
-    BossDamageOnly = args.Contains("--boss-only"),
+    // Em luta de chefe, conta só o dano no chefe (adds ignorados). Lutas de mobs comuns continuam
+    // registradas normalmente (contagem do bestiário). --all-damage conta tudo.
+    BossDamageOnly = !args.Contains("--all-damage"),
 };
 
 using var engine = new MeterEngine(data, opcodes, new HistoryRepository(Path.Combine(configDir, "capture-history.db")), combat, new HistoryOptions());
