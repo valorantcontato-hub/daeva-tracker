@@ -1185,21 +1185,21 @@ html .hero:hover { border-color: rgba(255, 255, 255, .08); }
 html.desktop .theme-btn { -webkit-app-region: no-drag; }
 
 :root[data-theme="light"] {
-  --bg: #f3f0f8; --surface: #ffffff; --surface-2: #ebe6f3; --border: #d8cfe6;
-  --text: #1e1a2b; --muted: #6a6480; --accent: #8e3fc4; --accent-ink: #ffffff;
+  --bg: #eef2f7; --surface: #ffffff; --surface-2: #e4e9f1; --border: #d3dae6;
+  --text: #172033; --muted: #5f6b80; --accent: #1f7ae0; --accent-ink: #ffffff;
   --lotus-mark: url('../icons/lotus-light.svg');
-  --shadow: 0 8px 24px rgba(60, 40, 90, .12);
+  --shadow: 0 8px 24px rgba(30, 55, 100, .12);
   color-scheme: light;
 }
 :root[data-theme="light"] .card, :root[data-theme="light"] .home-main > .gear-card, :root[data-theme="light"] .home-main .stats-card,
-:root[data-theme="light"] html .hero, :root[data-theme="light"] .hero { border-color: rgba(60, 40, 90, .14); background: var(--surface); }
+:root[data-theme="light"] html .hero, :root[data-theme="light"] .hero { border-color: rgba(30, 55, 100, .14); background: var(--surface); }
 :root[data-theme="light"] .card:hover, :root[data-theme="light"] .card:focus-within, :root[data-theme="light"] .hero:hover,
-:root[data-theme="light"] .home-main > .gear-card:hover, :root[data-theme="light"] .home-main .stats-card:hover { border-color: rgba(60, 40, 90, .14); }
-:root[data-theme="light"] .topbar { border-bottom-color: rgba(60, 40, 90, .14); background: var(--bg); }
-:root[data-theme="light"] .tabs { border-top-color: rgba(60, 40, 90, .14); background: var(--surface); }
+:root[data-theme="light"] .home-main > .gear-card:hover, :root[data-theme="light"] .home-main .stats-card:hover { border-color: rgba(30, 55, 100, .14); }
+:root[data-theme="light"] .topbar { border-bottom-color: rgba(30, 55, 100, .14); background: var(--bg); }
+:root[data-theme="light"] .tabs { border-top-color: rgba(30, 55, 100, .14); background: var(--surface); }
 :root[data-theme="light"] .home-main .card-head h2, :root[data-theme="light"] .home-main .card-head h3 { color: var(--text); }
-:root[data-theme="light"] .home-main .stat-tile { background: rgba(60, 40, 90, .05); }
-:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(60, 40, 90, .12); }
+:root[data-theme="light"] .home-main .stat-tile { background: rgba(30, 55, 100, .05); }
+:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(30, 55, 100, .12); }
 :root[data-theme="light"] .home-main .stat-name { color: var(--text); }
 :root[data-theme="light"] .home-main .stat-tile b { color: var(--text); }
 :root[data-theme="light"] .home-main .stat-ico img { filter: invert(1) brightness(.35); }
@@ -1209,17 +1209,50 @@ html.desktop .theme-btn { -webkit-app-region: no-drag; }
 :root[data-theme="light"] .combat-stat span, :root[data-theme="light"] .combat-stat b { color: var(--text); }
 :root[data-theme="light"] .lang-switch, :root[data-theme="light"] .theme-btn { background: var(--surface); }
 :root[data-theme="light"] .pet-card, :root[data-theme="light"] .enc-item { color: var(--text); }
-:root[data-theme="light"] .slot { box-shadow: 0 1px 2px rgba(60, 40, 90, .2); }
+:root[data-theme="light"] .slot { box-shadow: 0 1px 2px rgba(30, 55, 100, .2); }
 :root[data-theme="light"] .tabs a.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
 :root[data-theme="light"] .hero-tabs a.active, :root[data-theme="light"] .lang-switch button.active { background: var(--accent); color: #fff; }
 
 /* Tema claro: efeitos ao passar o mouse sem cores fixas do escuro */
 :root[data-theme="light"] .training-run-row:hover, :root[data-theme="light"] .prow:hover,
-:root[data-theme="light"] .item-row:hover, :root[data-theme="light"] .enc-item:hover { background: rgba(60, 40, 90, .09); }
-:root[data-theme="light"] .tile-grid .slot:hover { box-shadow: 0 0 0 1px var(--accent), 0 4px 10px rgba(60, 40, 90, .28); }
-:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(60, 40, 90, .12); border: 0; }
-:root[data-theme="light"] .hero-tabs a:not(.active):hover, :root[data-theme="light"] .tabs a:not(.active):hover { background: rgba(60, 40, 90, .1); color: var(--text); }
-:root[data-theme="light"] .chip:not(.active):hover, :root[data-theme="light"] .btn:not(.primary):hover { background: rgba(60, 40, 90, .1); color: var(--text); }
+:root[data-theme="light"] .item-row:hover, :root[data-theme="light"] .enc-item:hover { background: rgba(30, 55, 100, .09); }
+:root[data-theme="light"] .tile-grid .slot:hover { box-shadow: 0 0 0 1px var(--accent), 0 4px 10px rgba(30, 55, 100, .28); }
+:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(30, 55, 100, .12); border: 0; }
+:root[data-theme="light"] .hero-tabs a:not(.active):hover, :root[data-theme="light"] .tabs a:not(.active):hover { background: rgba(30, 55, 100, .1); color: var(--text); }
+:root[data-theme="light"] .chip:not(.active):hover, :root[data-theme="light"] .btn:not(.primary):hover { background: rgba(30, 55, 100, .1); color: var(--text); }
 
 /* Tooltip: sempre escuro, também no tema claro (senão o texto some no fundo escuro) */
 :root[data-theme="light"] .tooltip { --text: #e6e9ef; --muted: #8a93a6; --border: #3a2850; --surface-2: #21182e; color: #e6e9ef; }
+
+/* ======= Nova paleta: cinza-azulado neutro no escuro e destaque azul no lugar do roxo ======= */
+:root {
+  --bg: #0e1116; --surface: #161a21; --surface-2: #1e232c; --border: #2b313c;
+  --text: #e8ebf1; --muted: #8c95a5; --accent: #3b9eff; --accent-ink: #ffffff;
+}
+:root[data-theme="light"] { --accent: #1f7ae0; }
+.hero::before { filter: none; }
+:root:not([data-theme="light"]) .hero::before { filter: drop-shadow(0 0 14px #3b9eff30); }
+.tooltip { background: #171a20; border-color: #323945; }
+.topbar, .home-main .card-head h2::before { border-bottom-color: rgba(255, 255, 255, .07); }
+
+/* Botões dos menus: botões do personagem (Personagem / Skills / Daevanion) e barra de baixo */
+.hero-tabs a, html.home-fit .hero-tabs a, .account-page .hero-tabs a {
+  border: 0; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-weight: 600; text-align: center;
+}
+.hero-tabs a:not(.active), html.home-fit .hero-tabs a:not(.active), .account-page .hero-tabs a:not(.active) { background: var(--surface-2); border: 0; }
+.hero-tabs a:hover { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); color: var(--text); }
+.hero-tabs a.active, .lang-switch button.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+.tabs a { border-radius: 14px; margin: 6px 3px; }
+.tabs a.active { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--accent); box-shadow: none; }
+.tabs a:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+:root[data-theme="light"] .tabs a.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+:root[data-theme="light"] .hero-tabs a:not(.active) { background: var(--surface-2); color: var(--text); }
+:root[data-theme="light"] .hero-tabs a.active, :root[data-theme="light"] .lang-switch button.active { background: var(--accent); color: #fff; }
+html.home-fit .hero-tabs a.active, html .account-page .hero-tabs a.active, .hero-tabs a.active { background: var(--accent); color: #fff; }
+.tabs a.active { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+.tab-ico { filter: grayscale(1) brightness(1.25); }
+.tabs a.active .tab-ico { filter: none; color: var(--accent); }
+.slot .skin-mark { background: var(--accent); }
+html .tabs a.active { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent); box-shadow: none; }
+html .tabs a.active .tab-ico { color: var(--accent); }
+html .slot .skin-mark { background: var(--accent); }

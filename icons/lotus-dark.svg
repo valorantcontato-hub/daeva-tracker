@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <defs><linearGradient id="petal" x1="64" y1="16" x2="64" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#bc5bff"/><stop offset=".38" stop-color="#6e2e9f"/><stop offset=".75" stop-color="#251235"/><stop offset="1" stop-color="#08050e"/></linearGradient></defs>
-  <g fill="url(#petal)" stroke="#a958df" stroke-width="1.5" stroke-linejoin="round">
+  <defs><linearGradient id="petal" x1="64" y1="16" x2="64" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#6cb6ff"/><stop offset=".38" stop-color="#1f5fae"/><stop offset=".75" stop-color="#10213a"/><stop offset="1" stop-color="#050810"/></linearGradient></defs>
+  <g fill="url(#petal)" stroke="#5aa5f0" stroke-width="1.5" stroke-linejoin="round">
     <path d="M64 105C38 109 17 97 8 78c24-5 45 2 56 27Z"/>
     <path d="M64 105c26 4 47-8 56-27-24-5-45 2-56 27Z"/>
     <path d="M64 105C34 100 20 76 25 44c27 7 41 29 39 61Z"/>
@@ -9,5 +9,5 @@
     <path d="M64 105c24-14 30-42 22-76-23 19-30 44-22 76Z"/>
     <path d="M64 107C44 85 45 50 64 16c19 34 20 69 0 91Z"/>
   </g>
-  <path d="M43 112c14 5 28 5 42 0" stroke="#b15bee" stroke-width="3" stroke-linecap="round"/>
+  <path d="M43 112c14 5 28 5 42 0" stroke="#62adf5" stroke-width="3" stroke-linecap="round"/>
 </svg>
