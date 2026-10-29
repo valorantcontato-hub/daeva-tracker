@@ -14,12 +14,12 @@ import { onLive, onPositions, lastPositions } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
-import { radarSelf } from '../radar-state.js';
+import { radarSelf, verifiedRadarOwner, readVerifiedRadar } from '../radar-state.js';
 
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
-  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. O jogo só informa a sua posição montado.' },
+  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
@@ -43,7 +43,7 @@ function myPlayer(S) {
 
 // ---------- Mini mapa (radar + mascotes que você está farmando) ----------
 // Posições vêm dos pacotes de movimento do jogo (captura). Unidade assumida: 1 unidade = 1 cm; ajuste
-// RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo. A SUA posição só chega montado.
+// RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo. A identidade local precisa estar confirmada.
 const RADAR_UNIT_M = 0.01;
 const normName = s => String(s || '').normalize('NFKC').trim().toLowerCase();
 const ARROWS = 'M12 4v14M6 12l6 6 6-6';
@@ -118,7 +118,7 @@ function farmRow(e, near) {
 
 // Última leitura boa (sua posição + monstros): o widget continua mostrando isso enquanto não chegam dados novos.
 let radarOwner = bestiaryKey();
-let lastRadar = load('radarLast:' + radarOwner, null);
+let lastRadar = readVerifiedRadar(load('radarLast:' + radarOwner, null));
 let lastRadarSaved = 0;
 let previousOwnerPositions = null;
 
@@ -127,20 +127,20 @@ function radarBody() {
   if (owner !== radarOwner) {
     previousOwnerPositions = lastPositions();
     radarOwner = owner;
-    lastRadar = load('radarLast:' + owner, null);
+    lastRadar = readVerifiedRadar(load('radarLast:' + owner, null));
     lastRadarSaved = 0;
   }
   const P = lastPositions();
   const elapsed = P ? Date.now() - Date.parse(P.capturedAt) : Infinity;
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
-  const selfOk = fresh && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
+  const selfOk = fresh && verifiedRadarOwner(P, getMe()) && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
   const range = 100;
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
   // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
   if (selfOk) {
-    lastRadar = { self: radarSelf(P.self, lastRadar?.self), mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
+    lastRadar = { verifiedSelf: true, self: radarSelf(P.self, lastRadar?.self), mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
     if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast:' + radarOwner, lastRadar); }
   }
 
@@ -306,7 +306,7 @@ export async function renderWidgetsPage(root) {
       ${card('skills', WIDGETS.skills)}
       ${card('radar', WIDGETS.radar)}
     </div>
-    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 2 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
+    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Grava 2 minutos de dados recebidos e enviados na conexão do jogo, somente em um arquivo neste computador. Para estudar posição e direção: primeiro gire parado, depois ande em frente e para os lados. Entre novamente no personagem com a captura ligada para registrar também a identidade.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
 
   const recStatus = root.querySelector('#rec-status');

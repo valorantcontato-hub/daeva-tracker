@@ -38,7 +38,7 @@ var http = new HttpClient { BaseAddress = new Uri(url), Timeout = TimeSpan.FromS
 var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
-using var recorder = new DaevaCapture.PacketRecorder();
+using var recorder = new DaevaCapture.PacketRecorder(engine.Dispatcher);
 using var tracker = new DaevaCapture.PositionTracker();
 long lastPositions = 0;
 string lastIdentity = "";
@@ -149,17 +149,19 @@ void AnnounceIdentity()
     outbox.Enqueue(new { type = "identity", capturedAt = DateTime.UtcNow.ToString("o"), self = new { name, serverId = (int)prof.ServerId, @class = cls, level = prof.Level } });
 }
 
-// Posições (a cada ~1 s): a sua e a dos monstros à vista, para o widget de mini mapa.
+// Posições (até 10 vezes/s): a sua, quando identificada pelo jogo, e as dos monstros.
 void SendPositions()
 {
     long now = Environment.TickCount64;
     if (now - lastPositions < 100) return;
     lastPositions = now;
     var seen = tracker.Snapshot(8000);
-    // Sem o registro do personagem (captura iniciada com o jogo já aberto), o id dos pacotes de movimento montado identifica você.
-    int? meId = engine.Store.GetLocalProfile()?.EntityId ?? (tracker.MountSelfId > 0 ? tracker.MountSelfId : null);
+    var prof = engine.Store.GetLocalProfile();
+    // Um pacote de movimento de montaria também pertence a outros jogadores. Só um perfil
+    // local nomeado pelo jogo, com servidor, autoriza usar a entidade como sua posição.
+    int? meId = DaevaCapture.PositionTracker.VerifiedLocalId(prof);
     object? self = null;
-    // O jogo só devolve a SUA posição enquanto você está montado: usa a última leitura (até 5 min) e informa a idade.
+    // Usa somente a entidade local confirmada, com idade explícita da última posição recebida.
     if (meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
     if (seen.Count == 0 && self is null) return;
     var mobs = new List<object>();
@@ -169,7 +171,9 @@ void SendPositions()
         if (engine.Store.GetMobCode(id) is not int code) continue;
         mobs.Add(new { id, npcCode = code, name = data.Npc(code)?.Name ?? "", x = pos.X, y = pos.Y, z = pos.Z });
     }
-    outbox.Enqueue(new { type = "positions", capturedAt = DateTime.UtcNow.ToString("o"), selfId = meId, self, entities = seen.Count, mobs = mobs.Take(400) });
+    outbox.Enqueue(new { type = "positions", capturedAt = DateTime.UtcNow.ToString("o"), selfId = meId,
+        selfVerified = meId is not null, selfProfile = meId is not null ? new { name = prof!.Name, serverId = (int)prof.ServerId } : null,
+        self, entities = seen.Count, mobs = mobs.Take(400) });
 }
 
 async Task Flush()

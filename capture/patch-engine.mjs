@@ -37,8 +37,8 @@ export async function patchEngine(dir) {
     await writeFile(store, storeSource);
   }
   const dispatcher = join(dir, 'src/Aion2DpsMeter.Core/Capture/CaptureDispatcher.cs');
-  source = await readFile(dispatcher, 'utf8');
-  if (source.includes('// Daeva collection candidates v1')) return;
+  source = (await readFile(dispatcher, 'utf8')).replace(/\r\n/g, '\n');
+  if (!source.includes('// Daeva collection candidates v1')) {
   replace('if (LooksLikeTls(p.Data) || !Opcodes.ContainsAny(p.Data, _opcodes.SignaturesB))', 'if (LooksLikeTls(p.Data) || (!_streams.ContainsKey(p.Device + "|" + p.FlowKey) && !DaevaCollectionCandidate(p.Data) && !Opcodes.ContainsAny(p.Data, _opcodes.SignaturesB)))');
   replace('_signatureHits[key] = (hit.Count + 1, now);', '_signatureHits[key] = (hit.Count + (Opcodes.ContainsAny(p.Data, _opcodes.SignaturesB) ? 1 : 0), now);');
   replace('            _streams[key] = stream = new TcpStream(new PacketParser(_store, _data, _opcodes));', `        {
@@ -59,5 +59,20 @@ export async function patchEngine(dir) {
 
     private static bool LooksLikeTls`);
   await writeFile(dispatcher, source);
+  }
+  if (!source.includes('// Daeva outbound recording v1')) {
+    replace('    private ushort? _lockedPort;', `    // Daeva outbound recording v1: observes only the reverse of the locked game connection.
+    public event Action<TcpPayload>? DaevaClientPacket;
+    private string? _daevaReverseFlow;
+
+    private ushort? _lockedPort;`);
+    replace('                if (p.DstPort == port)\n                    _lastParsedMs = now; // the connection is alive', `                if (p.DstPort == port) {
+                    _lastParsedMs = now; // the connection is alive
+                    if (p.FlowKey == _daevaReverseFlow) DaevaClientPacket?.Invoke(p);
+                }`);
+    replace('        _lockedPort = p.SrcPort;', '        _lockedPort = p.SrcPort;\n        _daevaReverseFlow = $"{p.DstIp}:{p.DstPort}>{p.SrcIp}:{p.SrcPort}";');
+    replace('        _lockedPort = null;', '        _lockedPort = null;\n        _daevaReverseFlow = null;');
+    await writeFile(dispatcher, source);
+  }
 }
 if (process.argv[2]) await patchEngine(process.argv[2]);

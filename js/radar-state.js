@@ -1,3 +1,17 @@
+/** Só aceita posições identificadas pelo jogo e pertencentes ao personagem vinculado. */
+export function verifiedRadarOwner(snapshot, profile) {
+  const owner = snapshot?.selfProfile;
+  const norm = name => String(name || '').normalize('NFKC').trim().toLowerCase();
+  return snapshot?.selfVerified === true && Number(profile?.serverId) > 0
+    && Number(owner?.serverId) === Number(profile.serverId)
+    && !!norm(profile.name) && norm(owner?.name) === norm(profile.name);
+}
+
+export function readVerifiedRadar(value) {
+  return value?.verifiedSelf === true && Number.isFinite(value.self?.x) && Number.isFinite(value.self?.y)
+    && Array.isArray(value.mobs) ? value : null;
+}
+
 /** Mantém a orientação quando parado; usa ângulo explícito se a captura o fornecer. */
 export function radarSelf(current, previous) {
   if (!current || !Number.isFinite(current.x) || !Number.isFinite(current.y)) return null;

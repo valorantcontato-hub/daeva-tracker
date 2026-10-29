@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using Aion2DpsMeter.Core.Protocol;
+using Aion2DpsMeter.Core.Capture;
 
 namespace DaevaCapture;
 
@@ -12,6 +13,7 @@ public sealed class PacketRecorder : IDisposable
     const int SampleBytes = 160;
     const long MaxFileBytes = 150L * 1024 * 1024;
     readonly object gate = new();
+    readonly CaptureDispatcher? dispatcher;
     StreamWriter? file;
     DateTime endsAt;
     long bytes, packets;
@@ -19,9 +21,17 @@ public sealed class PacketRecorder : IDisposable
     public string? Path { get; private set; }
     public bool Active => file is not null;
 
-    public PacketRecorder() { PacketParser.DaevaPacket += OnPacket; }
+    public PacketRecorder(CaptureDispatcher? dispatcher = null) {
+        this.dispatcher = dispatcher;
+        PacketParser.DaevaPacket += OnPacket;
+        if (dispatcher is not null) dispatcher.DaevaClientPacket += OnClient;
+    }
 
-    public void Dispose() { Stop(); PacketParser.DaevaPacket -= OnPacket; }
+    public void Dispose() {
+        if (dispatcher is not null) dispatcher.DaevaClientPacket -= OnClient;
+        PacketParser.DaevaPacket -= OnPacket;
+        Stop();
+    }
 
     public string Start(string dir, int seconds)
     {
@@ -34,7 +44,7 @@ public sealed class PacketRecorder : IDisposable
             endsAt = DateTime.UtcNow.AddSeconds(seconds);
             bytes = packets = 0;
             stats.Clear();
-            file.WriteLine($"{{\"type\":\"start\",\"at\":\"{DateTime.Now:o}\",\"seconds\":{seconds}}}");
+            file.WriteLine($"{{\"type\":\"start\",\"format\":2,\"directions\":[\"server\",\"client\"],\"at\":\"{DateTime.Now:o}\",\"seconds\":{seconds}}}");
             return Path;
         }
     }
@@ -93,7 +103,22 @@ public sealed class PacketRecorder : IDisposable
             var s = stats.GetValueOrDefault(op, (0L, int.MaxValue, 0));
             stats[op] = (s.Item1 + 1, Math.Min(s.Item2, packet.Length), Math.Max(s.Item3, packet.Length));
             int take = Math.Min(SampleBytes, packet.Length);
-            var line = $"{{\"t\":{timestamp},\"f\":{flow.GetHashCode() & 0xffff},\"op\":\"{op}\",\"len\":{packet.Length},\"hex\":\"{Convert.ToHexString(packet[..take])}\"}}";
+            var line = $"{{\"t\":{timestamp},\"dir\":\"server\",\"f\":{flow.GetHashCode() & 0xffff},\"op\":\"{op}\",\"len\":{packet.Length},\"hex\":\"{Convert.ToHexString(packet[..take])}\"}}";
+            file.WriteLine(line);
+            bytes += line.Length;
+            packets++;
+        }
+    }
+
+    // Segmentos enviados pelo cliente, sem interpretá-los como pacotes de combate.
+    // Sequência e truncamento explícitos permitem analisar limites TCP.
+    void OnClient(TcpPayload packet)
+    {
+        lock (gate)
+        {
+            if (file is null || packet.Data.Length == 0 || bytes >= MaxFileBytes) return;
+            int take = Math.Min(4096, packet.Data.Length);
+            var line = $"{{\"type\":\"client-segment\",\"dir\":\"client\",\"t\":{packet.TimestampMs},\"f\":{packet.FlowKey.GetHashCode() & 0xffff},\"seq\":{packet.Sequence},\"len\":{packet.Data.Length},\"truncated\":{(take < packet.Data.Length ? "true" : "false")},\"hex\":\"{Convert.ToHexString(packet.Data.AsSpan(0,take))}\"}}";
             file.WriteLine(line);
             bytes += line.Length;
             packets++;

@@ -4,18 +4,19 @@
 // (ex.: 1d37, só deltas) são ignorados. Se um patch mudar o formato, valores fora de faixa são descartados.
 using System.Buffers.Binary;
 using Aion2DpsMeter.Core.Protocol;
+using Aion2DpsMeter.Core.Combat;
 
 namespace DaevaCapture;
 
 public sealed class PositionTracker : IDisposable
 {
+    public static int? VerifiedLocalId(LocalProfile? profile) => profile is { ServerId: > 0, EntityId: > 0 }
+        && !string.IsNullOrWhiteSpace(profile.Name) && !profile.Name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase)
+        ? profile.EntityId : null;
     public readonly record struct Pos(float X, float Y, float Z, long At);
     const float Limit = 2_000_000f;
     readonly object gate = new();
     readonly Dictionary<int, Pos> positions = new();
-
-    /// <summary>Último id visto num pacote 2a38 (movimento montado): nas gravações, só o personagem local aparece neles.</summary>
-    public int MountSelfId { get; private set; }
 
     public PositionTracker() { PacketParser.DaevaPacket += OnPacket; }
     public void Dispose() { PacketParser.DaevaPacket -= OnPacket; }
@@ -40,7 +41,7 @@ public sealed class PositionTracker : IDisposable
         int i = 0;
         if (!Var(packet, ref i, out _) || i + 2 > packet.Length) return;
         byte op = packet[i], kind = packet[i + 1];
-        // 2a38: movimento do próprio personagem montado (id aparece duas vezes; x, y, z são os últimos 12 bytes).
+        // 2a38 também é enviado para OUTROS jogadores: é posição de uma entidade, nunca prova de identidade local.
         if (kind == 0x38 && op == 0x2a)
         {
             int j = i + 2;
@@ -50,7 +51,6 @@ public sealed class PositionTracker : IDisposable
             float mz = BinaryPrimitives.ReadSingleLittleEndian(packet[(packet.Length - 4)..]);
             if (!Plausible(mx) || !Plausible(my) || !Plausible(mz) || (mx == 0f && my == 0f)) return;
             lock (gate) positions[mid] = new Pos(mx, my, mz, Environment.TickCount64);
-            MountSelfId = mid;
             return;
         }
         if (kind != 0x37 || op < 0x1a || op > 0x1c) return;
