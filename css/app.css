@@ -1657,6 +1657,9 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 .sm-mark small { display: block; font-size: calc(12 * var(--u)); font-weight: 700; }
 .sm-mark.rare { color: #fff; background: #3d7cff; border-color: #bcd2ff; }
 
+/* Cartões Mercador e Posição dos widgets: mesmo espaçamento do cartão de cada widget */
+.position-card, .shopmarks-card { display: flex; flex-direction: column; gap: 12px; }
+.shopmarks-card { margin-bottom: 12px; }
 /* Cursor personalizado também enquanto o botão do mouse está pressionado (clicar/arrastar) */
 html:not(.widget-mode):active body *:not(input):not(textarea):not(select):not(:disabled) { cursor: var(--app-cursor-hover); }
 html:not(.widget-mode) body :is(a, button, label, summary) { -webkit-user-drag: none; user-drag: none; }
