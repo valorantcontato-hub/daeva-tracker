@@ -1136,3 +1136,8 @@ html.round-window .tabs { border-radius: 0 0 22px 22px; }
 .home-main .stat-tile { border-radius: 13px; }
 .slot, .home-main .slot, .gear-card .slot { border-radius: 8px; }
 .btn, .chip, .hero-tabs .btn { border-radius: 12px; }
+
+/* Servidor em cima, com classe e nível ao lado */
+.hero-top { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.hero-top .hero-class { margin: 0; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.hero-top .hero-class span { color: var(--muted); }

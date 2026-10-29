@@ -46,10 +46,9 @@ function heroHtml(me, extra = '', tabs = '') {
         ${me.image ? `<img src="${esc(portraitUrl(me))}" alt="" draggable="false">` : classIcon(me.class, 120)}
       </div>
       <div class="hero-info">
-        <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
+        <div class="eyebrow hero-top"><span>${esc(me.serverName)}</span><span class="hero-sep">·</span><div class="meta hero-class">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div></div>
         <div class="hero-name-row">
           <h1 class="hero-name">${esc(me.name)}</h1>
-          <div class="meta hero-class">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
         </div>
         ${me.title ? `<div class="hero-title">${esc(me.title)}</div>` : ''}
         <div class="hero-stats">
