@@ -280,6 +280,13 @@ const BODIES = {
 
 // ---------- Widget isolado ----------
 export function renderWidget(root, [id]) {
+  // #/w/all: os três widgets em uma só página (um único endereço para a fonte de navegador do OBS), lado a lado.
+  if (id === 'all') {
+    root.innerHTML = '<div class="wg-all">' + Object.keys(WIDGETS).map(w => '<div class="wg-all-cell" data-w="' + w + '" style="width:' + WIDGETS[w].width + 'px;height:' + WIDGETS[w].height + 'px"></div>').join('') + '</div>';
+    root.querySelectorAll('.wg-all-cell').forEach(cell => renderWidget(cell, [cell.dataset.w]));
+    document.title = 'Widgets · Lotus Tracker';
+    return;
+  }
   const def = WIDGETS[id];
   if (!def) { root.innerHTML = '<div class="wg"><div class="wg-empty">Widget desconhecido.</div></div>'; return; }
   // Prévia dentro da página Widgets (data-preview): sem botões de janela e sem mexer no título.

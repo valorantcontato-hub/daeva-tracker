@@ -1587,6 +1587,24 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .pchips::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .28); border-radius: 99px; }
 .pchips::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .45); }
 
+/* Modo Stream (fontes de navegador do OBS) */
+.stream-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; margin-right: 8px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-weight: 700; font-size: 12px; cursor: pointer; }
+.stream-btn:hover { color: var(--text); }
+.stream-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html.desktop .stream-btn { -webkit-app-region: no-drag; }
+.sm-backdrop { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #000a; }
+.sm-card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.45; }
+.sm-title { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+.sm-close { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+.sm-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 8px 0; }
+.sm-row small { display: block; color: var(--muted); font-size: 11px; }
+.sm-row input { min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg, #0d0f14); color: var(--text); font-size: 12px; }
+.sm-row button { padding: 6px 10px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; }
+.sm-note { color: var(--muted); font-size: 12px; }
+.stream-btn { white-space: nowrap; }
+@media (max-width: 520px) { .sm-row { grid-template-columns: minmax(0, 1fr) auto; } .sm-row > div { grid-column: 1 / -1; } }
+.wg-all { display: flex; align-items: flex-start; gap: 0; }
+.wg-all-cell { flex: none; position: relative; }
 /* Painel de DPS do chefe no estilo Questlog: cabeçalho com DPS grande e colunas alinhadas */
 .q-head { padding: 6px 9px 7px; }
 .q-top { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: .14em; color: #aeb4bf; font-weight: 700; }
