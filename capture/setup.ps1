@@ -22,6 +22,7 @@ if (Test-Path (Join-Path $engine '.git')) {
   Run git @('-c', 'core.longpaths=true', 'clone', '--depth', '1', 'https://github.com/domel1998/Aion2DPSMeter.git', $engine)
 }
 $commit = (& git -C $engine rev-parse --short HEAD)
+Run node @((Join-Path $PSScriptRoot 'patch-engine.mjs'), $engine)
 
 $pack = if ($SelfContained) { @('--self-contained', 'true', '-p:PublishSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true') } else { @('--self-contained', 'false') }
 Run dotnet (@('publish', (Join-Path $PSScriptRoot 'CaptureBridge.csproj'), '-c', 'Release', '-r', 'win-x64', "-p:EngineDir=$engine", '-o', $Out) + $pack)

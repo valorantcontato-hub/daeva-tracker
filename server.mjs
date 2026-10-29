@@ -7,6 +7,8 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aggregateEvents } from './js/encounter.js';
+import { createPetFeed } from './pet-feed.mjs';
+const pets = createPetFeed();
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const TYPES = {
@@ -168,6 +170,7 @@ function ingestSnapshot(ev) {
     if (delta > 0) tl[sec] = (tl[sec] || 0) + delta;
   }
   f.data = ev;
+  f.receivedAt = Date.now();
   if (ev.type === 'end') {
     f.endedAt = Date.now();
     broadcast();
@@ -183,6 +186,7 @@ function snapshot() {
     const d = f.data;
     return {
       id: f.id, boss: d.boss || 'Combate', dungeon: d.dungeon || '', npcCode: d.npcCode, isBoss: !!d.isBoss,
+      isDummy: d.isDummy === true, capturedAt: d.capturedAt || new Date(f.receivedAt).toISOString(),
       startedAt: d.startedAt, duration: Math.max(1, Number(d.duration) || 1), result: d.result, live: !f.endedAt,
       bossHp: d.bossHp || null, self: d.self || null, targets: d.targets || [],
       players: (d.players || []).map(p => ({
@@ -195,6 +199,7 @@ function snapshot() {
   return {
     id: f.id, boss: f.boss, dungeon: f.dungeon, bossIcon: f.bossIcon, startedAt: f.startedAt,
     duration, result: f.result || 'kill', live: !f.endedAt,
+    isBoss: f.isBoss, isDummy: f.isDummy, npcCode: f.npcCode, capturedAt: new Date().toISOString(),
     players: aggregateEvents(f.events, f.roster),
   };
 }
@@ -213,6 +218,7 @@ function ingest(ev) {
     const now = Date.now();
     live.fight = {
       id: 'live-' + now.toString(36), boss: String(ev.boss || 'Chefe'), dungeon: String(ev.dungeon || ''),
+      isBoss: ev.isBoss !== false, isDummy: ev.isDummy === true, npcCode: Number(ev.npcCode) || 0,
       bossIcon: ev.bossIcon || '', startedAt: new Date(now).toISOString(), startedAtMs: now,
       roster: Array.isArray(ev.players) ? ev.players : [], events: [], endedAt: 0,
     };
@@ -255,10 +261,11 @@ async function handle(req, res) {
     if (path === '/api/plaync/daevanion') return sendJson(res, 200, await daevanionBoard(url.searchParams));
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(ingest);
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
+    if (path === '/api/pets/stream') return pets.subscribe(req, res);
     if (path === '/api/reload/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(': ok\n\n');

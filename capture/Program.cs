@@ -37,6 +37,7 @@ using var engine = new MeterEngine(data, opcodes, new HistoryRepository(Path.Com
 var http = new HttpClient { BaseAddress = new Uri(url), Timeout = TimeSpan.FromSeconds(3) };
 var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 
 engine.Store.EncounterEnded += r => outbox.Enqueue(Dto(r, "end"));
 // O jogo só diz o nome do seu personagem em certos momentos (teleporte, entrada em DG). Lembramos o
@@ -92,7 +93,8 @@ async Task Flush()
     {
         try
         {
-            await http.PostAsJsonAsync("/api/live", msg, json);
+            using var response = await http.PostAsJsonAsync("/api/live", msg, json);
+            response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
         {
@@ -114,6 +116,7 @@ object Dto(EncounterRecord r, string type)
     return new
     {
         type,
+        capturedAt = DateTime.UtcNow.ToString("o"),
         id = r.Id.ToString("N"),
         boss = r.Name,
         npcCode = r.NpcCode,
@@ -132,7 +135,7 @@ object Dto(EncounterRecord r, string type)
             @class = ClassKey(p.Job),
             isLocal = p.IsLocal,
             heal = p.Heal,
-            skills = p.Skills.Select(s => new { id = s.Code, name = s.Name, hits = s.Hits, crits = s.Crits, damage = s.Damage, max = s.Max, dot = s.IsDot, summon = s.IsSummon }),
+            skills = p.Skills.Select(s => new { id = s.Code, name = s.Name, hits = s.Hits, crits = s.Crits, damage = s.Damage, max = s.Max, back = s.Back, perfect = s.Perfect, @double = s.Double, parry = s.Parry, dot = s.IsDot, summon = s.IsSummon }),
         }),
         targets = r.Targets.Select(t => new { npcCode = t.NpcCode, name = t.Name, isBoss = t.IsBoss, killed = t.Killed, damage = t.DamageTaken, maxHp = t.MaxHp }),
     };

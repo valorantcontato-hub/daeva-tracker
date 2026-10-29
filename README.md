@@ -4,20 +4,49 @@ Tracker leve para AION 2 com dados **reais**:
 
 - **DPS ao vivo** da sua party nas DGs: nomes, classes e skills reais (com ícones oficiais), HP do chefe, gráfico e detalhamento por skill.
 - **Conta e party**: perfil real da PlayNC (CP, item level, atributos, Daevanion, equipamentos e skills). Vinculado automaticamente pela captura.
-- **Bestiário**: cada mob que você mata entra sozinho com o nome oficial, e os abates contam para os marcos **5 / 25 / 75**.
+- **Boss**: histórico e status de DPS exclusivamente de chefes.
+- **Boneco de Treinamento**: tentativas com nome, duração, preparação de 5 segundos, dano próprio e comparação de duas tentativas concluídas.
+- **Bestiário**: coleção de 207 pets, com níveis e almas lidos do jogo; catálogo de monstros e abates locais em uma aba separada.
 - **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
-- **Macros**: notas e comandos salvos por personagem, no menu da ficha. O app não executa comandos no jogo.
 
 O bestiário separa abates e favoritos por personagem (região + servidor + ID). O catálogo estático
 inclui nomes, níveis, regiões e fotos do MetaBot, relacionadas aos códigos conhecidos da captura.
 As fotos são carregadas sob demanda; a lista tem paginação de 60 entradas. Monstros comuns e
 nomeados aparecem no bestiário; fotos de chefes também ficam disponíveis no medidor de DPS.
-Fotos personalizadas podem ser associadas pela edição/importação ou pelo campo `icon` da captura.
-Sem imagem conhecida, mostra “Sem foto”. Os contadores são os registrados no app: o perfil público
-não fornece o histórico completo da conta. Zero registrado
-não significa que o monstro esteja faltando no jogo. Os filtros acompanham a mudança de progresso.
+Sem imagem conhecida, mostra “Sem foto”. As linhas são compactas e somente a estrela de favoritos
+é editável; os favoritos aparecem no widget Farm. Abates e almas são dados diferentes.
+Os filtros Completos/Faltando só usam a coleção recebida do jogo, nunca os contadores de abates.
 Ao atualizar, os dados antigos são preservados e migrados para o primeiro personagem vinculado,
 sem repetir os mesmos abates nos demais personagens.
+
+### Sincronização da coleção
+
+A captura decodifica `00 90` (coleção completa ao entrar no mundo) e `0D 90` (ganho de almas),
+depois da remontagem TCP e descompressão LZ4. O formato foi adaptado do
+[aion2-pet-overlay](https://github.com/MartinLVila/aion2-pet-overlay), sob MIT
+(aviso em `licenses/pet-overlay-MIT.txt`). Os requisitos são **5, 25 e 75 almas por nível**,
+com o contador reiniciando a cada nível: **105 no total**, não 75 abates.
+
+Para a primeira sincronização, use a captura atualizada, volte à seleção de personagens e entre
+novamente. A lista só é vinculada por um registro de identidade própria no mesmo fluxo TCP;
+nome lembrado e perfil de outro jogador não servem. A sincronização aguarda identidade confirmada
+quando esses pacotes não chegam juntos. Uma troca de personagem requer um novo estado completo.
+Os dados ficam separados por servidor e nome do personagem, como identificados pelo jogo.
+O último snapshot fica salvo com a data; sem snapshot, o estado é **Não sincronizado**, não zero.
+O perfil público PlayNC não é a fonte dessa coleção. Esse protocolo não documentado pode mudar.
+
+Os testes cobrem pacotes sintéticos, inclusive fragmentação, retransmissão e LZ4. A confirmação
+dos níveis reais depende de uma sessão de jogo com a captura nova; não há fixture de tráfego real
+da conta neste repositório.
+
+### Treinamento
+
+Escolha nome e tempo (5–1800 segundos), adicione/inicie e aguarde 5 segundos. Apenas o jogador
+local identificado e um alvo classificado como boneco entram no cálculo. O app subtrai snapshots
+acumulados para excluir aquecimento e outros jogadores. A precisão temporal depende da frequência
+dos snapshots da captura (aproximadamente 500 ms) e da entrega do feed. Tentativas interrompidas
+ou canceladas ficam identificadas; somente duas concluídas podem ser comparadas.
+Minha party mostra **CP** e **GS** (Item Level); dado ausente aparece como travessão.
 
 ## Como funciona
 
@@ -69,6 +98,9 @@ Testes de estado, migração do bestiário, catálogo de skills e identificaçã
 ```bash
 node --test tests/*.test.mjs
 ```
+
+Teste nativo do protocolo (após preparar o motor):
+`dotnet run --project tests/capture/CaptureTests.csproj -p:EngineDir=CAMINHO_DO_MOTOR`.
 
 O snapshot está em `js/data/monster-catalog.json`. Para importar uma tabela atualizada no mesmo
 formato (`{ fetchedAt, monsters: [{ slug, name, portrait, level, rank, maps, isBoss }] }`), use

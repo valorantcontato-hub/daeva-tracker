@@ -29,6 +29,8 @@
       "icons/**",
       "electron/**",
       "server.mjs",
+      "pet-feed.mjs",
+      "licenses/**",
       "package.json"
     ],
     "extraResources": [

@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\licenses\pet-overlay-MIT.txt" Link="licenses\pet-overlay-MIT.txt" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="$(EngineDir)\src\Aion2DpsMeter.Core\Aion2DpsMeter.Core.csproj" />
   </ItemGroup>
 

@@ -6,6 +6,7 @@ import { dpsChart } from '../chart.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { findProfileByName, skillIcon, findSkill } from '../profiles.js';
 import { liveFight, onLive } from '../live.js';
+import { isBossEncounter } from '../combat-types.js';
 import { esc, compact, int, pct, duration, dateTime, download, pickJson, toast } from '../util.js';
 
 export function getEncounters() {
@@ -43,14 +44,15 @@ const encDps = e => {
 
 export function renderDps(root, [id]) {
   root.className = 'page dps-page';
-  const list = getEncounters();
+  const list = getEncounters().filter(isBossEncounter);
   const enc = list.find(e => e.id === id) || list[0];
 
   if (!enc) {
+    const off = onLive(f => { if (!root.isConnected) return off(); if (isBossEncounter(f)) dispatchEvent(new HashChangeEvent('hashchange')); });
     root.className = 'page';
     root.innerHTML = `
       <div class="empty card">
-        <h1>Nenhuma luta ainda</h1>
+        <h1>Nenhuma luta contra boss ainda</h1>
         <p class="muted">Abra o jogo com a captura ligada (<b>capture\\bin\\daeva-capture.exe</b>, veja o README).<br>A luta aparece aqui ao vivo, com os nomes, classes e skills reais da party.</p>
         <div class="head-actions">
           <button class="btn" data-act="samples">Ver demonstração</button>
@@ -72,7 +74,7 @@ export function renderDps(root, [id]) {
   if (enc.live || !id) {
     const off = onLive(f => {
       if (!root.isConnected) return off();
-      if (f && (f.id === enc.id || (!id && !enc.live))) dispatchEvent(new HashChangeEvent('hashchange'));
+      if (isBossEncounter(f) && (f.id === enc.id || (!id && !enc.live))) dispatchEvent(new HashChangeEvent('hashchange'));
       else if (!f && enc.live) dispatchEvent(new HashChangeEvent('hashchange'));
     });
   }
@@ -84,7 +86,7 @@ export function renderDps(root, [id]) {
         <span class="muted small">Encontros (${list.length})</span>
       </div>
       ${list.map(e => `
-        <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/dps/${encodeURIComponent(e.id)}">
+        <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/boss/${encodeURIComponent(e.id)}">
           <div class="t">${e.live ? '<span class="live-dot" style="display:inline-block;margin-right:6px"></span>' : ''}${esc(e.boss)}</div>
           <div class="s"><span>${dateTime(e.startedAt)} · ${duration(e.duration)}</span><span class="d">${compact(encDps(e))}</span></div>
           <div class="s"><span>${esc(e.dungeon)}</span>${e.live ? '<span class="badge">Ao vivo</span>' : e.result === 'wipe' ? '<span class="badge wipe">Wipe</span>' : ''}</div>
@@ -233,7 +235,7 @@ export function renderDps(root, [id]) {
   });
 
   root.querySelector('[data-act="pick"]').addEventListener('change', e => {
-    location.hash = '#/dps/' + encodeURIComponent(e.target.value);
+    location.hash = '#/boss/' + encodeURIComponent(e.target.value);
   });
 
   selectPlayer(state.player);
