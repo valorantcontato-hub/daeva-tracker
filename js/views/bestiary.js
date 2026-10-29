@@ -21,14 +21,13 @@ export function renderBestiary(root) {
   root.className = 'page bestiary-page';
   const me = getMe();
   let pets, state, collection;
-  const ui = { q: '', region: '', page: 0, family: '' };
+  const ui = { q: '', page: 0, family: '' };
 
   root.innerHTML = `
     <div class="page-head"><div><h1>Mascotes</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
     <p class="note small" id="collection-status"></p>
     <div class="toolbar">
-      <input type="search" id="q" placeholder="Buscar monstro ou região…" aria-label="Buscar">
-      <select id="region" aria-label="Região"></select>
+      <input type="search" id="q" placeholder="Buscar monstro…" aria-label="Buscar">
       <div class="chips" role="tablist" aria-label="Filtro">${FAMILIES.map(([k, l, icon]) => `<button class="chip fam-chip" data-filter="${k}" aria-pressed="false">${icon}${l}</button>`).join('')}</div>
     </div>
     <div class="small muted" id="bestiary-summary"></div>
@@ -66,7 +65,7 @@ export function renderBestiary(root) {
     const q = ui.q.trim().toLowerCase();
     const visible = pets.filter(m => {
       const p = petProgress(collection, m.petId);
-      return (!ui.family || m.region === ui.family) && (!ui.region || m.maps?.includes(ui.region))
+      return (!ui.family || m.region === ui.family)
         && (!q || `${m.name} ${m.note} ${m.maps?.join(' ')}`.toLowerCase().includes(q));
     });
     const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -96,8 +95,6 @@ export function renderBestiary(root) {
       id: 'pet-' + p.id, petId: p.id, name: p.name, icon: p.icon, region: p.family,
       maps: [...new Set(p.mobs.flatMap(m => m.maps))], note: p.mobs.map(m => m.name).join(', '),
     }));
-    const regions = [...new Set(pets.flatMap(m => m.maps || []).filter(Boolean))].sort();
-    $('#region').innerHTML = '<option value="">Todas as regiões</option>' + regions.map(r => `<option value="${esc(r)}" ${r === ui.region ? 'selected' : ''}>${esc(r)}</option>`).join('');
     renderList();
   }
 
@@ -114,7 +111,6 @@ export function renderBestiary(root) {
     if (page) { ui.page = Math.max(0, ui.page + Number(page.dataset.page)); renderList(); $('.toolbar').scrollIntoView({ block: 'start' }); }
   });
   $('#q').addEventListener('input', e => { ui.q = e.target.value; ui.page = 0; renderList(); });
-  $('#region').addEventListener('change', e => { ui.region = e.target.value; ui.page = 0; renderList(); });
   addEventListener('storage', refresh);
   addEventListener('a2t:changed', refresh);
   refresh();
