@@ -1085,15 +1085,6 @@ html.home-fit .combat-source { margin-top: 10px; font-size: 10.5px; }
 .hero-stats > .head-actions { border: 0; background: none; padding: 0; min-width: 0; border-radius: 0; }
 .account-page .hero-stats .btn { height: 28px; }
 
-/* Cantos arredondados: a janela do app (sem moldura, transparente) e os containers */
-html.desktop { background: transparent; }
-html.desktop body { background: var(--bg); clip-path: inset(0 round 22px); min-height: 100vh; }
-html.desktop .topbar { border-radius: 22px 22px 0 0; }
-html.desktop .tabs { border-radius: 0 0 22px 22px; }
-.card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 18px; }
-.home-main .stat-tile { border-radius: 13px; }
-.slot, .home-main .slot, .gear-card .slot { border-radius: 8px; }
-.btn, .chip, .hero-tabs .btn { border-radius: 12px; }
 /* ======= Traçado dos containers: idêntico ao dos cards "Animes do ano" do Funima ======= */
 /*   .card { border: 2px solid rgba(255,255,255,.08); border-radius: 14px; transition: border-color .25s }
      .card:hover, .card:focus-within { border-color: rgba(255,255,255,.22) }                              */
@@ -1123,3 +1114,25 @@ html.home-fit .tile-grid .slot { height: min(100%, calc((100cqw - (var(--cols) -
 html.home-fit .stat-grid { gap: 3px; }
 html .hero, html .card.hero { border: 2px solid rgba(255, 255, 255, .08); border-radius: 14px; }
 html .hero:hover { border-color: rgba(255, 255, 255, .22); }
+/* Atributos e Daevanion: cartões coloridos, 2 por linha, com ícone (como no print) */
+.home-main .stat-tile {
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: 11px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 20%, var(--surface)), color-mix(in srgb, var(--c) 6%, var(--surface)));
+  padding: 4px 8px 4px 5px; gap: 7px;
+}
+.home-main .stat-tile:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 28%, var(--surface)), color-mix(in srgb, var(--c) 10%, var(--surface))); border-color: var(--c); }
+.home-main .stat-ico, html.home-fit .stat-ico { display: grid; background: color-mix(in srgb, var(--c) 22%, transparent); border-radius: 8px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+.home-main .stat-name { color: #e4e6eb; font-weight: 500; }
+.home-main .stat-tile b { font-weight: 700; color: #fff; }
+html.home-fit .stat-grid { gap: 5px; }
+
+/* Cantos arredondados. A janela só é recortada quando o Electron a criou transparente (html.round-window);
+   num app antigo, de janela opaca, o recorte deixaria os cantos pretos e quadrados. */
+html.round-window { background: transparent; }
+html.round-window body { background: var(--bg); clip-path: inset(0 round 22px); min-height: 100vh; }
+html.round-window .topbar { border-radius: 22px 22px 0 0; }
+html.round-window .tabs { border-radius: 0 0 22px 22px; }
+.card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 18px; }
+.home-main .stat-tile { border-radius: 13px; }
+.slot, .home-main .slot, .gear-card .slot { border-radius: 8px; }
+.btn, .chip, .hero-tabs .btn { border-radius: 12px; }

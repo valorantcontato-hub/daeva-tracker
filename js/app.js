@@ -81,6 +81,7 @@ if (typeof EventSource !== 'undefined') {
 // App desktop: janela sem barra do Windows; o topo do app arrasta a janela e tem minimizar/fechar.
 if (window.desktop) {
   document.documentElement.classList.add('desktop');
+  if (window.desktop.rounded) document.documentElement.classList.add('round-window');
   document.getElementById('win-min').addEventListener('click', () => window.desktop.minimize());
   document.getElementById('win-close').addEventListener('click', () => window.desktop.close());
 }

@@ -198,7 +198,7 @@ function createMain() {
     // Sem barra do Windows: o nome e os botões (minimizar/fechar) são desenhados dentro do app.
     frame: false, transparent: true, hasShadow: false, resizable: false, maximizable: false, fullscreenable: false,
     backgroundColor: '#00000000', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus.png'), autoHideMenuBar: true, show: false,
-    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
+    webPreferences: { additionalArguments: ['--lotus-rounded'], preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
   const rememberMain = () => {

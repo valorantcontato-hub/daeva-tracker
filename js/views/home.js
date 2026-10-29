@@ -4,11 +4,12 @@ import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import { getMe, getParty, refreshProfile, removePartyMember } from '../profiles.js';
 import { setTooltipContext } from '../tooltip.js';
+import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
 import { esc, int } from '../util.js';
 import { portraitUrl } from '../portrait.js';
-import { appearanceItems, combatStats } from '../character-layout.js';
+import { appearanceItems } from '../character-layout.js';
 
 const REFRESH_MS = 60e3;
 
@@ -107,10 +108,23 @@ function partyCard(me) {
     </section>`;
 }
 
+/** "Justice [Nezekan]" -> rótulo "Justice" (o tabuleiro de origem aparece no tooltip). */
+function statTile(s) {
+  const m = /^(.*?)\s*\[(.*)\]$/.exec(s.name);
+  const label = m ? m[1] : s.name;
+  return `
+    <div class="stat-tile" style="--c:${STAT_COLORS[s.type] || 'var(--accent)'}" data-tip="${esc([s.name, ...(s.effects || [])].join('\n'))}">
+      <span class="stat-ico">${statIcon(s.type)}</span>
+      <span class="stat-name">${esc(label)}</span>
+      <b>${int(s.value)}</b>
+    </div>`;
+}
+
 function characterMain(me, { withParty = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
   const look = appearanceItems(me);
-  const totals = combatStats(me);
+  const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
+  const board = (me.stats || []).filter(s => !BASE_STATS.includes(s.type));
   // Equipamentos em 4 colunas (dois pares por linha, como a janela do jogo).
   const gear = [];
   for (let i = 0; i < GEAR.length; i += 2) gear.push(...GEAR[i], ...(GEAR[i + 1] || []));
@@ -135,10 +149,10 @@ function characterMain(me, { withParty = false } = {}) {
       </section>
 
       <div class="side-col">
-        <section class="card stats-card combat-card">
+        <section class="card stats-card">
           <div class="card-head"><h2>Atributos</h2></div>
-          <div class="combat-totals">${totals.map(s=>`<div class="combat-stat" data-tip="${esc(s.label)}${s.value===null?' · Aguardando dados do jogo':''}"><span>${esc(s.label)}</span><b>${s.value===null?'—':s.percent?s.value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':int(s.value)}</b></div>`).join('')}</div>
-          ${totals.some(s=>s.value===null)?'<p class="combat-source muted">Os totais de combate ainda não estão disponíveis na captura. O perfil público fornece apenas os atributos básicos.</p>':''}
+          <div class="stat-grid">${base.map(statTile).join('')}</div>
+          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>
