@@ -46,6 +46,7 @@ public sealed class PositionTracker : IDisposable
         float y = BinaryPrimitives.ReadSingleLittleEndian(packet[(i + 4)..]);
         float z = BinaryPrimitives.ReadSingleLittleEndian(packet[(i + 8)..]);
         if (!Plausible(x) || !Plausible(y) || !Plausible(z)) return;
+        if (x == 0f && y == 0f) return; // entidade removida/inválida: (0, 0, 0) não é posição
         lock (gate) positions[id] = new Pos(x, y, z, Environment.TickCount64);
     }
 
