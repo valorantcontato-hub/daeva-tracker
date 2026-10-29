@@ -24,6 +24,18 @@ export async function patchEngine(dir) {
   replace('        bool damage = ParseDamage(packet,', '        DaevaPacket?.Invoke(this, packet, CurrentTimestampMs);\n        bool damage = ParseDamage(packet,');
   await writeFile(file, source);
   }
+  const store = join(dir, 'src/Aion2DpsMeter.Core/Combat/CombatStore.cs');
+  let storeSource = await readFile(store, 'utf8');
+  if (!storeSource.includes('// Daeva mob code v1')) {
+    const anchor = '    public bool IsMob(int id) { lock (_lock) return _mobCode.ContainsKey(id); }';
+    if (storeSource.split(anchor).length !== 2) throw new Error('Motor mudou: revise o hook de código de NPC antes de compilar');
+    const addition = [
+      '    // Daeva mob code v1',
+      '    public int? GetMobCode(int id) { lock (_lock) return _mobCode.TryGetValue(id, out var code) ? code : null; }',
+    ].join('\n');
+    storeSource = storeSource.replace(anchor, () => anchor + '\n' + addition);
+    await writeFile(store, storeSource);
+  }
   const dispatcher = join(dir, 'src/Aion2DpsMeter.Core/Capture/CaptureDispatcher.cs');
   source = await readFile(dispatcher, 'utf8');
   if (source.includes('// Daeva collection candidates v1')) return;

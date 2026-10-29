@@ -39,6 +39,8 @@ var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder();
+using var tracker = new DaevaCapture.PositionTracker();
+long lastPositions = 0;
 string lastIdentity = "";
 var recordDir = Path.Combine(configDir, "recordings");
 var recordTrigger = Path.Combine(configDir, "record.start");
@@ -109,6 +111,7 @@ while (!cts.IsCancellationRequested)
     engine.Tick();
     PollRecording();
     AnnounceIdentity();
+    SendPositions();
     var r = engine.Store.GetDisplayRecord();
     if (r is { InProgress: true } && (r.Id != lastId || r.TotalDamage != lastDamage))
     {
@@ -133,6 +136,26 @@ void AnnounceIdentity()
     if (key == lastIdentity) return;
     lastIdentity = key;
     outbox.Enqueue(new { type = "identity", capturedAt = DateTime.UtcNow.ToString("o"), self = new { name, serverId = (int)prof.ServerId, @class = cls, level = prof.Level } });
+}
+
+// Posições (a cada ~1 s): a sua e a dos monstros à vista, para o widget de mini mapa.
+void SendPositions()
+{
+    long now = Environment.TickCount64;
+    if (now - lastPositions < 1000) return;
+    lastPositions = now;
+    var seen = tracker.Snapshot(8000);
+    if (seen.Count == 0) return;
+    int? meId = engine.Store.GetLocalProfile()?.EntityId;
+    object? self = null;
+    var mobs = new List<object>();
+    foreach (var (id, pos) in seen)
+    {
+        if (id == meId) { self = new { x = pos.X, y = pos.Y, z = pos.Z }; continue; }
+        if (engine.Store.GetMobCode(id) is not int code) continue;
+        mobs.Add(new { id, npcCode = code, name = data.Npc(code)?.Name ?? "", x = pos.X, y = pos.Y, z = pos.Z });
+    }
+    outbox.Enqueue(new { type = "positions", capturedAt = DateTime.UtcNow.ToString("o"), selfId = meId, self, entities = seen.Count, mobs = mobs.Take(400) });
 }
 
 async Task Flush()

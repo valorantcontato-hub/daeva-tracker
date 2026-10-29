@@ -188,6 +188,15 @@ function announceSelf(ev) {
   for (const client of live.clients) client.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
 }
 
+// Posições ao vivo (você e monstros à vista) para o widget de mini mapa.
+let lastPositions = null;
+function announcePositions(ev) {
+  if (!Array.isArray(ev?.mobs)) return;
+  lastPositions = { type: 'positions', capturedAt: ev.capturedAt || new Date().toISOString(), selfId: ev.selfId ?? null, self: ev.self || null, entities: ev.entities || 0, mobs: ev.mobs.slice(0, 400) };
+  const line = `data: ${JSON.stringify(lastPositions)}\n\n`;
+  for (const client of live.clients) client.write(line);
+}
+
 function snapshot() {
   const f = live.fight;
   if (!f) return null;
@@ -282,7 +291,7 @@ async function handle(req, res) {
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : ingest(message));
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
@@ -298,6 +307,7 @@ async function handle(req, res) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(`data: ${JSON.stringify(snapshot())}\n\n`);
       if (lastSelf) res.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
+      if (lastPositions && Date.now() - Date.parse(lastPositions.capturedAt) < 15000) res.write(`data: ${JSON.stringify(lastPositions)}\n\n`);
       live.clients.add(res);
       req.on('close', () => live.clients.delete(res));
       return;
