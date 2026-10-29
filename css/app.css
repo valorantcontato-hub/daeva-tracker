@@ -1220,3 +1220,6 @@ html.desktop .theme-btn { -webkit-app-region: no-drag; }
 :root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(60, 40, 90, .12); border: 0; }
 :root[data-theme="light"] .hero-tabs a:not(.active):hover, :root[data-theme="light"] .tabs a:not(.active):hover { background: rgba(60, 40, 90, .1); color: var(--text); }
 :root[data-theme="light"] .chip:not(.active):hover, :root[data-theme="light"] .btn:not(.primary):hover { background: rgba(60, 40, 90, .1); color: var(--text); }
+
+/* Tooltip: sempre escuro, também no tema claro (senão o texto some no fundo escuro) */
+:root[data-theme="light"] .tooltip { --text: #e6e9ef; --muted: #8a93a6; --border: #3a2850; --surface-2: #21182e; color: #e6e9ef; }
