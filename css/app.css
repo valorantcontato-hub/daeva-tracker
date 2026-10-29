@@ -1539,7 +1539,7 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .resource-icon { flex: none; width: 18px; height: 22px; display: grid; place-items: center; font-size: 18px; }
 .resource-icon img { display: block; width: 18px; height: 22px; object-fit: contain; }
 .kinah-icon { color: #d5ad61; }
-.kinah-row { justify-content: center; min-height: 30px; }
+.kinah-row { justify-content: center; min-height: 30px; transform: translateY(-4px); }
 .kinah-row > span:not(.resource-icon) { flex: none; }
 .kinah-row b { margin-left: 6px; }
 .duty-icon { color: #92a6c8; }
