@@ -12,7 +12,7 @@ import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
 import { migrateWidgets, widgetBounds, widgetPointerOpacity, widgetScale } from './widget-config.mjs';
-import { gameFocusAllows, overlayShouldShow } from './game-focus.mjs';
+import { gameFocusAllows } from './game-focus.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -39,21 +39,12 @@ const DEV = !app.isPackaged;
 let mainWin = null;
 const wins = new Map();
 const activeWidgets = new Map();
-let gameAllowed = false, lastGameFocus = 0, gameAllowedSince = 0, widgetsHidden = false;
+let gameAllowed = false, lastGameFocus = 0;
 function allowGameOverlays(allowed) {
   if (allowed === gameAllowed) return;
   gameAllowed = allowed;
-  if (allowed) gameAllowedSince = Date.now();
-  syncOverlays();
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyLock(win, cfg[id].locked, activeWidgets.get(id));
 }
-// Mostra ou esconde (de verdade) cada overlay conforme o jogo estar em primeiro plano.
-function syncOverlay(id, win) {
-  if (win.isDestroyed()) return;
-  const want = overlayShouldShow({ gameAllowed, since: gameAllowedSince, now: Date.now(), manualHidden: widgetsHidden, active: activeWidgets.get(id) });
-  if (want && !win.isVisible()) win.showInactive();
-  else if (!want && win.isVisible()) win.hide();
-}
-function syncOverlays() { for (const [id, win] of wins) syncOverlay(id, win); }
 function updateGameFocus(message) {
   lastGameFocus = Date.now();
   const handles = [...wins.values()].filter(win => !win.isDestroyed()).map(win => win.getNativeWindowHandle().readBigUInt64LE().toString());
@@ -170,18 +161,16 @@ function defaultBounds(id) {
   return widgetBounds(id, WIDGETS[id], saved, area, cfg[id].scale);
 }
 
-function applyLock(win, locked) {
-  // Travado: o mouse "atravessa" a janela até o jogo. O estado só muda quando você trava/destrava: mexer nos estilos da
-  // janela a cada troca de foco (alt-tab) deixava o jogo preso com o cursor no centro.
-  win.setIgnoreMouseEvents(locked);
-  // O overlay nunca recebe foco: assim ele não tira o jogo do primeiro plano nem atrapalha o alt-tab.
-  win.setFocusable(false);
-  applyPointerOpacity(win, locked);
+function applyLock(win, locked, active = true) {
+  active = active && gameAllowed;
+  // Travado: o mouse "atravessa" a janela até o jogo; forward mantém o hover.
+  win.setIgnoreMouseEvents(locked || !active, { forward: true });
+  win.setFocusable(!locked && active);
+  applyPointerOpacity(win, locked, active);
 }
 
-function applyPointerOpacity(win, locked) {
-  if (!win.isVisible()) return;
-  const opacity = widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint());
+function applyPointerOpacity(win, locked, active = true) {
+  const opacity = active && gameAllowed ? widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint()) : 0;
   if (win.getOpacity() !== opacity) win.setOpacity(opacity);
 }
 
@@ -189,18 +178,17 @@ function applyPointerOpacity(win, locked) {
 // DOM mouseenter cannot reliably restore a window that is already invisible.
 setInterval(() => {
   if (gameAllowed && Date.now() - lastGameFocus > 2000) allowGameOverlays(false);
-  syncOverlays();
-  for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked);
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked, activeWidgets.get(id));
 }, 50).unref();
 
 function openWidget(id) {
-  if (wins.has(id)) return syncOverlay(id, wins.get(id));
+  if (wins.has(id)) return wins.get(id).showInactive();
   const c = cfg[id];
   activeWidgets.set(id, id === 'radar');
   const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
-    frame: false, transparent: true, hasShadow: false, resizable: false, focusable: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
@@ -208,7 +196,7 @@ function openWidget(id) {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.loadURL(`${BASE}/#/w/${id}`);
-  win.once('ready-to-show', () => { applyLock(win, c.locked); syncOverlay(id, win); });
+  win.once('ready-to-show', () => { win.showInactive(); applyLock(win, c.locked, activeWidgets.get(id)); });
   const remember = () => {
     if (win.isDestroyed()) return;
     c.bounds = win.getBounds();
@@ -232,7 +220,7 @@ function setWidget(id, patch) {
   const win = wins.get(id);
   if ('visible' in patch) patch.visible ? openWidget(id) : win?.close();
   if (win && !win.isDestroyed()) {
-    if ('locked' in patch) applyLock(win, c.locked);
+    if ('locked' in patch) applyLock(win, c.locked, activeWidgets.get(id));
     if ('scale' in patch) win.setBounds(defaultBounds(id));
   }
   saveCfg();
@@ -283,7 +271,7 @@ ipcMain.on('widget:activity', (event, id, active) => {
   const win = wins.get(id);
   if (!['party', 'skills'].includes(id) || !win || win.webContents !== event.sender) return;
   activeWidgets.set(id, !!active);
-  syncOverlay(id, win);
+  applyLock(win, cfg[id].locked, !!active);
 });
 ipcMain.handle('widget:toggle', (_e, id, on) => setWidget(id, { visible: !!on }));
 ipcMain.handle('widget:set', (_e, id, patch) => {
@@ -386,8 +374,8 @@ app.whenReady().then(async () => {
   globalShortcut.register('CommandOrControl+Shift+L', toggleLock);
   // Insert (ou Ctrl+Shift+H): mostra/esconde no jogo os widgets que estão ligados.
   const toggleWidgets = () => {
-    widgetsHidden = !widgetsHidden;
-    syncOverlays();
+    const anyVisible = [...wins.values()].some(w => w.isVisible());
+    for (const w of wins.values()) anyVisible ? w.hide() : w.showInactive();
   };
   if (!globalShortcut.register('Insert', toggleWidgets)) console.warn('Tecla Insert já está em uso por outro programa');
   if (!globalShortcut.register('PageUp', toggleWidgets)) console.warn('Tecla PgUp já está em uso por outro programa');

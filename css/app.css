@@ -690,13 +690,14 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 #party { display: flex; flex-direction: column; gap: 3px; }
 .prow {
   position: relative; display: grid; align-items: center; gap: 8px; min-height: 32px; padding: 3px 8px; border-radius: 8px;
-  grid-template-columns: 18px minmax(0, 1fr) 62px 48px; grid-template-areas: "rank name dps share"; row-gap: 0;
+  grid-template-columns: 18px minmax(0, 1fr) 80px 62px 48px; grid-template-areas: "rank name total dps share"; row-gap: 0;
   background: color-mix(in srgb, var(--surface-2) 70%, transparent);
 }
 .prow > :not(.pbar) { position: relative; z-index: 1; }
 .prow .pbar { position: absolute; inset: 0; height: auto; background: none; border-radius: 8px; overflow: hidden; z-index: 0; grid-area: auto; }
 .prow .pbar i { border-radius: 0; opacity: .24; }
-.prow .c-total, .prow .c-crit { display: none; }
+.prow .c-total { display: block; font-size: 12px; font-weight: 600; }
+.prow .c-crit { display: none; }
 .prow .ico { --s: 22px !important; }
 .pname { gap: 7px; }
 .pname-txt { flex-direction: row; align-items: baseline; gap: 6px; min-width: 0; }
@@ -1369,6 +1370,8 @@ html.home-fit .sub-body .card { padding: 12px; }
 .pet2.focused { border-color: rgba(233, 185, 73, .45); }
 :root[data-theme="light"] .pet2 { border-color: rgba(30, 55, 100, .14); }
 :root[data-theme="light"] .pet2-bar, :root[data-theme="light"] .pet2-badge { background: rgba(30, 55, 100, .1); }
+.img-credit { margin: 10px 2px 0; font-size: 11px; color: var(--muted); }
+.img-credit a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .rec-card { margin-top: 12px; }
 .rec-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
 
@@ -1561,16 +1564,3 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 :root[data-theme="light"] .energy-label, :root[data-theme="light"] .energy-refill { color: #536982; }
 :root[data-theme="light"] .energy-refill b { color: #243d59; }
 :root[data-theme="light"] .energy-amount em { color: #24699c; }
-
-/* Pico (melhor momento de 10 s) ao lado do DPS contínuo */
-.dps-peak { font-style: normal; font-size: 10px; font-weight: 600; color: #ffda76; margin-right: 7px; }
-.combat-peak { flex: none; font-size: 9px; color: #ffda76; opacity: .9; white-space: nowrap; font-variant-numeric: tabular-nums; }
-@container (max-width: 270px) { .combat-peak { display: none; } }
-
-.combat-total { margin-left: auto; font-size: 10px; color: #aeb4bf; white-space: nowrap; }
-.combat-total b { color: #f6f7fa; font-weight: 700; }
-.combat-dmg { flex: none; min-width: 36px; text-align: right; font-size: 10px; color: #aeb4bf; font-variant-numeric: tabular-nums; }
-@container (max-width: 270px) { .combat-dmg { display: none; } }
-.prow .pk { display: block; font-size: 10px; font-weight: 500; color: #ffda76; line-height: 1.1; }
-
-.dps-active { font-style: normal; font-size: 10px; font-weight: 600; color: #8fd0ff; margin-right: 7px; }

@@ -2,7 +2,7 @@
 // e a tela de gerenciamento (#/widgets).
 import { load, save, notifyChange } from '../store.js';
 import { readBestiary, bestiaryKey } from '../bestiary-state.js';
-import { isInstancedBossFight } from '../combat-types.js';
+import { isBossEncounter } from '../combat-types.js';
 import { classInfo } from '../data/classes.js';
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
@@ -26,10 +26,10 @@ export const WIDGETS = {
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
-/** Combate ao vivo. O painel de DPS da party ("party") só aparece em chefe de DG instanciada; o de skills também em mobs e bonecos. */
+/** Somente combate ao vivo: DPS de chefes; skills também em mobs e bonecos. */
 function currentFight(id) {
   const enc = liveFight();
-  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) return null;
+  if (!enc?.live || (id === 'party' && !isBossEncounter(enc))) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
@@ -64,8 +64,6 @@ function farmingEntries() {
   return out;
 }
 
-const RADAR_RANGES = [100, 250, 500, 1000, 2000];
-const RADAR_MAX_M = RADAR_RANGES.at(-1);
 const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m';
 
 function radarSvg(self, mobs, range, rotation) {
@@ -137,8 +135,10 @@ function radarBody() {
   const elapsed = P ? Date.now() - Date.parse(P.capturedAt) : Infinity;
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
   const selfOk = fresh && verifiedRadarOwner(P, getMe()) && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
+  const range = 100;
   const rotation = 0; // Orientação do jogo, sem calibração manual.
   const entries = farmingEntries();
+  const showAll = load('radarAll', false) || !entries.length;
 
   // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
   if (selfOk) {
@@ -153,12 +153,9 @@ function radarBody() {
   if (lastRadar) {
     mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type, icon: typeOf.get(normName(m.name))?.icon }))
       .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
-      // Só os monstros selecionados para farmar, até 2 km (o jogo informa os que estão no alcance dele).
-      .filter(m => typeOf.has(normName(m.name)) && m.d <= RADAR_MAX_M)
+      .filter(m => showAll || typeOf.has(normName(m.name)))
       .sort((a, b) => a.d - b.d);
   }
-  // Zoom automático: o radar fecha em volta do mais próximo conforme você se aproxima (100 m, 250 m, 500 m, 1 km, 2 km).
-  const range = mobs.length ? (RADAR_RANGES.find(r => r >= mobs[0].d) || RADAR_MAX_M) : RADAR_RANGES[0];
   const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
 
   // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
@@ -184,7 +181,7 @@ const BODIES = {
     return `
       <header class="combat-summary">
         <div class="combat-meta"><span>Combate <b>${duration(S.duration)}</b> ${S.live ? '<i class="combat-live"></i>' : ''}</span><strong>${compact(S.dps)} <small>DPS</small></strong></div>
-        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b><span class="combat-total" title="Dano contado de toda a party no chefe, e o seu">party <b>${compact(S.total)}</b>${myPlayer(S) ? ` · você <b>${compact(myPlayer(S).damage)}</b>` : ''}</span></div>
+        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b></div>
         ${hp == null ? '' : `<div class="combat-hp"><i style="width:${hp * 100}%"></i><span>${int(S.bossHp.current)} / ${int(S.bossHp.max)} · ${pct(hp, 0)}</span></div>`}
       </header>
       <div class="combat-ranking">${S.players.map(p => {
@@ -193,7 +190,7 @@ const BODIES = {
         return `<div class="combat-player ${p.name === mine ? 'is-me' : ''}" style="--c:${c.color};--share:${(p.share / top) * 100}%">
           ${classIcon(p.class, 21)}<b class="combat-name">${esc(p.name)}</b>
           ${profile?.combatPower ? `<span class="combat-cp" title="Combat Power">CP ${compact(profile.combatPower)}</span>` : ''}
-          <span class="combat-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</span><strong class="combat-dps" title="DPS da luta (como no Questlog) · ativo ${compact(p.activeDps)} só o tempo batendo">${compact(p.dps)}<small>/s</small></strong><span class="combat-dmg" title="Dano total no chefe">${compact(p.damage)}</span><strong class="combat-share">${pct(p.share)}</strong>
+          <strong class="combat-dps">${compact(p.dps)}<small>/s</small></strong><strong class="combat-share">${pct(p.share)}</strong>
         </div>`;
       }).join('')}</div>`;
   },
@@ -207,7 +204,7 @@ const BODIES = {
     const best = rows[0]?.damage || 1;
     return `
       <header class="combat-summary skills-summary" style="--c:${c.color}" title="${esc(S.boss)} · ${pct(p.critRate)} crítico">
-        <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong><em class="dps-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</em><em class="dps-active" title="DPS só no tempo em que você bateu">ativo ${compact(p.activeDps)}</em>${compact(p.dps)} <small>DPS</small></strong></div>
+        <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong>${compact(p.dps)} <small>DPS</small></strong></div>
       </header>
       <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span><span>DMG</span><span>Crít.</span></div>
       <div class="skill-meters">${rows.map(s => `
