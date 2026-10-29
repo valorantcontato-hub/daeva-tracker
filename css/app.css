@@ -1383,6 +1383,30 @@ html.home-fit .sub-body .card { padding: 12px; }
 .rd-lbl { fill: rgba(255, 255, 255, .5); font-size: 8px; }
 .rd-bar { display: flex; gap: 6px; justify-content: space-between; margin-bottom: 6px; }
 .rd-bar .mini.on { background: var(--accent); color: #fff; }
+
+/* O overlay não herda a moldura da janela principal. */
+html.widget-mode, html.widget-mode.desktop body { background: transparent; border: 0; }
+html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
+.wg-body { min-height: 0; box-sizing: border-box; }
+.radar-widget { background: transparent; border: 0; border-radius: 16px; }
+.radar-widget .wg-body { display: flex; flex-direction: column; gap: 6px; overflow: hidden; padding: 8px; }
+.radar-stage { flex: 1 1 0; min-height: 100px; display: flex; align-items: center; justify-content: center; -webkit-app-region: drag; }
+.radar-stage .radar { width: 100%; height: 100%; max-width: 270px; max-height: 270px; margin: 0; filter: none; }
+.radar-widget .rd-bar { flex: none; margin: 0; }
+.mm-list { flex: 0 1 auto; min-height: 68px; max-height: 45%; overflow: auto; padding: 3px; scrollbar-width: thin; box-sizing: border-box; }
+.mm-list .mm-row { min-height: 60px; margin: 0 0 6px; box-sizing: border-box; background: color-mix(in srgb, var(--surface) var(--wg-alpha), transparent); }
+.mm-list .mm-row:last-child { margin-bottom: 0; }
+.mm-row .mm-ico { width: 38px; height: 38px; }
+.mm-row .mm-stone { width: 21px; height: 21px; flex: none; object-fit: contain; }
+.mm-row .mm-sub { min-height: 23px; gap: 3px; }
+.pet-status-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.pet-status-tabs .chip { display: inline-flex; gap: 7px; align-items: center; }
+.pet-status-tabs .chip span { font-size: 11px; opacity: .65; font-variant-numeric: tabular-nums; }
+.bestiary-page .fam-chip { color: var(--c); gap: 7px; padding: 5px 9px; min-height: 36px; }
+.bestiary-page .fam-chip.active { border-color: var(--c); background: color-mix(in srgb, var(--c) 15%, var(--surface)); }
+.bestiary-page .fam-chip .stone { width: 26px; height: 26px; max-width: none; margin: 0; }
+.bestiary-page .pet2-type { min-height: 25px; padding: 0 6px 0 2px; gap: 3px; }
+.bestiary-page .pet2-type .stone { width: 24px; height: 24px; max-width: none; margin: 0; }
 .rd-row { display: flex; align-items: center; gap: 8px; padding: 3px 4px; font-size: 12px; }
 .rd-row b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .rd-dot-i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #e9b949; }

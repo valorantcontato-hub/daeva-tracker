@@ -131,7 +131,7 @@ while (!cts.IsCancellationRequested)
         lastDamage = r.TotalDamage;
     }
     await Flush();
-    try { await Task.Delay(500, cts.Token); } catch (TaskCanceledException) { }
+    try { await Task.Delay(100, cts.Token); } catch (TaskCanceledException) { }
 }
 return 0;
 
@@ -153,7 +153,7 @@ void AnnounceIdentity()
 void SendPositions()
 {
     long now = Environment.TickCount64;
-    if (now - lastPositions < 1000) return;
+    if (now - lastPositions < 100) return;
     lastPositions = now;
     var seen = tracker.Snapshot(8000);
     // Sem o registro do personagem (captura iniciada com o jogo já aberto), o id dos pacotes de movimento montado identifica você.

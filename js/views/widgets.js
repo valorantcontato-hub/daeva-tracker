@@ -13,6 +13,8 @@ import { getMe, findSkill, findProfileByName } from '../profiles.js';
 import { onLive, onPositions, lastPositions } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { esc, compact, int, pct, duration } from '../util.js';
+import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
+import { radarSelf } from '../radar-state.js';
 
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
@@ -44,13 +46,6 @@ function myPlayer(S) {
 // RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo. A SUA posição só chega montado.
 const RADAR_UNIT_M = 0.01;
 const normName = s => String(s || '').normalize('NFKC').trim().toLowerCase();
-const PET_TYPES = {
-  Cogni: { label: 'Intelectual', color: '#5aa5f0', stone: 'icons/pets/cogni.png' },
-  Fera: { label: 'Feral', color: '#f0605a', stone: 'icons/pets/fera.png' },
-  Natura: { label: 'Natural', color: '#4fd17a', stone: 'icons/pets/natura.png' },
-  Varian: { label: 'Variante', color: '#4fd1d9', stone: 'icons/pets/varian.png' },
-  Special: { label: 'Especial', color: '#e9b949', stone: 'icons/pets/special.png' },
-};
 const ARROWS = 'M12 4v14M6 12l6 6 6-6';
 
 /** O que você está farmando (★ nos Mascotes): pets do catálogo e monstros do catálogo geral. */
@@ -71,7 +66,7 @@ function farmingEntries() {
 
 const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m';
 
-function radarSvg(P, mobs, range) {
+function radarSvg(self, mobs, range) {
   const R = 92, k = R / range;
   let clips = '';
   const dots = mobs.slice(0, 150).map((m, i) => {
@@ -97,7 +92,7 @@ function radarSvg(P, mobs, range) {
     + '<path d="M100 8v184M8 100h184" class="rd-axis"/>'
     + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
     + dots
-    + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me"/>'
+    + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me" transform="rotate(' + (self?.heading || 0) + ' 100 100)"><title>' + (self?.headingSource === 'facing' ? 'Direção do personagem' : 'Última direção de movimento') + '</title></path>'
     + '</svg>';
 }
 
@@ -111,7 +106,7 @@ function farmRow(e, near) {
     const lv = p.known ? p.level : 0;
     const diamonds = [0, 1, 2].map(i => '<i class="mm-dia' + (i < lv ? ' on' : '') + '"></i>').join('');
     const txt = !p.known ? 'Sem dados' : p.complete ? 'MAX' : p.points + '/' + p.goal;
-    sub = (type ? '<img class="mm-stone" src="' + type.stone + '" alt="" draggable="false" title="' + type.label + '">' : '') + diamonds + '<span>' + txt + '</span>';
+    sub = petStone(e.type, 'mm-stone') + diamonds + '<span>' + txt + '</span>';
   } else sub = '<span>' + int(e.kills) + ' abates</span>';
   let dist = '<span class="mm-dist off" title="Fora do alcance do jogo ou sem a sua posição">—</span>';
   if (near) {
@@ -138,14 +133,14 @@ function radarBody() {
   const P = lastPositions();
   const elapsed = P ? Date.now() - Date.parse(P.capturedAt) : Infinity;
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
-  const selfOk = fresh && P.self && P.self.ageMs + Math.max(0, elapsed) <= 15000;
+  const selfOk = fresh && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
   const range = 100;
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
   // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
   if (selfOk) {
-    lastRadar = { self: { x: P.self.x, y: P.self.y }, mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
+    lastRadar = { self: radarSelf(P.self, lastRadar?.self), mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
     if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast:' + radarOwner, lastRadar); }
   }
 
@@ -162,17 +157,17 @@ function radarBody() {
   const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
 
   // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
-  const top = radarSvg(P, mobs, range);
+  const top = radarSvg(lastRadar?.self, mobs, range);
 
   const rows = entries.map(e => ({ e, near: nearestOf(e) }))
     .sort((a, b) => (a.near ? a.near.d : 1e12) - (b.near ? b.near.d : 1e12) || a.e.name.localeCompare(b.e.name))
     .map(x => farmRow(x.e, x.near)).join('');
 
-  return top
+  return '<div class="radar-stage">' + top + '</div>'
     + '<div class="rd-bar">'
     + '<button class="mini' + (showAll ? ' on' : '') + '" data-act="all" title="Mostrar no radar todos os monstros, não só os marcados com ★">' + (showAll ? 'Todos' : '★ Farmando') + '</button>'
     + '</div>'
-    + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>');
+    + '<div class="mm-list">' + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>') + '</div>';
 }
 
 // ---------- Corpo de cada widget ----------
@@ -229,10 +224,10 @@ export function renderWidget(root, [id]) {
   const preview = root.hasAttribute('data-preview');
   if (!preview) document.title = `${def.title} · Lotus Tracker`;
   root.innerHTML = `
-    <div class="wg">
-      <div class="wg-head">
+    <div class="wg ${id === 'radar' ? 'radar-widget' : ''}">
+      ${id === 'radar' ? '' : `<div class="wg-head">
         <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
-      </div>
+      </div>`}
       <div class="wg-body"></div>
     </div>`;
   const wg = root.querySelector('.wg'), body = root.querySelector('.wg-body');
