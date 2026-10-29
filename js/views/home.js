@@ -133,15 +133,17 @@ function characterMain(me, { withParty = false } = {}) {
   return `
     <div class="home-main">
       <section class="card gear-card">
+        <div class="equipment-and-look">
         <div class="gear-block">
           <div class="card-head"><h2>Equipamentos</h2></div>
           ${grid(4, gear.map(s => tile(bySlot[s])))}
         </div>
         <div class="gear-block">
           <div class="card-head"><h2>Aparência</h2></div>
-          ${look.length ? grid(4, look.map(i => tile(i, { skin: true }))) : '<p class="muted small">Sem itens de aparência.</p>'}
+          ${look.length ? grid(2, look.map(i => tile(i, { skin: true }))) : '<p class="muted small">Sem itens de aparência.</p>'}
         </div>
-        <div class="gear-block">
+        </div>
+        <div class="gear-block arcana-block">
           <div class="card-head"><h3>Arcanas</h3></div>
           ${grid(5, ARCANA.map(s => tile(bySlot[s])))}
         </div>
