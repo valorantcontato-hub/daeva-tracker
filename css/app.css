@@ -1149,3 +1149,17 @@ html.home-fit .stats-card .card-head { flex: none; }
 html.home-fit .stats-card .stat-grid { flex: var(--stat-rows) 1 0; min-height: 0; grid-template-rows: repeat(var(--stat-rows), minmax(0, 1fr)); gap: 6px; }
 html.home-fit .stats-card .stat-tile { height: 100%; min-height: 0; }
 html.home-fit .stats-card .card-head + .stat-grid + .card-head { margin-top: 10px !important; }
+
+/* Atributos: cartões sóbrios (sem brilho colorido) e ícones oficiais do jogo */
+.home-main .stat-tile {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, .09); background: rgba(255, 255, 255, .035);
+}
+.home-main .stat-tile:hover { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .2); }
+.home-main .stat-ico { position: relative; background: none; box-shadow: none; border-radius: 0; width: 30px; height: 30px; }
+.home-main .stat-ico svg { opacity: .0; width: 100%; height: 100%; }
+.home-main .stat-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.home-main .stat-ico:not(:has(img)) svg { opacity: 1; }
+html.home-fit .stat-ico { max-height: none; }
+html.home-fit .home-main .stat-ico, html .home-main .stats-card .stat-ico { background: none; box-shadow: none; border-radius: 0; width: 30px; height: 30px; }
+html.home-fit .home-main .stat-ico img { z-index: 1; }
