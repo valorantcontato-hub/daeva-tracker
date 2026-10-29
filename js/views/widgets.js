@@ -14,7 +14,7 @@ import { onLive, onPositions, lastPositions } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
-import { radarSelf, verifiedRadarOwner, readVerifiedRadar } from '../radar-state.js';
+import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarRotation, radarHeading, radarOffset } from '../radar-state.js';
 
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
@@ -66,12 +66,13 @@ function farmingEntries() {
 
 const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m';
 
-function radarSvg(self, mobs, range) {
+function radarSvg(self, mobs, range, rotation) {
   const R = 92, k = R / range;
   let clips = '';
   const dots = mobs.slice(0, 150).map((m, i) => {
     const far = m.d > range, f = far ? range / m.d : 1;
-    const cx = (100 + m.dx * f * k).toFixed(1), cy = (100 - m.dy * f * k).toFixed(1);
+    const point = radarOffset(m.dx, m.dy, rotation);
+    const cx = (100 + point.x * f * k).toFixed(1), cy = (100 + point.y * f * k).toFixed(1);
     const color = PET_TYPES[m.type]?.color || '#e9b949';
     const tip = '<title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title>';
     // Mascote em farm: a bolinha vira a foto dele, com anel na cor do tipo.
@@ -90,13 +91,13 @@ function radarSvg(self, mobs, range) {
     + '<defs>' + clips + '<radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
     + '<circle cx="100" cy="100" r="' + (R + 4) + '" fill="url(#rdbg)" class="rd-disc"/>' + rings
     + '<path d="M100 8v184M8 100h184" class="rd-axis"/>'
-    + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
+    + '<g transform="rotate(' + rotation + ' 100 100)"><text x="100" y="7" class="rd-n" text-anchor="middle">N</text></g>'
     + dots
-    + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me" transform="rotate(' + (self?.heading || 0) + ' 100 100)"><title>' + (self?.headingSource === 'facing' ? 'Direção do personagem' : 'Última direção de movimento') + '</title></path>'
+    + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me" transform="rotate(' + (self?.headingSource && self.headingSource !== 'unknown' ? radarHeading(self.heading || 0, rotation) : 0) + ' 100 100)"><title>' + (self?.headingSource === 'facing' ? 'Direção do personagem' : 'Última direção de movimento') + '</title></path>'
     + '</svg>';
 }
 
-function farmRow(e, near) {
+function farmRow(e, near, rotation) {
   const type = PET_TYPES[e.type];
   const color = type?.color || 'var(--accent)';
   const icon = entityIcon('monster', e.name, { size: 38, icon: e.icon });
@@ -110,7 +111,7 @@ function farmRow(e, near) {
   } else sub = '<span>' + int(e.kills) + ' abates</span>';
   let dist = '<span class="mm-dist off" title="Fora do alcance do jogo ou sem a sua posição">—</span>';
   if (near) {
-    const deg = Math.round(Math.atan2(near.dx, near.dy) * 180 / Math.PI);
+    const deg = Math.round(radarHeading(Math.atan2(near.dx, near.dy) * 180 / Math.PI, rotation));
     dist = '<span class="mm-dist"><svg viewBox="0 0 24 24" style="transform:rotate(' + (deg + 180) + 'deg)"><path d="' + ARROWS + '"/></svg>' + fmtDist(near.d) + '</span>';
   }
   return '<div class="mm-row" style="--c:' + color + '"><span class="mm-ico">' + icon + '</span><div class="mm-txt"><b>' + esc(e.name) + '</b><div class="mm-sub">' + sub + '</div></div>' + dist + '</div>';
@@ -135,6 +136,7 @@ function radarBody() {
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
   const selfOk = fresh && verifiedRadarOwner(P, getMe()) && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
   const range = 100;
+  const rotation = radarRotation(load('radarRotation', 0));
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
@@ -157,11 +159,11 @@ function radarBody() {
   const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
 
   // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
-  const top = radarSvg(lastRadar?.self, mobs, range);
+  const top = radarSvg(lastRadar?.self, mobs, range, rotation);
 
   const rows = entries.map(e => ({ e, near: nearestOf(e) }))
     .sort((a, b) => (a.near ? a.near.d : 1e12) - (b.near ? b.near.d : 1e12) || a.e.name.localeCompare(b.e.name))
-    .map(x => farmRow(x.e, x.near)).join('');
+    .map(x => farmRow(x.e, x.near, rotation)).join('');
 
   return '<div class="radar-stage">' + top + '</div>'
     + '<div class="rd-bar">'
@@ -301,11 +303,11 @@ export async function renderWidgetsPage(root) {
     </div>
     ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
-    ${window.desktop?.setMovement ? '<section class="card rec-card"><h2>Posição e direção em tempo real</h2><p class="muted small">Opção avançada: solicita administrador e reinicia a captura para ler os dados locais de movimento do jogo. Fica desligada ao abrir o Lotus. Usa a direção do personagem; girar somente a câmera não envia uma atualização.</p><div class="rec-row"><button class="btn primary sm" data-act="movement" aria-pressed="false">Ativar leitura de movimento</button><span class="small muted" id="movement-status"></span></div></section>' : ''}
+    ${window.desktop?.setMovement ? '<section class="card rec-card"><h2>Posição e direção em tempo real</h2><p class="muted small">Leitura nativa do movimento do jogo. Ao ativar, a captura reinicia e o Windows solicita administrador. O Lotus lembra sua escolha. Usa a direção do personagem; girar somente a câmera não envia uma atualização.</p><div class="rec-row"><button class="btn primary sm" data-act="movement" aria-pressed="false">Ativar leitura de movimento</button><span class="small muted" id="movement-status"></span></div></section>' : ''}
     <div class="widget-list">
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
-      ${card('radar', WIDGETS.radar)}
+      ${card('radar', WIDGETS.radar, `<label class="opt"><span>Rotação do radar</span><select data-opt="rotation" aria-label="Rotação do radar">${[[0, 'Padrão do jogo'], [180, 'Girar 180°'], [270, 'Girar 90° à esquerda'], [90, 'Girar 90° à direita']].map(([angle, label]) => `<option value="${angle}" ${radarRotation(load('radarRotation', 0)) === angle ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`)}
     </div>
     ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Grava 2 minutos de dados recebidos e enviados na conexão do jogo, somente em um arquivo neste computador. Para estudar posição e direção: primeiro gire parado, depois ande em frente e para os lados. Entre novamente no personagem com a captura ligada para registrar também a identidade.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
@@ -369,6 +371,7 @@ export async function renderWidgetsPage(root) {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
+    if (opt === 'rotation') { save('radarRotation', radarRotation(+e.target.value)); return notifyChange(); }
     if (opt === 'bossOnly') { save('wgBossOnly', e.target.checked); return notifyChange(); }
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);

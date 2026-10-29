@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { radarSelf, verifiedRadarOwner, readVerifiedRadar } from '../js/radar-state.js';
+import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../js/radar-state.js';
 import { matchesPetStatus, PET_FAMILIES } from '../js/pet-families.js';
 
 test('radar orienta nos quatro sentidos, mantém ao parar e ignora ruído e teleporte', () => {
@@ -15,6 +15,22 @@ test('ângulo explícito tem prioridade sobre deslocamento e aceita zero', () =>
   assert.equal(radarSelf({x:1000,y:0,heading:0},{x:0,y:0,heading:120}).heading,0);
   assert.equal(radarSelf({x:0,y:0,heading:-90}).heading,270);
   assert.equal(radarSelf({x:0,y:0,heading:90}).headingSource,'facing');
+});
+
+test('referencial do jogo mantém esquerda/direita e corrige cima/baixo em pontos e seta', () => {
+  // No print: seta voltada para baixo/esquerda deve acompanhar o mapa original para cima/esquerda.
+  assert.equal(radarHeading(225),315);
+  assert.deepEqual(radarOffset(-20,-30),{x:-20,y:-30});
+  for(const [dx,dy] of [[10,0],[-10,0],[0,10],[0,-10],[-10,-20]]) {
+    const rawHeading=Math.atan2(dx,dy)*180/Math.PI;
+    const h=radarHeading(rawHeading)*Math.PI/180;
+    const point=radarOffset(dx,dy),distance=Math.hypot(dx,dy);
+    assert.ok(Math.abs(Math.sin(h)-point.x/distance)<1e-10);
+    assert.ok(Math.abs(-Math.cos(h)-point.y/distance)<1e-10);
+    const rotated=radarOffset(dx,dy,90),rh=radarHeading(rawHeading,90)*Math.PI/180;
+    assert.ok(Math.abs(Math.sin(rh)-rotated.x/distance)<1e-10);
+    assert.ok(Math.abs(-Math.cos(rh)-rotated.y/distance)<1e-10);
+  }
 });
 
 test('filtros não tratam coleção desconhecida como faltando; favoritos independem do progresso', () => {

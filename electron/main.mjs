@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
@@ -47,7 +48,7 @@ const status = {
   progress: 0,
   npcap: existsSync(join(process.env.WINDIR || 'C:\\Windows', 'System32', 'Npcap', 'wpcap.dll')),
   capture: 'stopped', // stopped | running | missing
-  movementEnabled: false, // opt-in somente nesta sessão; solicita administrador
+  movementEnabled: false, // escolha explícita salva; solicita administrador no Windows
   autostart: app.isPackaged && app.getLoginItemSettings().openAtLogin,
 };
 const AUTOSTART = process.argv.includes('--autostart');
@@ -80,7 +81,6 @@ let captureRestarts = 0;
 let captureGeneration = 0;
 let captureStopFile = '';
 let readMovement = false;
-const psLiteral = value => "'" + value.replace(/'/g, "''") + "'";
 
 function stopCapture() {
   captureGeneration++;
@@ -95,15 +95,10 @@ function startCapture() {
   if (!existsSync(exe)) return setStatus({ capture: 'missing' });
   if (!status.npcap) return setStatus({ capture: 'stopped' });
   const generation = ++captureGeneration;
-  captureStopFile = join(app.getPath('userData'), `capture-${process.pid}-${generation}.stop`);
-  const args = ['--url', BASE, '--owner-pid', String(process.pid), '--stop-file', captureStopFile, ...(readMovement ? ['--read-movement'] : [])];
+  captureStopFile = join(app.getPath('userData'), `capture-${process.pid}-${randomUUID()}.stop`);
+  const args = ['--url', BASE, '--owner-pid', String(process.pid), '--stop-file', captureStopFile, ...(readMovement ? ['--read-movement', '--launch-elevated'] : [])];
   const options = { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] };
-  if (readMovement) {
-    // A elevação ocorre apenas após o clique explícito; o Windows controla o consentimento.
-    const argv = args.map(arg => '"' + arg + '"').join(' ');
-    const command = `$ErrorActionPreference='Stop';try {$p=Start-Process -FilePath ${psLiteral(exe)} -ArgumentList ${psLiteral(argv)} -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit $p.ExitCode} catch {exit 1}`;
-    captureProc = spawn('powershell.exe', ['-NoProfile', '-EncodedCommand', Buffer.from(command, 'utf16le').toString('base64')], options);
-  } else captureProc = spawn(exe, args, options);
+  captureProc = spawn(exe, args, options);
   const startedAt = Date.now();
   setStatus({ capture: 'running' });
   // Rodou um bom tempo antes de cair: volta a tentar rápido na próxima vez.
@@ -263,6 +258,8 @@ ipcMain.handle('app:movement', (event, enabled) => {
   } catch (error) { if (error.message?.startsWith('Aguarde')) throw error; }
   stopCapture();
   readMovement = enabled === true;
+  cfg.movementEnabled = readMovement;
+  writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2));
   setStatus({ capture: 'stopped', movementEnabled: readMovement, movementState: readMovement ? 'starting' : 'off', movementMessage: '' });
   const pending = captureGeneration;
   setTimeout(() => { if (pending === captureGeneration && !app.isQuitting) startCapture(); }, 750);
@@ -342,6 +339,8 @@ app.whenReady().then(async () => {
     if (e.code !== 'EADDRINUSE') throw e;
   }
   loadCfg();
+  readMovement = cfg.movementEnabled === true;
+  setStatus({ movementEnabled: readMovement });
   createMain();
   for (const id of Object.keys(WIDGETS)) if (cfg[id].visible) openWidget(id);
   startCapture();
