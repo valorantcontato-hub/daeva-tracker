@@ -5,30 +5,26 @@ import { getMe } from '../profiles.js';
 import { readBestiary, writeBestiary, imageUrl, bestiaryKey } from '../bestiary-state.js';
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
+import { PET_FAMILIES, petStone, matchesPetStatus } from '../pet-families.js';
 
 // Tipos de mascote (campo "family" do catálogo), com as pedras do jogo como ícone.
-const STONE = key => '<img class="stone" src="icons/pets/' + key + '.png" alt="" draggable="false">';
-const FAMILIES = [
-  ['Cogni', 'Intelectual', STONE('cogni')],
-  ['Fera', 'Feral', STONE('fera')],
-  ['Natura', 'Natural', STONE('natura')],
-  ['Varian', 'Variante', STONE('varian')],
-  ['Special', 'Especial', STONE('special')],
-];
+const FAMILIES = Object.entries(PET_FAMILIES).map(([key, f]) => [key, f.label, petStone(key)]);
+const STATUSES = [['all', 'Todos'], ['farming', '★ Farmando'], ['missing', 'Faltando'], ['complete', 'Completos']];
 const PAGE_SIZE = 60;
 
 export function renderBestiary(root) {
   root.className = 'page bestiary-page';
   const me = getMe();
   let pets, state, collection;
-  const ui = { q: '', page: 0, family: '' };
+  const ui = { q: '', page: 0, family: '', status: 'all' };
 
   root.innerHTML = `
     <div class="page-head"><div><h1>Mascotes</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
     <p class="note small" id="collection-status"></p>
+    <nav class="pet-status-tabs" aria-label="Progresso dos mascotes">${STATUSES.map(([key, label]) => `<button class="chip" data-status="${key}" aria-pressed="${key === 'all'}">${label} <span></span></button>`).join('')}</nav>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro…" aria-label="Buscar">
-      <div class="chips" role="tablist" aria-label="Filtro">${FAMILIES.map(([k, l, icon]) => `<button class="chip fam-chip" data-filter="${k}" aria-pressed="false">${icon}${l}</button>`).join('')}</div>
+      <div class="chips" aria-label="Tipo de mascote">${FAMILIES.map(([k, l, icon]) => `<button class="chip fam-chip t-${k.toLowerCase()}" data-filter="${k}" aria-pressed="false">${icon}${l}</button>`).join('')}</div>
     </div>
     <div class="small muted" id="bestiary-summary"></div>
     <div id="list" class="pet2-grid"></div>
@@ -68,6 +64,7 @@ export function renderBestiary(root) {
     const visible = pets.filter(m => {
       const p = petProgress(collection, m.petId);
       return (!ui.family || m.region === ui.family)
+        && matchesPetStatus(p, state.focus.includes(m.id), ui.status)
         && (!q || `${m.name} ${m.note} ${m.maps?.join(' ')}`.toLowerCase().includes(q));
     });
     const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -80,6 +77,13 @@ export function renderBestiary(root) {
       const on = el.dataset.filter === ui.family;
       el.classList.toggle('active', on);
       el.setAttribute('aria-pressed', on);
+    });
+    root.querySelectorAll('[data-status]').forEach(el => {
+      const status = el.dataset.status;
+      const on = status === ui.status;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', on);
+      el.querySelector('span').textContent = pets.filter(m => matchesPetStatus(petProgress(collection, m.petId), state.focus.includes(m.id), status)).length;
     });
     $('#bestiary-summary').textContent = `${pets.filter(m => petProgress(collection, m.petId).complete).length} / ${pets.length} completos · ${state.focus.length} farmando`;
     $('#collection-status').textContent = collection
@@ -102,6 +106,8 @@ export function renderBestiary(root) {
 
   root.addEventListener('click', e => {
     const star = e.target.closest('[data-favorite]'), filter = e.target.closest('[data-filter]'), page = e.target.closest('[data-page]');
+    const status = e.target.closest('[data-status]');
+    if (status) { ui.status = status.dataset.status; ui.page = 0; renderList(); }
     if (star) {
       const fresh = readBestiary(me), favorites = new Set(fresh.focus);
       favorites.has(star.dataset.favorite) ? favorites.delete(star.dataset.favorite) : favorites.add(star.dataset.favorite);

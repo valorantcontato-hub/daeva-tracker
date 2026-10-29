@@ -143,7 +143,7 @@ function openWidget(id) {
   const bounds = cornerBounds(id, c.corner) || c.bounds || defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
-    minWidth: 220, minHeight: 120,
+    minWidth: 220, minHeight: id === 'radar' ? 240 : 120,
     frame: false, transparent: true, hasShadow: false, resizable: true,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
