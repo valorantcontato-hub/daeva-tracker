@@ -152,7 +152,8 @@ function pushState() {
 
 function defaultBounds(id) {
   const saved = cfg[id].bounds;
-  const area = (saved ? screen.getDisplayMatching(saved) : screen.getPrimaryDisplay()).workArea;
+  const display = saved ? screen.getDisplayMatching(saved) : screen.getPrimaryDisplay();
+  const area = id === 'radar' ? display.bounds : display.workArea;
   return widgetBounds(id, WIDGETS[id], saved, area, cfg[id].scale);
 }
 

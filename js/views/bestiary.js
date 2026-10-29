@@ -1,8 +1,8 @@
 // Bestiário = a coleção de pets do jogo, em cartões de retrato como na tela do jogo:
 // foto grande, selo com o nível (1–3), progresso de almas ou "MÁX." e "Farmando" nos favoritos.
-import { esc } from '../util.js';
+import { esc, toast } from '../util.js';
 import { getMe } from '../profiles.js';
-import { readBestiary, writeBestiary, imageUrl, bestiaryKey } from '../bestiary-state.js';
+import { readBestiary, writeBestiary, imageUrl, bestiaryKey, MAX_FARMING } from '../bestiary-state.js';
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
 import { PET_FAMILIES, petStone, matchesPetStatus } from '../pet-families.js';
@@ -110,6 +110,7 @@ export function renderBestiary(root) {
     if (status) { ui.status = status.dataset.status; ui.page = 0; renderList(); }
     if (star) {
       const fresh = readBestiary(me), favorites = new Set(fresh.focus);
+      if (!favorites.has(star.dataset.favorite) && favorites.size >= MAX_FARMING) { toast('Você pode acompanhar até 3 mascotes. Desmarque um para trocar.'); return; }
       favorites.has(star.dataset.favorite) ? favorites.delete(star.dataset.favorite) : favorites.add(star.dataset.favorite);
       writeBestiary({ ...fresh, focus: favorites }, me);
       state = readBestiary(me);

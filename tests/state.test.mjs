@@ -10,6 +10,15 @@ const { activeSkills } = await import('../js/views/dps.js');
 const me = { characterId: 'char-a', region: 'la', serverId: 2401, name: 'Maguinha', class: 'sorcerer', raceId: 1 };
 beforeEach(() => storage.clear());
 
+test('farmando limita três por personagem sem apagar progresso nem repetir favoritos', () => {
+  writeBestiary({ kills: { mob: 75 }, focus: ['pet-1', 'pet-1', 'pet-2', 'pet-3', 'pet-4'] }, me);
+  assert.deepEqual(readBestiary(me), { kills: { mob: 75 }, focus: ['pet-1', 'pet-2', 'pet-3'] });
+  const other = { ...me, characterId: 'char-b' };
+  writeBestiary({ kills: {}, focus: new Set(['pet-4']) }, other);
+  assert.deepEqual(readBestiary(other).focus, ['pet-4']);
+  assert.equal(readBestiary(me).kills.mob, 75);
+});
+
 test('migra o bestiário antigo uma vez e isola abates e favoritos de cada personagem', () => {
   save('me', me); save('kills', { mob: 24 }); save('focus', ['mob']);
   assert.equal(readBestiary().kills.mob, 24);

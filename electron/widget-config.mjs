@@ -14,7 +14,7 @@ export function widgetScale(value) {
 
 /** Fixed dimensions from the panel; saved bounds preserve only the drag position. */
 export function widgetBounds(id, size, saved, area, scale = 1) {
-  const margin = 16;
+  const margin = id === 'radar' ? 8 : 16;
   const width = Math.min(Math.round(size.width * widgetScale(scale)), area.width - margin * 2);
   const height = Math.min(Math.round(size.height * widgetScale(scale)), area.height - margin * 2);
   const left = area.x + margin, top = area.y + margin;
