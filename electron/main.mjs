@@ -179,18 +179,17 @@ function setWidget(id, patch) {
   pushState();
 }
 
-// Janela estreita por padrão (não ocupa a tela toda) e volta onde o usuário deixou.
+// Proporção da referência: 980 × 780, limitada à área útil do monitor.
 function mainBounds() {
-  // Tamanho fixo, estreito, estilo celular (menu embaixo), cabendo na altura da tela.
-  const size = { width: 580, height: Math.min(940, screen.getPrimaryDisplay().workArea.height - 30) };
   const b = cfg.mainBounds;
-  if (!b || !Number.isFinite(b.x) || !Number.isFinite(b.y)) return size;
-  // Só reaproveita a posição se a janela ainda aparece em alguma tela.
-  const visible = screen.getAllDisplays().some(d => {
-    const a = d.workArea;
-    return b.x < a.x + a.width - 80 && b.x + size.width > a.x + 80 && b.y < a.y + a.height - 80 && b.y + 80 > a.y;
-  });
-  return visible ? { ...size, x: b.x, y: b.y } : size;
+  const saved = b && Number.isFinite(b.x) && Number.isFinite(b.y);
+  const area = (saved ? screen.getDisplayMatching({ x: b.x, y: b.y, width: 980, height: 780 }) : screen.getPrimaryDisplay()).workArea;
+  const size = { width: Math.min(980, area.width - 24), height: Math.min(780, area.height - 24) };
+  if (!saved) return size;
+  return { ...size,
+    x: Math.max(area.x + 12, Math.min(b.x, area.x + area.width - size.width - 12)),
+    y: Math.max(area.y + 12, Math.min(b.y, area.y + area.height - size.height - 12)),
+  };
 }
 
 function createMain() {

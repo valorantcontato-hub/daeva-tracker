@@ -836,6 +836,20 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 .hero-tabs a { padding: 5px 10px; }
 .tooltip { border-color: color-mix(in srgb,var(--accent) 45%,var(--border)); background: color-mix(in srgb,var(--surface) 95%,var(--accent)); }
 .tabs a.active { color: var(--accent); background: color-mix(in srgb,var(--accent) 10%,var(--surface)); }
+/* Menu inferior também na janela de 980 px da referência. */
+@media (min-width: 641px) {
+  main { padding: 0 24px 80px; }
+  .topbar { height: 60px; padding: 0 24px; backdrop-filter: none; background: var(--bg); }
+  .brand { font-size: 22px; }
+  .brand-mark { width: 40px; height: 40px; }
+  .hero { min-height: 172px; padding-inline: 24px; }
+  .hero-name { font-size: 24px; }
+  .hero-stats b { font-size: 18px; }
+  .equipment-and-look { max-width: 372px; }
+  .tabs { position: fixed; inset: auto 0 0; margin: 0; z-index: 20; padding: 6px 12px; background: var(--surface); border-top: 1px solid var(--border); }
+  .tabs a { flex: 1; justify-content: center; flex-direction: column; gap: 2px; min-height: 54px; font-size: 12px; }
+  .tab-ico { font-size: 20px; }
+}
 @media (max-width: 480px) {
   .home-main { grid-template-columns: minmax(0,1fr); }
   .equipment-and-look { max-width: 100%; }
