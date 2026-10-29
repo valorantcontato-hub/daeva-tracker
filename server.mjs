@@ -9,7 +9,12 @@ import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aggregateEvents } from './js/encounter.js';
 import { createPetFeed } from './pet-feed.mjs';
-const pets = createPetFeed();
+const eventClients = new Set();
+function publishEvent(channel, data) {
+  const line = `event: ${channel}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const response of eventClients) response.write(line);
+}
+const pets = createPetFeed(state => publishEvent('pets', state));
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const TYPES = {
@@ -185,6 +190,7 @@ let lastSelf = null;
 function announceSelf(ev) {
   if (!ev?.self?.name) return;
   lastSelf = { type: 'identity', self: ev.self, capturedAt: ev.capturedAt || new Date().toISOString() };
+  publishEvent('live', lastSelf);
   for (const client of live.clients) client.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
 }
 
@@ -196,6 +202,7 @@ function announcePositions(ev) {
     selfVerified: ev.selfVerified === true, selfProfile: ev.selfProfile || null,
     self: ev.self || null, entities: ev.entities || 0, mobs: ev.mobs.slice(0, 400) };
   const line = `data: ${JSON.stringify(lastPositions)}\n\n`;
+  publishEvent('live', lastPositions);
   for (const client of live.clients) client.write(line);
 }
 
@@ -225,6 +232,7 @@ function snapshot() {
 }
 
 function broadcast() {
+  publishEvent('live', snapshot());
   const msg = `data: ${JSON.stringify(snapshot())}\n\n`;
   for (const res of live.clients) res.write(msg);
   live.dirty = false;
@@ -297,6 +305,17 @@ async function handle(req, res) {
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
+    if (path === '/api/events') return sendJson(res, 200, { version: 1 });
+    if (path === '/api/events/stream') {
+      res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
+      const initial = [['live', snapshot()], ['pets', pets.snapshot()]];
+      if (lastSelf) initial.push(['live', lastSelf]);
+      if (lastPositions && Date.now() - Date.parse(lastPositions.capturedAt) < 15000) initial.push(['live', lastPositions]);
+      for (const [channel, data] of initial) res.write(`event: ${channel}\ndata: ${JSON.stringify(data)}\n\n`);
+      eventClients.add(res);
+      req.on('close', () => eventClients.delete(res));
+      return;
+    }
     if (path === '/api/pets/stream') return pets.subscribe(req, res);
     if (path === '/api/reload/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
@@ -340,6 +359,7 @@ let overlayDir = '';
 let movementStatus = null;
 
 export function notifyReload() {
+  publishEvent('reload', 'reload');
   for (const res of reloadClients) res.write('data: reload\n\n');
 }
 

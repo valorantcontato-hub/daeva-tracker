@@ -1,5 +1,5 @@
 import { normalizeCollection, collectionIdentity } from './js/collection-state.js';
-export function createPetFeed() {
+export function createPetFeed(onState = () => {}) {
   const states = new Map(), clients = new Set();
   return {
     ingest(message) {
@@ -10,8 +10,10 @@ export function createPetFeed() {
           Date.parse(previous.capturedAt) > Date.parse(state.capturedAt))) return;
       if (states.size >= 32 && !states.has(key)) states.delete(states.keys().next().value);
       states.set(key,state);
+      onState(state);
       for (const response of clients) response.write(`data: ${JSON.stringify(state)}\n\n`);
     },
+    snapshot() { return [...states.values()]; },
     subscribe(req,res) {
       res.writeHead(200, {'content-type':'text/event-stream','cache-control':'no-store',connection:'keep-alive'});
       res.write(`data: ${JSON.stringify([...states.values()])}\n\n`);

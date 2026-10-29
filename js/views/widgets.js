@@ -9,16 +9,16 @@ import { petProgress } from '../collection-state.js';
 import { mergeMonsterCatalog } from '../monster-catalog.js';
 import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
-import { getMe, findSkill, findProfileByName } from '../profiles.js';
+import { getMe, findProfileByName } from '../profiles.js';
 import { onLive, onPositions, lastPositions } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
-import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarRotation, radarHeading, radarOffset } from '../radar-state.js';
+import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
 
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
-  skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
+  skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'DPS, participação, dano total e crítico de cada habilidade ativa do seu personagem.' },
   radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
 };
 
@@ -136,7 +136,7 @@ function radarBody() {
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
   const selfOk = fresh && verifiedRadarOwner(P, getMe()) && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
   const range = 100;
-  const rotation = radarRotation(load('radarRotation', 0));
+  const rotation = 0; // Orientação do jogo, sem calibração manual.
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
@@ -180,19 +180,22 @@ const BODIES = {
     if (!S) return `<div class="wg-empty">${bossOnly() ? 'Nenhuma luta contra chefe ainda.' : 'Sem lutas ainda.'}</div>`;
     const top = S.players[0]?.share || 1;
     const mine = myPlayer(S)?.name;
+    const hp = S.bossHp?.max ? Math.max(0, Math.min(1, S.bossHp.current / S.bossHp.max)) : null;
     return `
-      <div class="wg-sub">
-        <span style="display:flex;align-items:center;gap:6px;min-width:0">${S.live ? '<span class="live-dot"></span>' : ''}${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.boss)}</b></span>
-        <span>${S.bossHp?.max ? pct(S.bossHp.current / S.bossHp.max, 0) + ' · ' : ''}${duration(S.duration)} · ${compact(S.dps)}</span>
-      </div>
-      ${S.players.map(p => {
+      <header class="combat-summary">
+        <div class="combat-meta"><span>Combate <b>${duration(S.duration)}</b> ${S.live ? '<i class="combat-live"></i>' : ''}</span><strong>${compact(S.dps)} <small>DPS</small></strong></div>
+        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b></div>
+        ${hp == null ? '' : `<div class="combat-hp"><i style="width:${hp * 100}%"></i><span>${int(S.bossHp.current)} / ${int(S.bossHp.max)} · ${pct(hp, 0)}</span></div>`}
+      </header>
+      <div class="combat-ranking">${S.players.map(p => {
         const c = classInfo(p.class);
-        return `<div class="wrow ${p.name === mine ? 'active' : ''}" style="--c:${c.color}">
-          <span class="wfill" style="width:${(p.share / top) * 100}%"></span>
-          ${classIcon(p.class, 20)}<b>${esc(p.name)}</b>
-          <span class="num"><b>${compact(p.dps)}</b></span><span class="num muted">${pct(p.share, 0)}</span>
+        const profile = findProfileByName(p.name);
+        return `<div class="combat-player ${p.name === mine ? 'is-me' : ''}" style="--c:${c.color};--share:${(p.share / top) * 100}%">
+          ${classIcon(p.class, 21)}<b class="combat-name">${esc(p.name)}</b>
+          ${profile?.combatPower ? `<span class="combat-cp" title="Combat Power">CP ${compact(profile.combatPower)}</span>` : ''}
+          <strong class="combat-dps">${compact(p.dps)}<small>/s</small></strong><strong class="combat-share">${pct(p.share)}</strong>
         </div>`;
-      }).join('')}`;
+      }).join('')}</div>`;
   },
 
   skills() {
@@ -203,18 +206,18 @@ const BODIES = {
     const rows = activeSkills(p).sort((a, b) => b.damage - a.damage);
     const best = rows[0]?.damage || 1;
     return `
-      <div class="wg-sub">
-        <span style="display:flex;align-items:center;gap:6px">${classIcon(p.class, 18)}<b style="color:${c.color}">${esc(p.name)}</b></span>
-        <span>${compact(p.dps)} DPS · crit ${pct(p.critRate, 0)}</span>
-      </div>
-      ${rows.map(s => `
-        <div class="wrow skill" style="--c:${c.color}" title="${esc(s.name)} · ${int(s.hits)} hits · máx ${int(s.max)}">
-          <span class="wfill" style="width:${(s.damage / best) * 100}%"></span>
-          ${skillIconHtml(p, s, 22)}<b>${esc(skillLabel(p, s))}</b>
-          <span class="num">${compact(s.damage)}</span>
-          <span class="num muted">${pct(p.damage ? s.damage / p.damage : 0, 0)}</span>
-          <span class="num muted">${s.hits ? pct(s.crits / s.hits, 0) : '—'}</span>
-        </div>`).join('') || '<div class="wg-empty">Nenhuma skill ativa usada ainda.</div>'}`;
+      <header class="combat-summary skills-summary" style="--c:${c.color}">
+        <div class="combat-meta"><span>${classIcon(p.class, 18)}<b>${esc(p.name)}</b></span><strong>${compact(p.dps)} <small>DPS</small></strong></div>
+        <div class="skills-context"><span>${esc(S.boss)}</span><span>${duration(S.duration)} · ${pct(p.critRate)} crítico</span></div>
+      </header>
+      <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span></div>
+      <div class="skill-meters">${rows.map(s => `
+        <div class="skill-meter" style="--c:${c.color};--share:${(s.damage / best) * 100}%" title="${esc(skillLabel(p, s))} · ${int(s.hits)} hits · maior acerto ${int(s.max)}">
+          <span class="skill-art">${skillIconHtml(p, s, 30)}</span>
+          <div class="skill-meter-name"><b>${esc(skillLabel(p, s))}</b><span><span>DMG <strong>${compact(s.damage)}</strong></span><span>Crítico <strong>${s.hits ? pct(s.crits / s.hits) : '—'}</strong></span></span></div>
+          <strong class="skill-dps">${compact(s.damage / Math.max(1, S.duration))}</strong>
+          <strong class="combat-share">${pct(p.damage ? s.damage / p.damage : 0)}</strong>
+        </div>`).join('') || '<div class="wg-empty">Nenhuma skill ativa usada ainda.</div>'}</div>`;
   },
 };
 
@@ -226,7 +229,7 @@ export function renderWidget(root, [id]) {
   const preview = root.hasAttribute('data-preview');
   if (!preview) document.title = `${def.title} · Lotus Tracker`;
   root.innerHTML = `
-    <div class="wg ${id === 'radar' ? 'radar-widget' : ''}">
+    <div class="wg ${id === 'radar' ? 'radar-widget' : 'combat-widget ' + id + '-widget'}">
       ${id === 'radar' ? '' : `<div class="wg-head">
         <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
       </div>`}
@@ -236,7 +239,7 @@ export function renderWidget(root, [id]) {
 
   const paint = () => {
     if (!root.isConnected) return false;
-    wg.style.setProperty('--wg-alpha', load('wgOpacity:' + id, 88) + '%');
+    wg.style.setProperty('--wg-opacity', Math.max(30, Math.min(100, Number(load('wgOpacity:' + id, 88)) || 88)) / 100);
     const scroll = body.scrollTop;
     body.innerHTML = BODIES[id]();
     body.scrollTop = scroll;
@@ -265,7 +268,6 @@ export function renderWidget(root, [id]) {
 }
 
 // ---------- Tela de gerenciamento ----------
-const CORNERS = [['', 'Livre (arrastar)'], ['tl', '↖ Superior esquerdo'], ['tr', '↗ Superior direito'], ['bl', '↙ Inferior esquerdo'], ['br', '↘ Inferior direito']];
 
 export async function renderWidgetsPage(root) {
   root.className = 'page widgets-page';
@@ -287,8 +289,7 @@ export async function renderWidgetsPage(root) {
         <div class="widget-opts">
           ${extra}
           ${ov ? `
-            <label class="opt"><span>Posição</span><select data-opt="corner">${CORNERS.map(([k, l]) => `<option value="${k}" ${(s.corner || '') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar (clique passa para o jogo)</label>` : ''}
+            <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar <span class="muted small">(cliques passam para o jogo; oculta ao passar o mouse)</span></label>` : ''}
           <label class="opt"><span>Opacidade</span><input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity"></label>
         </div>
       </section>`;
@@ -298,7 +299,7 @@ export async function renderWidgetsPage(root) {
     <div class="page-head">
       <div>
         <h1>Widgets</h1>
-        <p class="muted">Cada widget é uma janela separada por cima do jogo. Arraste pela barra do título e redimensione pelas bordas.</p>
+        <p class="muted">DPS no alto à esquerda, skills embaixo à esquerda e mini mapa embaixo à direita. Destrave para arrastar; cada posição fica salva.</p>
       </div>
     </div>
     ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
@@ -307,7 +308,7 @@ export async function renderWidgetsPage(root) {
     <div class="widget-list">
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
-      ${card('radar', WIDGETS.radar, `<label class="opt"><span>Rotação do radar</span><select data-opt="rotation" aria-label="Rotação do radar">${[[0, 'Padrão do jogo'], [180, 'Girar 180°'], [270, 'Girar 90° à esquerda'], [90, 'Girar 90° à direita']].map(([angle, label]) => `<option value="${angle}" ${radarRotation(load('radarRotation', 0)) === angle ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`)}
+      ${card('radar', WIDGETS.radar)}
     </div>
     ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Grava 2 minutos de dados recebidos e enviados na conexão do jogo, somente em um arquivo neste computador. Para estudar posição e direção: primeiro gire parado, depois ande em frente e para os lados. Entre novamente no personagem com a captura ligada para registrar também a identidade.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
@@ -360,12 +361,10 @@ export async function renderWidgetsPage(root) {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
-    if (opt === 'rotation') { save('radarRotation', radarRotation(+e.target.value)); return notifyChange(); }
     if (opt === 'bossOnly') { save('wgBossOnly', e.target.checked); return notifyChange(); }
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
-    if (opt === 'corner') ov.set(id, { corner: e.target.value });
   });
   ov?.onState(s => {
     if (!root.isConnected) return;

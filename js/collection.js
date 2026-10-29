@@ -1,6 +1,7 @@
 import { load, save, notifyChange } from './store.js';
 import { getMe } from './profiles.js';
 import { collectionStorageKey, normalizeCollection, collectionIdentity } from './collection-state.js';
+import { listenStream } from './stream.js';
 let pets = [], started = false;
 export const getPetCatalog = () => pets;
 export const readCollection = (me = getMe()) => collectionIdentity(me) ? load(collectionStorageKey(me), null) : null;
@@ -13,7 +14,7 @@ export async function loadPetCatalog() {
 export function startCollection() {
   if (started || typeof EventSource === 'undefined') return;
   started = true;
-  new EventSource('/api/pets/stream').onmessage = event => {
+  listenStream('pets', event => {
     let incoming; try { incoming = JSON.parse(event.data); } catch { return; }
     for (const message of Array.isArray(incoming) ? incoming : [incoming]) {
       const state = normalizeCollection(message);
@@ -23,5 +24,5 @@ export function startCollection() {
           Date.parse(previous.capturedAt) > Date.parse(state.capturedAt))) continue;
       if (save(collectionStorageKey(state.self), state)) notifyChange();
     }
-  };
+  });
 }

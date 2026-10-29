@@ -452,6 +452,8 @@ html.widget-mode .topbar { display: none; }
 html.widget-mode main { padding: 0; max-width: none; }
 .wg {
   --wg-alpha: 88%;
+  --wg-opacity: .88;
+  opacity: var(--wg-opacity);
   position: fixed; inset: 0; display: flex; flex-direction: column;
   background: color-mix(in srgb, var(--bg) var(--wg-alpha), transparent);
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent); border-radius: 12px; overflow: hidden;
@@ -1472,3 +1474,47 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .rd-bar { display: flex; gap: 6px; margin: 4px 0 2px; }
 .rd-bar .mini { flex: 1; white-space: nowrap; width: auto; height: 26px; padding: 0 8px; font-size: 12px; }
 .rd-bar .mini.on { background: var(--accent); color: #fff; }
+
+/* Combat overlays: shared typography, class colors and compact meters. */
+.combat-widget { background: transparent; border: 0; border-radius: 8px; color: #f1f2f5; font-family: "Segoe UI", sans-serif; }
+.combat-widget .wg-head { height: 22px; padding: 0 8px; background: #14171ce8; border: 0; }
+.combat-widget .wg-head h1 { font-size: 10px; color: #9ba3b1; letter-spacing: .04em; }
+.combat-widget .wg-body { padding: 0; scrollbar-width: thin; }
+.combat-summary { padding: 7px 9px; background: #14171ce8; border-bottom: 1px solid #ffffff19; -webkit-app-region: drag; }
+.combat-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: #c4c8d0; font-variant-numeric: tabular-nums; }
+.combat-meta > span { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.combat-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combat-meta > strong { flex: none; font-size: 14px; color: #f6f7fa; }
+.combat-meta small { font-size: 10px; color: #aeb4bf; }
+.combat-live { width: 6px; height: 6px; background: #71de98; border-radius: 50%; box-shadow: 0 0 7px #71de9840; }
+.combat-target { display: flex; align-items: center; gap: 6px; margin: 6px 0; min-width: 0; }
+.combat-target b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combat-hp { height: 12px; position: relative; background: #060709c9; border-radius: 2px; overflow: hidden; text-align: center; }
+.combat-hp i { position: absolute; inset: 0 auto 0 0; background: #98455488; }
+.combat-hp span { position: relative; display: block; font: 600 9px/12px Consolas, monospace; }
+.combat-ranking { display: grid; gap: 3px; padding-top: 4px; container-type: inline-size; }
+.combat-player { position: relative; display: flex; align-items: center; gap: 6px; min-height: 29px; padding: 3px 7px; border-radius: 5px; overflow: hidden; background: #15191ee8; box-shadow: inset 3px 0 var(--c); font-variant-numeric: tabular-nums; }
+.combat-player::before, .skill-meter::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--share); background: color-mix(in srgb, var(--c) 35%, transparent); pointer-events: none; }
+.combat-player > *, .skill-meter > * { position: relative; }
+.combat-name { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combat-cp { flex: none; color: #78daf2; font: 600 9px Consolas, monospace; padding: 2px 4px; background: #08151d88; border: 1px solid #78daf230; border-radius: 3px; }
+.combat-dps { flex: none; font-size: 12px; }
+.combat-dps small { font-size: 9px; color: #c4c8d0; }
+.combat-share { flex: none; min-width: 41px; text-align: right; font-size: 11px; color: #ffda76; font-variant-numeric: tabular-nums; }
+.combat-player.is-me { box-shadow: inset 3px 0 var(--c), inset 0 0 0 1px #ffffff24; }
+.skills-summary .combat-meta > span { color: var(--c); }
+.skills-context { display: flex; justify-content: space-between; gap: 8px; padding-top: 5px; color: #959eac; font-size: 10px; }
+.skills-context > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skills-context > span:last-child { flex: none; }
+.skill-meter-labels { display: grid; grid-template-columns: minmax(0,1fr) 48px 44px; gap: 7px; padding: 6px 8px 4px; background: #12161be8; color: #9ca6b6; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+.skill-meter-labels > span:not(:first-child) { text-align: right; }
+.skill-meters { display: grid; gap: 3px; padding-top: 3px; }
+.skill-meter { display: grid; grid-template-columns: 30px minmax(0,1fr) 48px 44px; gap: 7px; align-items: center; position: relative; overflow: hidden; padding: 6px 8px; min-height: 46px; border-radius: 4px; background: #15191ee8; box-shadow: inset 2px 0 var(--c); font-variant-numeric: tabular-nums; }
+.skill-meter::before { opacity: .65; }
+.skill-art, .skill-art .ico { width: 30px; height: 30px; border-radius: 4px; overflow: hidden; }
+.skill-meter-name { min-width: 0; }
+.skill-meter-name > b { display: block; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-meter-name > span { display: flex; flex-wrap: wrap; gap: 2px 8px; padding-top: 3px; font-size: 9px; color: #bac1cc; }
+.skill-meter-name strong { color: #eef1f6; font-weight: 600; }
+.skill-dps { text-align: right; font-size: 12px; }
+@container (max-width: 270px) { .combat-cp { display: none; } }
