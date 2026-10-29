@@ -19,9 +19,10 @@ export function widgetBounds(id, size, saved, area, scale = 1) {
   const height = Math.min(Math.round(size.height * widgetScale(scale)), area.height - margin * 2);
   const left = area.x + margin, top = area.y + margin;
   const right = area.x + area.width - width - margin, bottom = area.y + area.height - height - margin;
+  const defaultY = id === 'party' ? top : id === 'skills' ? bottom - Math.min(260, Math.round(area.height * .24)) : bottom;
   return { width, height,
     x: Math.max(left, Math.min(Number.isFinite(saved?.x) ? saved.x : id === 'radar' ? right : left, right)),
-    y: Math.max(top, Math.min(Number.isFinite(saved?.y) ? saved.y : id === 'party' ? top : bottom, bottom)),
+    y: Math.max(top, Math.min(Number.isFinite(saved?.y) ? saved.y : defaultY, bottom)),
   };
 }
 

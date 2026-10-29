@@ -166,7 +166,7 @@ function radarBody() {
     .map(x => farmRow(x.e, x.near, rotation)).join('');
 
   return '<div class="radar-stage">' + top + '</div>'
-    + '<div class="mm-list">' + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>') + '</div>';
+    + (rows ? '<div class="mm-list">' + rows + '</div>' : '');
 }
 
 // ---------- Corpo de cada widget ----------
@@ -307,7 +307,7 @@ export async function renderWidgetsPage(root) {
     <div class="page-head">
       <div>
         <h1>Widgets</h1>
-        <p class="muted">DPS no alto à esquerda, skills embaixo à esquerda e mini mapa embaixo à direita. Destrave para arrastar; cada posição fica salva.</p>
+        <p class="muted">Boss no alto à esquerda, skills à esquerda acima do chat e mini mapa embaixo à direita. Destrave para arrastar; cada posição fica salva.</p>
       </div>
     </div>
     ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
