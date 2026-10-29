@@ -172,6 +172,34 @@ function radarBody() {
     + (rows ? '<div class="mm-list">' + rows + '</div>' : '');
 }
 
+// ---------- Modo posicionar: exemplos para arrastar cada widget antes da luta ----------
+const SAMPLE_ROWS = [['Jogador 1', 'cleric', '#e6c04a', 53.2, '1,4M', 35], ['Jogador 2', 'ranger', '#8bd16c', 47.4, '1,2M', 31], ['Você', 'sorcerer', '#78a8ff', 27.1, '0,7M', 18], ['Jogador 4', 'templar', '#c9c9c9', 22.7, '0,6M', 16]];
+function positioningBody(id) {
+  if (id === 'party') {
+    return `
+      <header class="combat-summary">
+        <div class="combat-meta"><span>Combate <b>1:23</b></span><strong>150K <small>DPS</small></strong></div>
+        <div class="combat-target"><b>Chefe de exemplo</b><span class="combat-total">party <b>9,8M</b> · você <b>0,7M</b></span></div>
+        <div class="combat-hp"><i style="width:62%"></i><span>9.600.000 / 15.504.000 · 62%</span></div>
+      </header>
+      <div class="combat-ranking">${SAMPLE_ROWS.map(([name, cls, color, dps, dmg, share]) => `
+        <div class="combat-player ${name === 'Você' ? 'is-me' : ''}" style="--c:${color};--share:${share * 2.8}%">
+          ${classIcon(cls, 21)}<b class="combat-name">${name}</b>
+          <strong class="combat-dps">${dps}K<small>/s</small></strong><span class="combat-dmg">${dmg}</span><strong class="combat-share">${share}%</strong>
+        </div>`).join('')}</div>`;
+  }
+  return `
+    <header class="combat-summary skills-summary" style="--c:#78a8ff">
+      <div class="combat-meta"><span>${classIcon('sorcerer', 16)}<b>Você</b><time>1:23</time></span><strong><em class="dps-peak">pico 48K</em><em class="dps-active">ativo 30K</em>27K <small>DPS</small></strong></div>
+    </header>
+    <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span><span>DMG</span><span>Crít.</span></div>
+    <div class="skill-meters">${[['Skill de exemplo A', 38, '10K', '1,2M', '35%'], ['Skill de exemplo B', 33, '8K', '1,0M', '31%'], ['Skill de exemplo C', 29, '7K', '0,9M', '28%']].map(([name, share, dps, dmg, crit]) => `
+      <div class="skill-meter" style="--c:#78a8ff;--share:${share * 2.6}%">
+        <span class="skill-art"></span><div class="skill-meter-name"><b>${name}</b></div>
+        <strong class="skill-dps">${dps}</strong><strong class="combat-share">${share}%</strong><span class="skill-damage">${dmg}</span><span class="skill-crit">${crit}</span>
+      </div>`).join('')}</div>`;
+}
+
 // ---------- Corpo de cada widget ----------
 const BODIES = {
   radar: radarBody,
@@ -240,12 +268,15 @@ export function renderWidget(root, [id]) {
   const ov = overlay();
   if (ov && !preview) { ov.list().then(applySize); ov.onState(applySize); }
   const activity = createWidgetActivity();
-  let idleTimer, wasVisible;
+  let idleTimer, wasVisible, positioningOn = false;
 
   const paint = () => {
     if (!root.isConnected) return false;
     wg.style.setProperty('--wg-opacity', Math.max(30, Math.min(100, Number(load('wgOpacity:' + id, 88)) || 88)) / 100);
     clearTimeout(idleTimer);
+    wg.classList.toggle('wg-positioning', positioningOn);
+    // Modo posicionar: exemplo fixo para arrastar o widget antes de entrar em combate.
+    if (positioningOn && id !== 'radar') { wg.classList.remove('combat-idle'); body.innerHTML = positioningBody(id); return true; }
     let visible = true;
     if (id !== 'radar') {
       const fight = currentFight(id);
@@ -262,6 +293,7 @@ export function renderWidget(root, [id]) {
   };
 
   const off = onLive(() => paint() || off());
+  if (ov && !preview && ov.onPositioning) { ov.getPositioning().then(on => { positioningOn = on; paint(); }); ov.onPositioning(on => { positioningOn = on; paint(); }); }
   if (id === 'radar') { const offPos = onPositions(() => paint() || offPos()); }
   // Mudou algo (em outra janela: evento "storage"; nesta: "a2t:changed"): repinta o widget.
   const onData = () => {
@@ -305,6 +337,12 @@ export async function renderWidgetsPage(root) {
   root.innerHTML = `
     ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
+    ${ov ? `<section class="card position-card">
+      <div class="widget-top"><span class="widget-ico">✥</span><div class="widget-txt"><h2>Posição dos widgets</h2></div>
+        <button class="btn primary sm" data-act="position-toggle">Posicionar no jogo</button></div>
+      <p class="muted small widget-desc">Mostra os widgets ligados com dados de exemplo, por cima de tudo, para você arrastar cada um para onde quiser <i>antes</i> de entrar em combate. Clique em "Concluir" quando terminar: a posição fica salva. Ligue "No jogo" nos que quiser ajustar.</p>
+      <div class="widget-opts"><button class="btn sm" data-act="position-reset">Restaurar posições padrão</button></div>
+    </section>` : ''}
     <div class="widget-list">
       ${card('party', WIDGETS.party)}
       ${card('skills', WIDGETS.skills)}
@@ -314,6 +352,9 @@ export async function renderWidgetsPage(root) {
 
   root.addEventListener('click', e => {
     const cardEl = e.target.closest('.widget-card');
+    const toggle = e.target.closest('[data-act="position-toggle"]');
+    if (toggle) { ov?.positioning(toggle.dataset.on !== '1'); return; }
+    if (e.target.closest('[data-act="position-reset"]')) { ov?.resetPositions(); return; }
     if (cardEl && e.target.closest('[data-act="size-default"]')) {
       ov?.set(cardEl.dataset.id, { scale: 1 });
       return;
@@ -336,6 +377,12 @@ export async function renderWidgetsPage(root) {
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
   });
+  const setToggle = on => {
+    const b = root.querySelector('[data-act="position-toggle"]');
+    if (b) { b.dataset.on = on ? '1' : '0'; b.textContent = on ? 'Concluir posicionamento' : 'Posicionar no jogo'; }
+  };
+  ov?.getPositioning?.().then(setToggle);
+  ov?.onPositioning?.(on => { if (root.isConnected) setToggle(on); });
   ov?.onState(s => {
     if (!root.isConnected) return;
     for (const [id, st] of Object.entries(s)) {

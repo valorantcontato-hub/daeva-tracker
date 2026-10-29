@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('overlay', {
   set: (id, patch) => ipcRenderer.invoke('widget:set', id, patch),
   activity: (id, active) => ipcRenderer.send('widget:activity', id, !!active),
   closeSelf: () => ipcRenderer.send('widget:close-self'),
+  positioning: on => ipcRenderer.invoke('widget:positioning', !!on),
+  getPositioning: () => ipcRenderer.invoke('widget:positioning-state'),
+  onPositioning: cb => ipcRenderer.on('widgets:positioning', (_e, on) => cb(!!on)),
+  resetPositions: () => ipcRenderer.invoke('widget:reset-positions'),
   onState: cb => ipcRenderer.on('widgets:state', (_e, state) => cb(state)),
 });
 
