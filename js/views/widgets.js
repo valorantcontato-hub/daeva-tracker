@@ -1,7 +1,7 @@
 // Widgets compactos (#/w/<id>) para usar como janelas de overlay sobre o jogo,
 // e a tela de gerenciamento (#/widgets).
 import { load, save, notifyChange } from '../store.js';
-import { readBestiary } from '../bestiary-state.js';
+import { readBestiary, bestiaryKey } from '../bestiary-state.js';
 import { isBossEncounter } from '../combat-types.js';
 import { classInfo } from '../data/classes.js';
 import { getPetCatalog, readCollection } from '../collection.js';
@@ -43,7 +43,6 @@ function myPlayer(S) {
 // Posições vêm dos pacotes de movimento do jogo (captura). Unidade assumida: 1 unidade = 1 cm; ajuste
 // RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo. A SUA posição só chega montado.
 const RADAR_UNIT_M = 0.01;
-const RADAR_RANGES = [50, 100, 200, 400];
 const normName = s => String(s || '').normalize('NFKC').trim().toLowerCase();
 const PET_TYPES = {
   Cogni: { label: 'Intelectual', color: '#5aa5f0', stone: 'icons/pets/cogni.png' },
@@ -74,15 +73,26 @@ const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km'
 
 function radarSvg(P, mobs, range) {
   const R = 92, k = R / range;
-  const dots = mobs.slice(0, 150).map(m => {
-    const f = m.d > range ? range / m.d : 1;
+  let clips = '';
+  const dots = mobs.slice(0, 150).map((m, i) => {
+    const far = m.d > range, f = far ? range / m.d : 1;
+    const cx = (100 + m.dx * f * k).toFixed(1), cy = (100 - m.dy * f * k).toFixed(1);
     const color = PET_TYPES[m.type]?.color || '#e9b949';
-    return '<circle cx="' + (100 + m.dx * f * k).toFixed(1) + '" cy="' + (100 - m.dy * f * k).toFixed(1) + '" r="' + (m.d > range ? 2 : 3.4)
-      + '" style="fill:' + color + '" class="rd-dot' + (m.d > range ? ' far' : '') + '"><title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title></circle>';
+    const tip = '<title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title>';
+    // Mascote em farm: a bolinha vira a foto dele, com anel na cor do tipo.
+    if (m.icon) {
+      const r = far ? 6 : 8.5;
+      clips += '<clipPath id="rdc' + i + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>';
+      return '<g class="rd-pet' + (far ? ' far' : '') + '">'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 1.4) + '" style="fill:' + color + '"/>'
+        + '<image href="' + esc(m.icon) + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + r * 2 + '" height="' + r * 2 + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#rdc' + i + ')"/>'
+        + tip + '</g>';
+    }
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (far ? 2 : 3.4) + '" style="fill:' + color + '" class="rd-dot' + (far ? ' far' : '') + '">' + tip + '</circle>';
   }).join('');
   const rings = [R, R * 2 / 3, R / 3].map(r => '<circle cx="100" cy="100" r="' + r.toFixed(1) + '" class="rd-ring"/>').join('');
   return '<svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">'
-    + '<defs><radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
+    + '<defs>' + clips + '<radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
     + '<circle cx="100" cy="100" r="' + (R + 4) + '" fill="url(#rdbg)" class="rd-disc"/>' + rings
     + '<path d="M100 8v184M8 100h184" class="rd-axis"/>'
     + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
@@ -112,21 +122,31 @@ function farmRow(e, near) {
 }
 
 // Última leitura boa (sua posição + monstros): o widget continua mostrando isso enquanto não chegam dados novos.
-let lastRadar = load('radarLast', null);
+let radarOwner = bestiaryKey();
+let lastRadar = load('radarLast:' + radarOwner, null);
 let lastRadarSaved = 0;
+let previousOwnerPositions = null;
 
 function radarBody() {
+  const owner = bestiaryKey();
+  if (owner !== radarOwner) {
+    previousOwnerPositions = lastPositions();
+    radarOwner = owner;
+    lastRadar = load('radarLast:' + owner, null);
+    lastRadarSaved = 0;
+  }
   const P = lastPositions();
-  const fresh = P && Date.now() - Date.parse(P.capturedAt) <= 10000;
-  const selfOk = fresh && P.self && P.self.ageMs <= 15000 + (Date.now() - Date.parse(P.capturedAt));
-  const range = RADAR_RANGES.includes(load('radarRange', 100)) ? load('radarRange', 100) : 100;
+  const elapsed = P ? Date.now() - Date.parse(P.capturedAt) : Infinity;
+  const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
+  const selfOk = fresh && P.self && P.self.ageMs + Math.max(0, elapsed) <= 15000;
+  const range = 100;
   const entries = farmingEntries();
   const showAll = load('radarAll', false) || !entries.length;
 
   // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
   if (selfOk) {
     lastRadar = { self: { x: P.self.x, y: P.self.y }, mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
-    if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast', lastRadar); }
+    if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast:' + radarOwner, lastRadar); }
   }
 
   // Monstros com distância em metros e o tipo do mascote a que pertencem (a partir da última leitura boa).
@@ -134,7 +154,7 @@ function radarBody() {
   for (const e of entries) for (const n of e.names) if (!typeOf.has(n)) typeOf.set(n, e);
   let mobs = [];
   if (lastRadar) {
-    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type }))
+    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type, icon: typeOf.get(normName(m.name))?.icon }))
       .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
       .filter(m => showAll || typeOf.has(normName(m.name)))
       .sort((a, b) => a.d - b.d);
@@ -212,8 +232,6 @@ export function renderWidget(root, [id]) {
     <div class="wg">
       <div class="wg-head">
         <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
-        ${!preview && overlay() ? '<button class="mini" data-act="lock" title="Travar (o clique passa para o jogo). Destrave com Ctrl+Shift+L">🔒</button>' : ''}
-        ${preview ? '' : '<button class="mini" data-act="close" title="Fechar widget" aria-label="Fechar">✕</button>'}
       </div>
       <div class="wg-body"></div>
     </div>`;
@@ -243,9 +261,6 @@ export function renderWidget(root, [id]) {
 
   root.addEventListener('click', e => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'close') overlay() ? overlay().closeSelf() : window.close();
-    if (act === 'lock') overlay()?.set(id, { locked: true });
-    if (act === 'range') { const i = RADAR_RANGES.indexOf(load('radarRange', 100)); save('radarRange', RADAR_RANGES[(i + 1) % RADAR_RANGES.length]); paint(); }
     if (act === 'all') { save('radarAll', !load('radarAll', false)); paint(); }
   });
 

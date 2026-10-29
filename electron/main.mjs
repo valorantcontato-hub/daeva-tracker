@@ -10,6 +10,7 @@ import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
+import { migrateWidgets } from './widget-config.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -99,6 +100,7 @@ function startCapture() {
 // ---------- Widgets ----------
 function loadCfg() {
   try { cfg = JSON.parse(readFileSync(cfgPath(), 'utf8')); } catch { cfg = {}; }
+  migrateWidgets(cfg);
   for (const id of Object.keys(WIDGETS)) cfg[id] = { visible: false, locked: false, corner: '', bounds: null, ...cfg[id] };
 }
 let saveTimer;
