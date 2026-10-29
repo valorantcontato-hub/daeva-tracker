@@ -24,6 +24,8 @@ export const skillLabel = (player, skill) => findSkill(player.name, skill.name, 
 
 export function skillIconHtml(player, skill, size = 24) {
   const src = skill.icon || skillIcon(player.name, skill.name, playerClass(player), skill.id);
+  // Skill que o perfil oficial não lista: mostra o ícone da classe em vez das iniciais genéricas.
+  if (!src && playerClass(player)) return classIcon(playerClass(player), size);
   return entityIcon('skill', skill.name, { size, icon: src, color: classInfo(playerClass(player)).color });
 }
 
