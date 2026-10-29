@@ -1656,3 +1656,7 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 .sm-mark { position: absolute; transform: translate(-50%, -100%); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: calc(8 * var(--u)); font-size: calc(17 * var(--u)); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap; color: #1b1405; background: #ffd24a; border: calc(2 * var(--u)) solid #fff3b8; box-shadow: 0 calc(2 * var(--u)) calc(10 * var(--u)) #000a; }
 .sm-mark small { display: block; font-size: calc(12 * var(--u)); font-weight: 700; }
 .sm-mark.rare { color: #fff; background: #3d7cff; border-color: #bcd2ff; }
+
+/* Cartões Mercador e Posição dos widgets: mesmo espaçamento do cartão de cada widget */
+.position-card, .shopmarks-card { display: flex; flex-direction: column; gap: 12px; }
+.shopmarks-card { margin-bottom: 12px; }
