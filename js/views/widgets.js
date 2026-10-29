@@ -59,7 +59,8 @@ function farmingNames() {
 function radarBody() {
   const P = lastPositions();
   if (!P || Date.now() - Date.parse(P.capturedAt) > 10000) return '<div class="wg-empty">Sem posições do jogo. Com a captura ligada, entre no jogo e ande um pouco.</div>';
-  if (!P.self) return `<div class="wg-empty">Lendo posições (${P.entities} entidades), mas ainda não achei a sua. Ande um pouco.</div>`;
+  if (!P.self) return `<div class="wg-empty">Lendo ${P.entities} entidades. O jogo só informa a <b>sua</b> posição enquanto você está montado: monte para ver o radar.</div>`;
+  if (P.self.ageMs > 15000 + (Date.now() - Date.parse(P.capturedAt))) return `<div class="wg-empty">Sua última posição tem ${Math.round(P.self.ageMs / 1000)} s. O jogo só a informa montado: monte e ande para atualizar.</div>`;
   const range = RADAR_RANGES.includes(load('radarRange', 100)) ? load('radarRange', 100) : 100;
   const farming = farmingNames();
   const showAll = load('radarAll', false) || !farming.size;
