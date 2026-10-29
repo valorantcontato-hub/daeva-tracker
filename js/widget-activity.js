@@ -1,5 +1,5 @@
 /** Only fresh, increasing damage keeps a combat overlay visible. */
-export function createWidgetActivity(idleMs = 3000) {
+export function createWidgetActivity(idleMs = 15000) {
   let fightId, previous = 0, lastHit = 0;
   return (fight, damage, now = Date.now()) => {
     if (!fight?.live) { fightId = undefined; previous = 0; lastHit = 0; return 0; }
