@@ -9,6 +9,7 @@ import { getLang, setLang, LANGS } from './lang.js';
 import { getMe, relocalizeProfiles, needsRelocalization } from './profiles.js';
 import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
+import { loadMonsterCatalog } from './monster-catalog.js';
 import { startLive } from './live.js';
 import { initDesktopBanner } from './desktop.js';
 import { load, save, notifyChange } from './store.js';
@@ -46,6 +47,8 @@ addEventListener('hashchange', route);
 function refreshOnData(e) {
   if (document.documentElement.classList.contains('widget-mode')) return;
   if (e.type === 'storage' && !/^a2t:(kills|focus|monsters|encounters|me|party|bestiary:.*)$/.test(e.key || '')) return;
+  // O bestiário atualiza os contadores preservando busca, filtros e página atual.
+  if (view.firstElementChild?.classList.contains('bestiary-page')) return;
   if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea') || document.querySelector('.macro-editor')) return;
   route();
 }
@@ -90,6 +93,7 @@ lockApp();
 initTooltips();
 setTooltipContext(getMe()); // já começa a buscar os detalhes dos itens, para o tooltip abrir na hora
 await loadIconManifest();
+await loadMonsterCatalog();
 startLive();
 route();
 initDesktopBanner();

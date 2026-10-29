@@ -6,6 +6,7 @@ import { getLang } from './lang.js';
 
 // Texto completo em português -> inglês.
 const EXACT = {
+  'Anterior': 'Previous', 'Próxima': 'Next',
   'Vincule o seu personagem para organizar as macros.': 'Link your character to organize macros.',
   '+ Nova macro': '+ New macro', 'Macros salvas': 'Saved macros', 'Comandos': 'Commands',
   'Salvar macro': 'Save macro', 'Excluir macro': 'Delete macro', 'Macro salva.': 'Macro saved.',
@@ -90,6 +91,7 @@ const EXACT = {
 
 // Textos com números/nomes no meio.
 const RULES = [
+  [/^(\d+)–(\d+) \/ (\d+) monstros$/, '$1–$2 / $3 monsters'],
   [/^1 jogadores$/, '1 player'], [/^Dano ([↓↑])$/, 'Damage $1'], [/^Média ([↓↑])$/, 'Avg $1'], [/^Máx ([↓↑])$/, 'Max $1'],
   [/^Nível (\d+)$/, 'Level $1'], [/^Nv\. (\d+)$/, 'Lv. $1'], [/^Nv\. (.+)$/, 'Lv. $1'],
   [/^(\d+) equipadas · (\d+) no total$/, '$1 equipped · $2 total'],
@@ -121,6 +123,7 @@ const RULES = [
 
 // Frases longas (parágrafos) por trecho.
 const PHRASES = [
+  ['Catálogo de monstros com fotos quando disponíveis. Os abates são os registrados neste app; o histórico anterior da conta não é sincronizado. Zero registrado não confirma que esteja faltando no jogo.', 'Monster catalog with photos when available. Kills are those recorded in this app; previous account history is not synchronized. Zero recorded does not confirm that it is missing in game.'],
   ['Abates registrados neste app. O histórico anterior da conta e o catálogo completo não são fornecidos pelo perfil público; zero aqui não confirma que o monstro esteja faltando no jogo.', 'Kills recorded in this app. The public profile does not provide previous account history or the full catalog; zero here does not mean the monster is missing in game.'],
   ['Os membros entram sozinhos nas lutas contra chefes, ou use a busca em Conta (+ Party).', 'Members are linked automatically during boss fights, or use Account search (+ Party).'],
   ['O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o', 'The game only reveals your character name when you teleport or enter a dungeon. Do one of those with the app open and'],
