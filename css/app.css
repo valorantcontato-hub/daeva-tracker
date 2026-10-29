@@ -1334,3 +1334,6 @@ html.home-fit #view { overflow-y: auto; scrollbar-width: none; }
 html.home-fit #view::-webkit-scrollbar { display: none; }
 html.home-fit, html.home-fit body { overflow: hidden; }
 html.home-fit .home-page { height: auto; grid-template-rows: auto auto; }
+.fav-stats { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.fav-stats b { font-size: 12px; font-weight: 700; color: var(--text); }
+.fav-stats span { font-size: 11px; color: var(--muted); }

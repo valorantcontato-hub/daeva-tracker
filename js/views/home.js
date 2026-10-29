@@ -140,9 +140,10 @@ function favoritesHtml() {
     </form>${fav.error ? `<p class="small" style="color:var(--danger)">${esc(fav.error)}</p>` : ''}<div class="fav-results">${results}</div>` : ''}
     <div class="fav-list">${list.length ? list.map(p => {
       const c = classInfo(p.class);
-      return `<a class="fav-row" href="#/conta/${encodeURIComponent(p.characterId)}">
+      return `<a class="fav-row" href="#/conta/${encodeURIComponent(p.characterId)}" data-tip="${esc(p.name)} · ${esc(p.serverName)}">
         <span class="fav-avatar">${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
-        <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i style="color:${c.color};font-style:normal">${esc(c.name)}</i> · Nv. ${p.level} · ${esc(p.serverName)}</span></span>
+        <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i style="color:${c.color};font-style:normal">${esc(c.name)}</i> · Nv. ${p.level}</span></span>
+        <span class="fav-stats"><b>CP ${int(p.combatPower || 0)}</b><span>GP ${p.itemLevel != null ? int(p.itemLevel) : '—'}</span></span>
         <button class="fav-x" data-fav="remove" data-id="${esc(p.characterId)}" aria-label="Remover dos favoritos" title="Remover">×</button>
       </a>`; }).join('') : (fav.open ? '' : '<p class="muted small">Busque e favorite contas para acompanhá-las aqui, como uma party.</p>')}</div>`;
 }
@@ -150,6 +151,21 @@ function favoritesHtml() {
 /** Eventos do bloco de favoritos (delegados na raiz da página; só redesenha o bloco). */
 function wireFavorites(root) {
   const redraw = () => { const el = root.querySelector('.fav-block'); if (el) el.innerHTML = favoritesHtml(); };
+  // Tempo real: reconsulta a PlayNC a cada minuto (um favorito por vez) e redesenha só a lista.
+  let syncing = false;
+  const sync = async () => {
+    if (!root.isConnected) return clearInterval(timer);
+    if (syncing || document.hidden) return;
+    syncing = true;
+    try {
+      for (const p of getFavorites()) {
+        if (!root.isConnected) break;
+        try { await refreshProfile(p); if (!fav.busy && !fav.open) redraw(); } catch { /* mantém o último valor */ }
+      }
+    } finally { syncing = false; }
+  };
+  const timer = setInterval(sync, 60e3);
+  setTimeout(sync, 800);
   root.addEventListener('click', async e => {
     const b = e.target.closest('[data-fav]');
     if (!b) return;
