@@ -29,7 +29,7 @@ test('três widgets têm cantos distintos e mantêm posições arrastadas dentro
   assert.equal(bounds.party.x, 16);
   assert.equal(bounds.party.y, 16);
   assert.equal(bounds.skills.x, 16);
-  assert.equal(bounds.skills.y, 724);
+  assert.equal(bounds.skills.y, 465);
   assert.equal(bounds.radar.x, 1604);
   assert.equal(bounds.radar.y, 604);
   assert.ok(bounds.party.y + bounds.party.height < bounds.skills.y);
