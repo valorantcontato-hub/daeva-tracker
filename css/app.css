@@ -1130,15 +1130,22 @@ html.home-fit .stat-grid { gap: 5px; }
    num app antigo, de janela opaca, o recorte deixaria os cantos pretos e quadrados. */
 /* O fundo do <html> precisa ser (quase) invisível mas não "transparent": senão o do <body> sobe para a tela toda e vira o quadrado atrás dos cantos. */
 html.round-window { background: rgba(0, 0, 0, .01); }
-html.round-window body { background: var(--bg); border: 0; clip-path: inset(0 round 22px); min-height: 100vh; }
-html.round-window .topbar { border-radius: 22px 22px 0 0; }
-html.round-window .tabs { border-radius: 0 0 22px 22px; }
-.card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 18px; }
-.home-main .stat-tile { border-radius: 13px; }
+html.round-window body { background: var(--bg); border: 0; clip-path: inset(0 round 20px); min-height: 100vh; }
+html.round-window .topbar { border-radius: 20px 20px 0 0; }
+html.round-window .tabs { border-radius: 0 0 20px 20px; }
+.card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 16px; }
+.home-main .stat-tile { border-radius: 12px; }
 .slot, .home-main .slot, .gear-card .slot { border-radius: 8px; }
-.btn, .chip, .hero-tabs .btn { border-radius: 12px; }
+.btn, .chip, .hero-tabs .btn { border-radius: 11px; }
 
 /* Servidor em cima, com classe e nível ao lado */
 .hero-top { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
 .hero-top .hero-class { margin: 0; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-transform: none; letter-spacing: 0; }
 .hero-top .hero-class span { color: var(--muted); }
+
+/* Atributos/Daevanion preenchem o card inteiro, sem sobra embaixo */
+html.home-fit .stats-card { display: flex; flex-direction: column; }
+html.home-fit .stats-card .card-head { flex: none; }
+html.home-fit .stats-card .stat-grid { flex: var(--stat-rows) 1 0; min-height: 0; grid-template-rows: repeat(var(--stat-rows), minmax(0, 1fr)); gap: 6px; }
+html.home-fit .stats-card .stat-tile { height: 100%; min-height: 0; }
+html.home-fit .stats-card .card-head + .stat-grid + .card-head { margin-top: 10px !important; }

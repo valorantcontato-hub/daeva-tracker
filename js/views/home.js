@@ -150,8 +150,8 @@ function characterMain(me, { withParty = false } = {}) {
       <div class="side-col">
         <section class="card stats-card">
           <div class="card-head"><h2>Atributos</h2></div>
-          <div class="stat-grid">${base.map(statTile).join('')}</div>
-          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+          <div class="stat-grid" style="--stat-rows:${Math.ceil(base.length / 2) || 1}">${base.map(statTile).join('')}</div>
+          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact" style="--stat-rows:${Math.ceil(board.length / 2) || 1}">${board.map(statTile).join('')}</div>` : ''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>
