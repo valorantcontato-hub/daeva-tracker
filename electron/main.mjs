@@ -163,9 +163,11 @@ function defaultBounds(id) {
 
 function applyLock(win, locked, active = true) {
   active = active && gameAllowed;
-  // Travado: o mouse "atravessa" a janela até o jogo; forward mantém o hover.
-  win.setIgnoreMouseEvents(locked || !active, { forward: true });
-  win.setFocusable(!locked && active);
+  // Travado: o mouse "atravessa" a janela até o jogo. Sem "forward": o hover já é lido por polling do cursor, e o
+  // encaminhamento de mouse do Electron, numa janela do tamanho da tela, interfere no cursor do jogo (puxa para o centro).
+  win.setIgnoreMouseEvents(locked || !active);
+  // O overlay nunca recebe foco: assim ele não tira o jogo do primeiro plano nem atrapalha o alt-tab.
+  win.setFocusable(false);
   applyPointerOpacity(win, locked, active);
 }
 
@@ -188,7 +190,7 @@ function openWidget(id) {
   const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
-    frame: false, transparent: true, hasShadow: false, resizable: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false, focusable: false,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
