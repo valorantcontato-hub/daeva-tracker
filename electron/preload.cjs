@@ -11,8 +11,6 @@ contextBridge.exposeInMainWorld('overlay', {
   getPositioning: () => ipcRenderer.invoke('widget:positioning-state'),
   onPositioning: cb => ipcRenderer.on('widgets:positioning', (_e, on) => cb(!!on)),
   resetPositions: () => ipcRenderer.invoke('widget:reset-positions'),
-  getShopMarks: () => ipcRenderer.invoke('shopmarks:get'),
-  setShopMarks: on => ipcRenderer.invoke('shopmarks:set', !!on),
   onState: cb => ipcRenderer.on('widgets:state', (_e, state) => cb(state)),
 });
 
