@@ -99,7 +99,7 @@ function saveCfg() {
   saveTimer = setTimeout(() => writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2)), 300);
 }
 function pushState() {
-  const state = Object.fromEntries(Object.entries(cfg).map(([id, c]) => [id, { visible: c.visible, locked: c.locked, corner: c.corner }]));
+  const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked, corner: c.corner }]));
   for (const w of [mainWin, ...wins.values()]) if (w && !w.isDestroyed()) w.webContents.send('widgets:state', state);
   return state;
 }
@@ -171,13 +171,33 @@ function setWidget(id, patch) {
   pushState();
 }
 
+// Janela estreita por padrão (não ocupa a tela toda) e volta onde o usuário deixou.
+function mainBounds() {
+  // Estreita, estilo celular (menu embaixo), cabendo na altura da tela.
+  const def = { width: 580, height: Math.min(820, screen.getPrimaryDisplay().workArea.height - 40) };
+  const b = cfg.mainBounds;
+  if (!b || !(b.width >= 380) || !(b.height >= 400)) return def;
+  const visible = screen.getAllDisplays().some(d => {
+    const a = d.workArea;
+    return b.x < a.x + a.width - 80 && b.x + b.width > a.x + 80 && b.y < a.y + a.height - 80 && b.y + 80 > a.y;
+  });
+  return visible ? b : { width: b.width, height: b.height };
+}
+
 function createMain() {
   mainWin = new BrowserWindow({
-    width: 1280, height: 840, minWidth: 380, minHeight: 500,
+    ...mainBounds(), minWidth: 380, minHeight: 500,
     backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true, show: false,
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
+  const rememberMain = () => {
+    if (!mainWin || mainWin.isMinimized() || mainWin.isMaximized() || mainWin.isFullScreen()) return;
+    cfg.mainBounds = mainWin.getBounds();
+    saveCfg();
+  };
+  mainWin.on('resize', rememberMain);
+  mainWin.on('move', rememberMain);
   mainWin.once('ready-to-show', () => { mainWin.show(); if (AUTOSTART) mainWin.minimize(); });
   mainWin.loadURL(BASE + '/');
   // Links externos (Npcap, GitHub) abrem no navegador padrão.
@@ -270,7 +290,7 @@ app.whenReady().then(async () => {
   }
   loadCfg();
   createMain();
-  for (const [id, c] of Object.entries(cfg)) if (c.visible) openWidget(id);
+  for (const id of Object.keys(WIDGETS)) if (cfg[id].visible) openWidget(id);
   startCapture();
   setupUpdater();
 

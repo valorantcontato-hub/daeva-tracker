@@ -2,8 +2,6 @@ import { renderDps } from './views/dps.js';
 import { renderBestiary } from './views/bestiary.js';
 import { renderAccount } from './views/account.js';
 import { renderHome } from './views/home.js';
-import { renderDaevanion } from './views/daevanion.js';
-import { renderSkills } from './views/skills.js';
 import { lockApp } from './lock.js';
 import { initTooltips, hideTooltip } from './tooltip.js';
 import { renderWidgetsPage, renderWidget } from './views/widgets.js';
@@ -13,11 +11,13 @@ import { initDesktopBanner } from './desktop.js';
 import { load, save } from './store.js';
 
 const view = document.getElementById('view');
-const routes = { inicio: renderHome, daevanion: renderDaevanion, skills: renderSkills, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
+const routes = { inicio: renderHome, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
 
 function route() {
   hideTooltip();
   const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  // Skills e Daevanion agora vivem dentro do Início (menu do personagem).
+  if (name === 'skills' || name === 'daevanion') return void location.replace('#/inicio/' + name);
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');

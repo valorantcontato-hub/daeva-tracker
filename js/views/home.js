@@ -1,8 +1,12 @@
-// Página inicial: o seu personagem — visual atual, equipamentos e aparência, atualizados sozinhos.
+// Início: o seu personagem — visual, equipamentos, aparência e atributos, com um menu do personagem
+// (Personagem · Skills · Daevanion). Atualiza sozinho.
 import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import { getMe, refreshProfile } from '../profiles.js';
 import { setTooltipContext } from '../tooltip.js';
+import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
+import { renderSkills } from './skills.js';
+import { renderDaevanion } from './daevanion.js';
 import { esc, int } from '../util.js';
 
 const REFRESH_MS = 60e3;
@@ -13,9 +17,10 @@ const GEAR = [
   ['Cape', 'Belt'], ['Necklace', 'Amulet'], ['Earring1', 'Earring2'], ['Ring1', 'Ring2'],
   ['Bracelet1', 'Bracelet2'], ['Rune1', 'Rune2'],
 ];
-const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
-// Aparência: os mesmos pares na vertical.
-const LOOK = [['Helmet', 'Shoulder'], ['Torso', 'Pants'], ['Gloves', 'Boots'], ['Cape', 'Wings'], ['WingSkin', 'Pet']];
+const ARCANA = [['Arcana1', 'Arcana2'], ['Arcana3', 'Arcana4'], ['Arcana5']];
+// Aparência: uma coluna, só o que o personagem está usando.
+const LOOK = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape', 'WingSkin', 'Wings', 'Pet'];
+const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion']];
 const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
 /** Casa de item. Itens equipados (com slotPos numérico) mostram o detalhe real ao passar o mouse. */
@@ -31,8 +36,95 @@ function tile(item, { skin = false } = {}) {
     </div>`;
 }
 
-export function renderHome(root) {
+/** "Justice [Nezekan]" -> rótulo "Justice" e subtítulo "Nezekan" (valor vem do tabuleiro de Daevanion). */
+function statTile(s) {
+  const m = /^(.*?)\s*\[(.*)\]$/.exec(s.name);
+  const label = m ? m[1] : s.name;
+  return `
+    <div class="stat-tile" style="--c:${STAT_COLORS[s.type] || 'var(--accent)'}" data-tip="${esc([s.name, ...(s.effects || [])].join('\n'))}">
+      <span class="stat-ico">${statIcon(s.type)}</span>
+      <span class="stat-name">${esc(label)}${m ? `<small>${esc(m[2])}</small>` : ''}</span>
+      <b>${int(s.value)}</b>
+    </div>`;
+}
+
+/** Cabeçalho do personagem. "extra" é HTML opcional (botões) mostrado ao lado dos números. */
+function heroHtml(me, extra = '') {
+  const c = classInfo(me.class);
+  return `
+    <section class="hero card" style="--c:${c.color}">
+      <div class="portrait">
+        ${me.image ? `<img src="${esc(me.image)}" alt="" draggable="false">` : classIcon(me.class, 120)}
+      </div>
+      <div class="hero-info">
+        <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
+        <h1 class="hero-name">${esc(me.name)}</h1>
+        ${me.title ? `<div class="hero-title">${esc(me.title)}</div>` : ''}
+        <div class="meta">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
+        <div class="hero-stats">
+          <div><span>Combat Power</span><b>${int(me.combatPower || 0)}</b></div>
+          <div><span>Item Level</span><b>${me.itemLevel != null ? int(me.itemLevel) : '—'}</b></div>
+        </div>
+        ${extra}
+      </div>
+    </section>`;
+}
+
+/**
+ * Ficha completa do personagem: cabeçalho, menu (Personagem · Skills · Daevanion) e a aba escolhida.
+ * base = início do link das abas (ex.: "#/inicio" ou "#/conta/<id>").
+ */
+export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '' } = {}) {
+  setTooltipContext(me);
+  root.innerHTML = heroHtml(me, extra) + `
+    <nav class="subtabs" aria-label="Menu do personagem">
+      ${TABS.map(([k, l]) => `<a class="subtab ${k === tab ? 'active' : ''}" href="${base}${k ? '/' + k : ''}">${l}</a>`).join('')}
+    </nav>
+    <div class="sub-body"></div>`;
+  const body = root.querySelector('.sub-body');
+  if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
+  else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
+  else body.innerHTML = characterMain(me);
+}
+
+function characterMain(me) {
+  const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
+  const skins = Object.fromEntries((me.skins || []).map(e => [e.slot, e]));
+  const extras = { Wings: me.wings, WingSkin: me.wingSkin, Pet: me.pet };
+  const look = LOOK.map(s => skins[s] || extras[s]).filter(Boolean);
+  const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
+  const board = (me.stats || []).filter(s => !BASE_STATS.includes(s.type));
+
+  return `
+    <div class="home-main">
+      <section class="card gear-card">
+        <div class="gear-col">
+          <div class="card-head"><h2>Equipamentos</h2></div>
+          <div class="gear">
+            ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
+          </div>
+          <div class="card-head" style="margin-top:14px"><h3>Arcanas</h3></div>
+          <div class="gear">${ARCANA.map(row => `<div class="gear-row">${row.map(s => tile(bySlot[s])).join('')}</div>`).join('')}</div>
+        </div>
+        <div class="gear-col look-col">
+          <div class="card-head"><h2>Aparência</h2></div>
+          <div class="gear look">
+            ${look.map(i => `<div class="gear-row">${tile(i, { skin: true })}</div>`).join('') || '<p class="muted small">Sem itens de aparência.</p>'}
+          </div>
+        </div>
+      </section>
+
+      <section class="card stats-card">
+        <div class="card-head"><h2>Atributos</h2></div>
+        <div class="stat-grid">${base.map(statTile).join('')}</div>
+        ${board.length ? `<div class="card-head" style="margin-top:18px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+      </section>
+    </div>`;
+}
+
+export function renderHome(root, [tab = ''] = []) {
   root.className = 'page home-page';
+  if (!TABS.some(([k]) => k === tab)) tab = '';
   let me = getMe();
 
   if (!me) {
@@ -47,66 +139,22 @@ export function renderHome(root) {
     return;
   }
 
+  const autostartBox = () => window.desktop?.status().then(s => { const box = root.querySelector('#autostart'); if (box) box.checked = !!s.autostart; });
+  const switchHtml = window.desktop ? `<label class="switch small" title="A captura já fica rodando quando o jogo abrir, e o app reconhece o personagem sozinho"><input type="checkbox" id="autostart"> Abrir com o Windows</label>` : '';
+
   function render() {
-    setTooltipContext(me);
-    const c = classInfo(me.class);
-    const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
-    const skins = Object.fromEntries((me.skins || []).map(e => [e.slot, e]));
-    const extras = { Wings: me.wings, WingSkin: me.wingSkin, Pet: me.pet };
-    const lookTile = slot => tile(skins[slot] || extras[slot], { skin: true });
-
-    root.innerHTML = `
-      <section class="hero card" style="--c:${c.color}">
-        <div class="portrait">
-          ${me.image ? `<img src="${esc(me.image)}" alt="" draggable="false">` : classIcon(me.class, 120)}
-        </div>
-        <div class="hero-info">
-          <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
-          <h1 class="hero-name">${esc(me.name)}</h1>
-          ${me.title ? `<div class="hero-title">${esc(me.title)}</div>` : ''}
-          <div class="meta">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
-          <div class="hero-stats">
-            <div><span>Combat Power</span><b>${int(me.combatPower || 0)}</b></div>
-            <div><span>Item Level</span><b>${me.itemLevel != null ? int(me.itemLevel) : '—'}</b></div>
-          </div>
-          ${window.desktop ? `<label class="switch small" title="A captura já fica rodando quando o jogo abrir, e o app reconhece o personagem sozinho">
-            <input type="checkbox" id="autostart"> Abrir com o Windows</label>` : ''}
-        </div>
-      </section>
-
-      <div class="home-grid">
-        <section class="card">
-          <div class="card-head"><h2>Equipamentos</h2></div>
-          <div class="gear">
-            ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
-          </div>
-          <div class="card-head" style="margin-top:14px"><h3>Arcanas</h3></div>
-          <div class="gear-row arcana">${ARCANA.map(s => tile(bySlot[s])).join('')}</div>
-        </section>
-
-        <section class="card">
-          <div class="card-head"><h2>Aparência</h2></div>
-          <div class="gear">
-            ${LOOK.map(([a, b]) => `<div class="gear-row">${lookTile(a)}${lookTile(b)}</div>`).join('')}
-          </div>
-        </section>
-
-        <section class="card stats-card">
-          <div class="card-head"><h2>Atributos</h2></div>
-          <div class="stat-list">${(me.stats || []).map(s => `
-            <div class="stat-row"><span>${esc(s.name)}</span><b>${int(s.value)}</b></div>`).join('')}
-          </div>
-        </section>
-      </div>`;
-    window.desktop?.status().then(s => { const box = root.querySelector('#autostart'); if (box) box.checked = !!s.autostart; });
+    characterSheet(root, me, { tab, base: '#/inicio', extra: switchHtml });
+    autostartBox();
   }
 
-  // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha).
+  // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
+  // Skills e Daevanion só atualiza os dados, sem redesenhar o que você está olhando.
   async function refresh() {
     if (!root.isConnected) return clearInterval(timer);
     try {
       me = await refreshProfile(me);
-      render();
+      setTooltipContext(me);
+      if (tab === '') render();
     } catch { /* sem internet ou PlayNC fora do ar: mantém o que já está na tela */ }
   }
 

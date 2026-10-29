@@ -16,9 +16,9 @@ const tile = s => `
     <span class="skill-name">${esc(s.name)}</span>
   </div>`;
 
-export function renderSkills(root) {
+export function renderSkills(root, _params, profile) {
   root.className = 'page skills-page';
-  const me = getMe();
+  const me = profile || getMe();
   if (!me) {
     root.innerHTML = `<div class="card empty"><h1>Skills</h1><p class="muted">Vincule o seu personagem para ver as skills.</p>
       <div class="head-actions"><a class="btn primary" href="#/conta">Buscar meu personagem</a></div></div>`;

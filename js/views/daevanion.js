@@ -45,9 +45,9 @@ const list = (title, items) => items.length ? `
     <ul class="effects">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
   </div>` : '';
 
-export function renderDaevanion(root) {
+export function renderDaevanion(root, _params, profile) {
   root.className = 'page dv-page';
-  const me = getMe();
+  const me = profile || getMe();
   const boards = me?.daevanion || [];
 
   if (!me || !boards.length || !boards[0].id) {

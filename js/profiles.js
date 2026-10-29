@@ -41,8 +41,9 @@ export function removePartyMember(id) { save('party', getParty().filter(x => x.c
 /** Atualiza o perfil salvo (eu ou party) com os dados mais recentes da PlayNC. */
 export async function refreshProfile(p) {
   const fresh = await fetchProfile(p, { fresh: true });
+  // Só grava onde o personagem já está: se você o desvinculou durante a atualização, ele não volta sozinho.
   if (getMe()?.characterId === p.characterId) setMe(fresh);
-  else upsertPartyMember(fresh);
+  else if (getParty().some(x => x.characterId === p.characterId)) upsertPartyMember(fresh);
   return fresh;
 }
 
