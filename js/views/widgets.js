@@ -300,7 +300,7 @@ export async function renderWidgetsPage(root) {
   };
 
   root.innerHTML = `
-    ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/oculta os widgets · <kbd>PgUp</kbd> trava/destrava todos.</div>`
+    ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
     <div class="widget-list">
       ${card('party', WIDGETS.party)}

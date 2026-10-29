@@ -365,7 +365,7 @@ app.whenReady().then(async () => {
     const lock = ![...wins.keys()].every(id => cfg[id].locked);
     for (const id of wins.keys()) setWidget(id, { locked: lock });
   };
-  if (!globalShortcut.register('PageUp', toggleLock)) console.warn('Tecla PgUp já está em uso por outro programa');
+  if (!globalShortcut.register('PageDown', toggleLock)) console.warn('Tecla PgDown já está em uso por outro programa');
   globalShortcut.register('CommandOrControl+Shift+L', toggleLock);
   // Insert (ou Ctrl+Shift+H): mostra/esconde no jogo os widgets que estão ligados.
   const toggleWidgets = () => {
@@ -373,6 +373,7 @@ app.whenReady().then(async () => {
     for (const w of wins.values()) anyVisible ? w.hide() : w.showInactive();
   };
   if (!globalShortcut.register('Insert', toggleWidgets)) console.warn('Tecla Insert já está em uso por outro programa');
+  if (!globalShortcut.register('PageUp', toggleWidgets)) console.warn('Tecla PgUp já está em uso por outro programa');
   globalShortcut.register('CommandOrControl+Shift+H', toggleWidgets);
 });
 
