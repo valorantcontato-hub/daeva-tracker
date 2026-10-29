@@ -208,6 +208,8 @@ function announcePositions(ev) {
   for (const client of live.clients) client.write(line);
 }
 
+let streamState = { rev: 0, data: null };
+
 // Ofertas do Black Cloud Merchant (uma lista por aba), vindas da captura; ficam para quem abrir o widget depois.
 const lastShop = new Map();
 function announceShop(ev) {
@@ -316,6 +318,15 @@ async function handle(req, res) {
       let status = { state: 'idle' };
       try { status = JSON.parse(readFileSync(join(dir, 'record.status'), 'utf8')); } catch { /* sem gravação ainda */ }
       return sendJson(res, 200, { ...status, dir: join(dir, 'recordings') });
+    }
+    // Estado dos widgets para a stream (OBS): o app envia, as páginas de widget fora do app recebem.
+    if (path === '/api/stream-state') {
+      if (req.method === 'POST') {
+        const body = await readBody(req);
+        if (body?.data && typeof body.data === 'object') { streamState = { rev: streamState.rev + 1, data: Object.fromEntries(Object.entries(body.data).filter(([, v]) => typeof v === 'string')) }; }
+        return sendJson(res, 200, { ok: true, rev: streamState.rev });
+      }
+      return sendJson(res, 200, url.searchParams.get('rev') === String(streamState.rev) ? { rev: streamState.rev } : streamState);
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);

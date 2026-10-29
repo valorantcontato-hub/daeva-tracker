@@ -13,6 +13,8 @@ import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
 import { loadMonsterCatalog } from './monster-catalog.js';
 import { startLive } from './live.js';
+import { initDragScroll } from './drag-scroll.js';
+import { startStreamSync } from './stream-sync.js';
 import { openStreamMode } from './stream-mode.js';
 import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
@@ -108,6 +110,8 @@ if (needsRelocalization()) relocalizeProfiles().then(notifyChange, () => {});
 
 lockApp();
 initTooltips();
+initDragScroll();
+startStreamSync();
 setTooltipContext(getMe()); // já começa a buscar os detalhes dos itens, para o tooltip abrir na hora
 await loadIconManifest();
 await loadMonsterCatalog();
