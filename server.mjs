@@ -301,7 +301,7 @@ async function handle(req, res) {
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'game-focus' ? gameFocusStatus?.(message) : message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
@@ -357,6 +357,7 @@ async function handle(req, res) {
 const reloadClients = new Set();
 let overlayDir = '';
 let movementStatus = null;
+let gameFocusStatus = null;
 
 export function notifyReload() {
   publishEvent('reload', 'reload');
@@ -383,6 +384,7 @@ function watchForDev() {
 export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
   overlayDir = opts.overlay || '';
   movementStatus = opts.onMovementStatus || null;
+  gameFocusStatus = opts.onGameFocus || null;
   if (opts.dev) watchForDev();
   return new Promise((resolve, reject) => {
     const server = createServer(handle);

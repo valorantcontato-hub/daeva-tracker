@@ -12,6 +12,7 @@ import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
 import { migrateWidgets, widgetBounds, widgetPointerOpacity, widgetScale } from './widget-config.mjs';
+import { gameFocusAllows } from './game-focus.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -38,6 +39,17 @@ const DEV = !app.isPackaged;
 let mainWin = null;
 const wins = new Map();
 const activeWidgets = new Map();
+let gameAllowed = false, lastGameFocus = 0;
+function allowGameOverlays(allowed) {
+  if (allowed === gameAllowed) return;
+  gameAllowed = allowed;
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyLock(win, cfg[id].locked, activeWidgets.get(id));
+}
+function updateGameFocus(message) {
+  lastGameFocus = Date.now();
+  const handles = [...wins.values()].filter(win => !win.isDestroyed()).map(win => win.getNativeWindowHandle().readBigUInt64LE().toString());
+  allowGameOverlays(gameFocusAllows(message, handles, gameAllowed));
+}
 const cfgPath = () => join(app.getPath('userData'), 'widgets.json');
 let cfg = {};
 
@@ -145,6 +157,7 @@ function defaultBounds(id) {
 }
 
 function applyLock(win, locked, active = true) {
+  active = active && gameAllowed;
   // Travado: o mouse "atravessa" a janela até o jogo; forward mantém o hover.
   win.setIgnoreMouseEvents(locked || !active, { forward: true });
   win.setFocusable(!locked && active);
@@ -152,13 +165,14 @@ function applyLock(win, locked, active = true) {
 }
 
 function applyPointerOpacity(win, locked, active = true) {
-  const opacity = active ? widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint()) : 0;
+  const opacity = active && gameAllowed ? widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint()) : 0;
   if (win.getOpacity() !== opacity) win.setOpacity(opacity);
 }
 
 // Polling the native pointer also sees it through a click-through window.
 // DOM mouseenter cannot reliably restore a window that is already invisible.
 setInterval(() => {
+  if (gameAllowed && Date.now() - lastGameFocus > 2000) allowGameOverlays(false);
   for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked, activeWidgets.get(id));
 }, 50).unref();
 
@@ -332,7 +346,8 @@ async function liveUiOverlay() {
 app.whenReady().then(async () => {
   try {
     await start(PORT, { overlay: await liveUiOverlay(), dev: DEV,
-      onMovementStatus: message => setStatus({ movementState: message.state, movementMessage: message.message }) });
+      onMovementStatus: message => setStatus({ movementState: message.state, movementMessage: message.message }),
+      onGameFocus: updateGameFocus });
     if (DEV) watchAppCode();
   } catch (e) {
     // Outra instância já está servindo nesta porta: reaproveita.

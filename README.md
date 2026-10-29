@@ -84,6 +84,8 @@ PlayNC (perfis oficiais) <──proxy── server.mjs <─────┘
 
 Os widgets têm dimensões fixas, sem redimensionamento pelas bordas. Ajuste **Tamanho** no painel de cada widget (75% a 150%) ou use **Padrão** para voltar a 100%. O DPS sempre mostra apenas chefes. Boss e skills aparecem somente durante dano ao vivo e somem após 3 segundos sem novos ataques; as skills acompanham o dano do seu personagem, inclusive em bonecos de treinamento. O mini mapa continua independente.
 
+Os overlays aparecem somente com o AION 2 em primeiro plano. Alt+Tab os deixa invisíveis e sem receber cliques; voltar ao jogo os restaura automaticamente. Arrastar um widget destravado mantém esse contexto. A detecção faz parte da captura nativa e, se ela parar de responder, os overlays ficam ocultos até a leitura voltar.
+
 ### Atualização automática (nunca baixe outro instalador)
 
 | O que mudou | Como chega no app instalado | Tempo |

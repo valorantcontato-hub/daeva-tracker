@@ -123,6 +123,8 @@ using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 long lastDamage = -1;
 Guid lastId = Guid.Empty;
+DaevaCapture.GameFocus? previousFocus = null;
+long lastFocusSent = 0;
 while (!cts.IsCancellationRequested)
 {
     if(stopFile.Length>0&&File.Exists(stopFile))break;
@@ -131,6 +133,11 @@ while (!cts.IsCancellationRequested)
     PollRecording();
     AnnounceIdentity();
     SendPositions();
+    var focus = DaevaCapture.GameWindowFocus.Read();
+    if (focus != previousFocus || Environment.TickCount64 - lastFocusSent >= 500) {
+        previousFocus = focus; lastFocusSent = Environment.TickCount64;
+        outbox.Enqueue(new { type = "game-focus", game = focus.Game, handle = focus.Handle });
+    }
     var r = engine.Store.GetDisplayRecord();
     if (r is { InProgress: true } && (r.Id != lastId || r.TotalDamage != lastDamage))
     {

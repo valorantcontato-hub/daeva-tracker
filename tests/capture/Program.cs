@@ -11,6 +11,9 @@ if(args.Length>=2&&args[0]=="--native-elevation-echo") {
 }
 
 static void Check(bool ok, string message) { if (!ok) throw new Exception(message); }
+Check(GameWindowFocus.IsGameProcessName("AION2") && GameWindowFocus.IsGameProcessName("aion2"), "game process names");
+Check(!GameWindowFocus.IsGameProcessName("chrome") && !GameWindowFocus.IsGameProcessName("Lotus Tracker"), "other applications are not the game");
+_ = GameWindowFocus.Read(); // Native read must work even when another application is in front.
 static byte[] Var(int value) { var b=new List<byte>();do{byte n=(byte)(value&127);value>>=7;b.Add((byte)(n|(value>0?128:0)));}while(value>0);return b.ToArray(); }
 static byte[] Frame(byte op, byte[] payload) => [..Var(payload.Length+6),op,0x90,..payload];
 static byte[] U(params uint[] values) => values.SelectMany(BitConverter.GetBytes).ToArray();
