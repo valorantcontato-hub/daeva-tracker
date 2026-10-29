@@ -2,32 +2,29 @@
 import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import { getMe, refreshProfile } from '../profiles.js';
+import { setTooltipContext } from '../tooltip.js';
 import { esc, int } from '../util.js';
 
 const REFRESH_MS = 60e3;
 
 // Mesma disposição da janela de equipamentos do jogo (pares lado a lado).
-const LAYOUT = [
+const GEAR = [
   ['MainHand', 'SubHand'], ['Helmet', 'Shoulder'], ['Torso', 'Pants'], ['Gloves', 'Boots'],
   ['Cape', 'Belt'], ['Necklace', 'Amulet'], ['Earring1', 'Earring2'], ['Ring1', 'Ring2'],
   ['Bracelet1', 'Bracelet2'], ['Rune1', 'Rune2'],
 ];
 const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
-const SKIN_ORDER = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape'];
-const SLOT_PT = {
-  MainHand: 'Arma', SubHand: 'Mão secundária', Helmet: 'Elmo', Shoulder: 'Ombreira', Torso: 'Peitoral', Pants: 'Calça',
-  Gloves: 'Luvas', Boots: 'Botas', Cape: 'Capa', Belt: 'Cinto', Necklace: 'Colar', Amulet: 'Amuleto',
-  Earring1: 'Brinco', Earring2: 'Brinco', Ring1: 'Anel', Ring2: 'Anel', Bracelet1: 'Bracelete', Bracelet2: 'Bracelete',
-  Rune1: 'Runa', Rune2: 'Runa', Arcana1: 'Arcana', Arcana2: 'Arcana', Arcana3: 'Arcana', Arcana4: 'Arcana', Arcana5: 'Arcana',
-};
+// Aparência: os mesmos pares na vertical.
+const LOOK = [['Helmet', 'Shoulder'], ['Torso', 'Pants'], ['Gloves', 'Boots'], ['Cape', 'Wings'], ['WingSkin', 'Pet']];
 const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
-function tile(item, slot, { skin = false } = {}) {
-  if (!item) return `<div class="slot empty" title="${esc(SLOT_PT[slot] || slot)}"></div>`;
-  const tip = `${item.name}${item.enchant ? ' +' + item.enchant : ''} · ${item.grade || ''} · ${SLOT_PT[item.slot] || item.slot || ''}`;
+/** Casa de item. Itens equipados (com slotPos numérico) mostram o detalhe real ao passar o mouse. */
+function tile(item, { skin = false } = {}) {
+  if (!item) return '<div class="slot empty"></div>';
+  const detail = !skin && item.id && Number.isInteger(item.slotPos) ? `${item.id}|${item.enchant || 0}|${item.slotPos}` : `${item.id || 0}|0|x`;
   return `
-    <div class="slot ${gradeClass(item.grade)}" title="${esc(tip)}">
-      ${item.icon ? `<img src="${esc(item.icon)}" alt="" loading="lazy">` : ''}
+    <div class="slot ${gradeClass(item.grade)}" data-item="${esc(detail)}" data-name="${esc(item.name)}" data-grade="${esc(item.grade || '')}" data-icon="${esc(item.icon || '')}">
+      ${item.icon ? `<img src="${esc(item.icon)}" alt="" draggable="false">` : ''}
       ${item.enchant ? `<b class="enchant">+${item.enchant}</b>` : ''}
       ${item.exceed ? `<b class="exceed">★${item.exceed}</b>` : ''}
       ${skin ? '<i class="skin-mark">E</i>' : ''}
@@ -50,21 +47,18 @@ export function renderHome(root) {
     return;
   }
 
-  function render(status = '') {
+  function render() {
+    setTooltipContext(me);
     const c = classInfo(me.class);
     const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
     const skins = Object.fromEntries((me.skins || []).map(e => [e.slot, e]));
-    const look = [
-      ...SKIN_ORDER.filter(s => skins[s]).map(s => tile(skins[s], s, { skin: true })),
-      me.wingSkin ? tile({ ...me.wingSkin, slot: 'Asas (visual)' }, 'Wings', { skin: true }) : '',
-      me.wings ? tile({ ...me.wings, slot: 'Asas' }, 'Wings') : '',
-      me.pet ? tile({ ...me.pet, slot: `Mascote · nível ${me.pet.level}` }, 'Pet') : '',
-    ].join('');
+    const extras = { Wings: me.wings, WingSkin: me.wingSkin, Pet: me.pet };
+    const lookTile = slot => tile(skins[slot] || extras[slot], { skin: true });
 
     root.innerHTML = `
       <section class="hero card" style="--c:${c.color}">
         <div class="portrait">
-          ${me.image ? `<img src="${esc(me.image)}" alt="Visual de ${esc(me.name)}">` : classIcon(me.class, 120)}
+          ${me.image ? `<img src="${esc(me.image)}" alt="" draggable="false">` : classIcon(me.class, 120)}
         </div>
         <div class="hero-info">
           <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
@@ -75,8 +69,6 @@ export function renderHome(root) {
             <div><span>Combat Power</span><b>${int(me.combatPower || 0)}</b></div>
             <div><span>Item Level</span><b>${me.itemLevel != null ? int(me.itemLevel) : '—'}</b></div>
           </div>
-          <div class="live-line small muted"><span class="live-dot"></span><span id="sync">${status || syncText()}</span>
-            <button class="btn sm ghost" data-act="refresh">Atualizar agora</button></div>
           ${window.desktop ? `<label class="switch small" title="A captura já fica rodando quando o jogo abrir, e o app reconhece o personagem sozinho">
             <input type="checkbox" id="autostart"> Abrir com o Windows</label>` : ''}
         </div>
@@ -84,48 +76,40 @@ export function renderHome(root) {
 
       <div class="home-grid">
         <section class="card">
-          <div class="card-head"><h2>Equipamentos</h2><span class="muted small">${(me.equipment || []).length} itens</span></div>
+          <div class="card-head"><h2>Equipamentos</h2></div>
           <div class="gear">
-            ${LAYOUT.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a], a)}${tile(bySlot[b], b)}</div>`).join('')}
+            ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
           </div>
           <div class="card-head" style="margin-top:14px"><h3>Arcanas</h3></div>
-          <div class="gear-row arcana">${ARCANA.map(s => tile(bySlot[s], s)).join('')}</div>
+          <div class="gear-row arcana">${ARCANA.map(s => tile(bySlot[s])).join('')}</div>
         </section>
 
         <section class="card">
-          <div class="card-head"><h2>Aparência equipada</h2></div>
-          <div class="look">${look || '<p class="muted small">Sem itens de aparência.</p>'}</div>
-          <div class="card-head" style="margin-top:16px"><h2>Itens</h2></div>
-          <div class="item-list">
-            ${[...LAYOUT.flat(), ...ARCANA].map(s => bySlot[s]).filter(Boolean).map(e => `
-              <div class="item-row ${gradeClass(e.grade)}">
-                ${tile(e, e.slot)}
-                <span class="item-txt"><b>${esc(e.name)}${e.enchant ? ` <span class="muted">+${e.enchant}</span>` : ''}</b>
-                <span class="small muted">${esc(SLOT_PT[e.slot] || e.slot)} · <span class="grade-txt">${esc(e.grade)}</span></span></span>
-              </div>`).join('')}
+          <div class="card-head"><h2>Aparência</h2></div>
+          <div class="gear">
+            ${LOOK.map(([a, b]) => `<div class="gear-row">${lookTile(a)}${lookTile(b)}</div>`).join('')}
+          </div>
+        </section>
+
+        <section class="card stats-card">
+          <div class="card-head"><h2>Atributos</h2></div>
+          <div class="stat-list">${(me.stats || []).map(s => `
+            <div class="stat-row"><span>${esc(s.name)}</span><b>${int(s.value)}</b></div>`).join('')}
           </div>
         </section>
       </div>`;
     window.desktop?.status().then(s => { const box = root.querySelector('#autostart'); if (box) box.checked = !!s.autostart; });
   }
 
-  const syncText = () => `Atualizado às ${new Date(me.fetchedAt).toLocaleTimeString('pt-BR')} · fonte: site oficial (PlayNC)`;
-
+  // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha).
   async function refresh() {
     if (!root.isConnected) return clearInterval(timer);
-    const el = root.querySelector('#sync');
-    if (el) el.textContent = 'Atualizando…';
     try {
       me = await refreshProfile(me);
       render();
-    } catch (e) {
-      if (el) el.textContent = `Não foi possível atualizar (${e.message})`;
-    }
+    } catch { /* sem internet ou PlayNC fora do ar: mantém o que já está na tela */ }
   }
 
-  root.addEventListener('click', e => {
-    if (e.target.closest('[data-act="refresh"]')) refresh();
-  });
   root.addEventListener('change', e => {
     if (e.target.id === 'autostart') window.desktop?.setAutostart(e.target.checked);
   });

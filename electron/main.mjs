@@ -137,7 +137,7 @@ function openWidget(id) {
     frame: false, transparent: true, hasShadow: false, resizable: true,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
-    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true },
+    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -175,7 +175,7 @@ function createMain() {
   mainWin = new BrowserWindow({
     width: 1280, height: 840, minWidth: 380, minHeight: 500,
     backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true, show: false,
-    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true },
+    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
   mainWin.once('ready-to-show', () => { mainWin.show(); if (AUTOSTART) mainWin.minimize(); });

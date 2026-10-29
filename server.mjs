@@ -76,7 +76,7 @@ function classOfPcId(pcId) {
   return hit ? hit[1] : '';
 }
 
-const mapItem = e => ({ slotPos: e.slotPos, slot: e.slotPosName, name: e.name, grade: e.grade, icon: e.icon, enchant: e.enchantLevel, exceed: e.exceedLevel });
+const mapItem = e => ({ id: e.id, slotPos: e.slotPos, slot: e.slotPosName, name: e.name, grade: e.grade, icon: e.icon, enchant: e.enchantLevel, exceed: e.exceedLevel });
 
 async function characterDetail(q) {
   const region = q.get('region'), serverId = q.get('serverId'), characterId = q.get('characterId');
@@ -101,14 +101,37 @@ async function characterDetail(q) {
     title: p.titleName,
     image: p.profileImage,
     stats: stats.filter(s => s.type !== 'ItemLevel').map(s => ({ type: s.type, name: s.name, value: s.value, effects: s.statSecondList || [] })),
-    daevanion: (info.daevanion?.boardList || []).map(b => ({ name: b.name, icon: b.icon, percent: b.openPercent, open: b.openNodeCount, total: b.totalNodeCount })),
+    daevanion: (info.daevanion?.boardList || []).map(b => ({ id: b.id, name: b.name, icon: b.icon, percent: b.openPercent, open: b.openNodeCount, total: b.totalNodeCount })),
     equipment: (equip.equipment?.equipmentList || []).map(mapItem),
     skins: (equip.equipment?.skinList || []).map(mapItem),
     skills: (equip.skill?.skillList || []).filter(s => s.acquired).map(s => ({ id: s.id, name: s.name, icon: s.icon, level: s.skillLevel, category: s.category, equipped: !!s.equip })),
-    wings: equip.petwing?.wing?.name ? { name: equip.petwing.wing.name, icon: equip.petwing.wing.icon, grade: equip.petwing.wing.grade, enchant: equip.petwing.wing.enchantLevel } : null,
+    wings: equip.petwing?.wing?.name ? { id: equip.petwing.wing.id, slotPos: 'wing', name: equip.petwing.wing.name, icon: equip.petwing.wing.icon, grade: equip.petwing.wing.grade, enchant: equip.petwing.wing.enchantLevel } : null,
     wingSkin: equip.petwing?.wingSkin?.name ? { name: equip.petwing.wingSkin.name, icon: equip.petwing.wingSkin.icon, grade: equip.petwing.wingSkin.grade } : null,
     pet: equip.petwing?.pet?.name ? { name: equip.petwing.pet.name, icon: equip.petwing.pet.icon, level: equip.petwing.pet.level } : null,
     fetchedAt: new Date().toISOString(),
+  };
+}
+
+// Detalhe de um item equipado (atributos, pedras mágicas, Theostone...) e tabuleiro de Daevanion.
+function charParams(q) {
+  const region = q.get('region'), serverId = q.get('serverId'), characterId = q.get('characterId');
+  if (!REGIONS.has(region) || !/^\d+$/.test(serverId || '') || !characterId) throw Object.assign(new Error('Parâmetros inválidos'), { status: 400 });
+  return { lang: 'en-US', region, serverId, characterId };
+}
+const num = (q, k) => { const v = q.get(k); if (!/^\d+$/.test(v || '')) throw Object.assign(new Error('Parâmetro inválido: ' + k), { status: 400 }); return v; };
+
+async function itemDetail(q) {
+  const params = new URLSearchParams({ ...charParams(q), id: num(q, 'id'), enchantLevel: num(q, 'enchantLevel'), slotPos: num(q, 'slotPos') });
+  return plaync(`${SITE}/equipment/item?${params}`);
+}
+
+async function daevanionBoard(q) {
+  const params = new URLSearchParams({ ...charParams(q), boardId: num(q, 'boardId') });
+  const d = await plaync(`${SITE}/daevanion/detail?${params}`, q.get('fresh') === '1' ? 60e3 : 10 * 60e3);
+  return {
+    nodes: (d.nodeList || []).map(n => ({ id: n.nodeId, row: n.row, col: n.col, type: n.type, grade: n.grade, name: n.name, icon: n.icon, open: !!n.open, effects: (n.effectList || []).map(e => e.desc) })),
+    skillEffects: (d.openSkillEffectList || []).map(e => e.desc),
+    statEffects: (d.openStatEffectList || []).map(e => e.desc),
   };
 }
 
@@ -223,6 +246,8 @@ async function handle(req, res) {
   try {
     if (path === '/api/plaync/search') return sendJson(res, 200, await searchCharacters(url.searchParams));
     if (path === '/api/plaync/character') return sendJson(res, 200, await characterDetail(url.searchParams));
+    if (path === '/api/plaync/item') return sendJson(res, 200, await itemDetail(url.searchParams));
+    if (path === '/api/plaync/daevanion') return sendJson(res, 200, await daevanionBoard(url.searchParams));
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
       (Array.isArray(body) ? body : [body]).forEach(ingest);

@@ -1,6 +1,6 @@
 // Widgets compactos (#/w/<id>) para usar como janelas de overlay sobre o jogo,
 // e a tela de gerenciamento (#/widgets).
-import { load, save } from '../store.js';
+import { load, save, notifyChange } from '../store.js';
 import { classInfo } from '../data/classes.js';
 import { MILESTONES } from '../data/monsters.js';
 import { summarize } from '../encounter.js';
@@ -120,17 +120,19 @@ const BODIES = {
 export function renderWidget(root, [id]) {
   const def = WIDGETS[id];
   if (!def) { root.innerHTML = '<div class="wg"><div class="wg-empty">Widget desconhecido.</div></div>'; return; }
-  document.title = `${def.title} · Daeva Tracker`;
+  // Prévia dentro da página Widgets (data-preview): sem botões de janela e sem mexer no título.
+  const preview = root.hasAttribute('data-preview');
+  if (!preview) document.title = `${def.title} · Daeva Tracker`;
   root.innerHTML = `
-    <div class="wg" id="wg">
+    <div class="wg">
       <div class="wg-head">
         <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
-        ${overlay() ? '<button class="mini" data-act="lock" title="Travar (o clique passa para o jogo). Destrave com Ctrl+Shift+L">🔒</button>' : ''}
-        <button class="mini" data-act="close" title="Fechar widget" aria-label="Fechar">✕</button>
+        ${!preview && overlay() ? '<button class="mini" data-act="lock" title="Travar (o clique passa para o jogo). Destrave com Ctrl+Shift+L">🔒</button>' : ''}
+        ${preview ? '' : '<button class="mini" data-act="close" title="Fechar widget" aria-label="Fechar">✕</button>'}
       </div>
-      <div class="wg-body" id="body"></div>
+      <div class="wg-body"></div>
     </div>`;
-  const wg = root.querySelector('#wg'), body = root.querySelector('#body');
+  const wg = root.querySelector('.wg'), body = root.querySelector('.wg-body');
 
   const paint = () => {
     if (!root.isConnected) return false;
@@ -142,12 +144,16 @@ export function renderWidget(root, [id]) {
   };
 
   const off = onLive(() => paint() || off());
-  addEventListener('storage', function onStorage(e) {
-    if (!root.isConnected) return removeEventListener('storage', onStorage);
+  // Mudou algo (em outra janela: evento "storage"; nesta: "a2t:changed"): repinta o widget.
+  let lastBossOnly = bossOnly();
+  const onData = () => {
+    if (!root.isConnected) { removeEventListener('storage', onData); removeEventListener('a2t:changed', onData); return; }
     // Opção "somente chefe" muda o título também: redesenha o widget inteiro.
-    if (e.key === 'a2t:wgBossOnly') return renderWidget(root, [id]);
+    if (bossOnly() !== lastBossOnly) return renderWidget(root, [id]);
     paint();
-  });
+  };
+  addEventListener('storage', onData);
+  addEventListener('a2t:changed', onData);
 
   root.addEventListener('click', e => {
     const kill = e.target.closest('[data-kill]');
@@ -179,10 +185,12 @@ export async function renderWidgetsPage(root) {
       <section class="card widget-card" data-id="${id}">
         <div class="widget-top">
           <span class="widget-ico">${w.icon}</span>
-          <div class="widget-txt"><h2>${esc(w.title)}</h2><p class="muted small">${esc(w.desc)}</p></div>
+          <div class="widget-txt"><h2>${esc(w.title)}</h2></div>
           ${ov ? `<label class="switch"><input type="checkbox" data-opt="visible" ${s.visible ? 'checked' : ''}> No jogo</label>`
                : `<button class="btn sm primary" data-act="popup">Abrir janela</button>`}
         </div>
+        <p class="muted small widget-desc">${esc(w.desc)}</p>
+        <div class="widget-preview" data-preview="${id}"></div>
         <div class="widget-opts">
           ${extra}
           ${ov ? `
@@ -208,6 +216,10 @@ export async function renderWidgetsPage(root) {
       ${card('farm', WIDGETS.farm)}
     </div>`;
 
+  // Prévia ao vivo: o próprio widget desenhado dentro do bloco (acompanha a luta e as opções).
+  for (const box of root.querySelectorAll('[data-preview]')) renderWidget(box, [box.dataset.preview]);
+  // (kill +1 no preview do Farm também atualiza a página principal pelos eventos de dados.)
+
   root.addEventListener('click', e => {
     const cardEl = e.target.closest('.widget-card');
     if (cardEl && e.target.closest('[data-act="popup"]')) {
@@ -217,13 +229,13 @@ export async function renderWidgetsPage(root) {
   });
   root.addEventListener('input', e => {
     const cardEl = e.target.closest('.widget-card');
-    if (cardEl && e.target.dataset.opt === 'opacity') save('wgOpacity:' + cardEl.dataset.id, +e.target.value);
+    if (cardEl && e.target.dataset.opt === 'opacity') { save('wgOpacity:' + cardEl.dataset.id, +e.target.value); notifyChange(); }
   });
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
-    if (opt === 'bossOnly') return save('wgBossOnly', e.target.checked);
+    if (opt === 'bossOnly') { save('wgBossOnly', e.target.checked); return notifyChange(); }
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });

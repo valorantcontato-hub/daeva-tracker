@@ -2,6 +2,10 @@ import { renderDps } from './views/dps.js';
 import { renderBestiary } from './views/bestiary.js';
 import { renderAccount } from './views/account.js';
 import { renderHome } from './views/home.js';
+import { renderDaevanion } from './views/daevanion.js';
+import { renderSkills } from './views/skills.js';
+import { lockApp } from './lock.js';
+import { initTooltips, hideTooltip } from './tooltip.js';
 import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
 import { startLive } from './live.js';
@@ -9,9 +13,10 @@ import { initDesktopBanner } from './desktop.js';
 import { load, save } from './store.js';
 
 const view = document.getElementById('view');
-const routes = { inicio: renderHome, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
+const routes = { inicio: renderHome, daevanion: renderDaevanion, skills: renderSkills, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
 
 function route() {
+  hideTooltip();
   const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
@@ -56,6 +61,8 @@ if (typeof EventSource !== 'undefined') {
   new EventSource('/api/reload/stream').onmessage = () => location.reload();
 }
 
+lockApp();
+initTooltips();
 await loadIconManifest();
 startLive();
 route();
