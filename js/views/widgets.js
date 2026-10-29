@@ -64,6 +64,8 @@ function farmingEntries() {
   return out;
 }
 
+const RADAR_RANGES = [100, 250, 500, 1000, 2000];
+const RADAR_MAX_M = RADAR_RANGES.at(-1);
 const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m';
 
 function radarSvg(self, mobs, range, rotation) {
@@ -135,10 +137,8 @@ function radarBody() {
   const elapsed = P ? Date.now() - Date.parse(P.capturedAt) : Infinity;
   const fresh = P && P !== previousOwnerPositions && elapsed >= -1000 && elapsed <= 10000;
   const selfOk = fresh && verifiedRadarOwner(P, getMe()) && P.self && Number.isFinite(P.self.x) && Number.isFinite(P.self.y) && P.self.ageMs + Math.max(0, elapsed) <= 15000;
-  const range = 100;
   const rotation = 0; // Orientação do jogo, sem calibração manual.
   const entries = farmingEntries();
-  const showAll = load('radarAll', false) || !entries.length;
 
   // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
   if (selfOk) {
@@ -153,9 +153,12 @@ function radarBody() {
   if (lastRadar) {
     mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type, icon: typeOf.get(normName(m.name))?.icon }))
       .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
-      .filter(m => showAll || typeOf.has(normName(m.name)))
+      // Só os monstros selecionados para farmar, até 2 km (o jogo informa os que estão no alcance dele).
+      .filter(m => typeOf.has(normName(m.name)) && m.d <= RADAR_MAX_M)
       .sort((a, b) => a.d - b.d);
   }
+  // Zoom automático: o radar fecha em volta do mais próximo conforme você se aproxima (100 m, 250 m, 500 m, 1 km, 2 km).
+  const range = mobs.length ? (RADAR_RANGES.find(r => r >= mobs[0].d) || RADAR_MAX_M) : RADAR_RANGES[0];
   const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
 
   // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
