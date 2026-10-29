@@ -1258,3 +1258,9 @@ html .tabs a.active .tab-ico { color: var(--accent); }
 html .slot .skin-mark { background: var(--accent); }
 /* Sem brilho nos botões ativos */
 html .hero-tabs a.active, html .lang-switch button.active, .hero-tabs a.active, .lang-switch button.active { box-shadow: none; }
+
+/* Atributos/Daevanion no Início: cartões compactos (altura fixa), sem esticar */
+html.home-fit .stats-card .stat-grid { flex: none; grid-template-rows: none; grid-auto-rows: 30px; gap: 6px; }
+html.home-fit .stats-card .stat-tile { height: 100%; }
+html.home-fit .stats-card .stat-ico { width: 22px; height: 22px; }
+html.home-fit .stats-card .stat-name { font-size: 11px; }
