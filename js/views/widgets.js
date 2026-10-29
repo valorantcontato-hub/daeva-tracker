@@ -166,9 +166,6 @@ function radarBody() {
     .map(x => farmRow(x.e, x.near, rotation)).join('');
 
   return '<div class="radar-stage">' + top + '</div>'
-    + '<div class="rd-bar">'
-    + '<button class="mini' + (showAll ? ' on' : '') + '" data-act="all" title="Mostrar no radar todos os monstros, não só os marcados com ★">' + (showAll ? 'Todos' : '★ Farmando') + '</button>'
-    + '</div>'
     + '<div class="mm-list">' + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>') + '</div>';
 }
 
@@ -273,11 +270,6 @@ export function renderWidget(root, [id]) {
   };
   addEventListener('storage', onData);
   addEventListener('a2t:changed', onData);
-
-  root.addEventListener('click', e => {
-    const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'all') { save('radarAll', !load('radarAll', false)); paint(); }
-  });
 
   paint();
 }
