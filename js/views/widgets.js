@@ -172,21 +172,32 @@ function radarBody() {
     + (rows ? '<div class="mm-list">' + rows + '</div>' : '');
 }
 
+// ---------- Painel de DPS do chefe: colunas DPS | DMG | CRIT | DOUB ----------
+const Q_COLS = '<div class="q-cols"><span>Jogador</span><span>DPS</span><span>DMG</span><span>CRIT</span><span>DOUB</span></div>';
+function qRow({ icon, name, cp, dps, dmg, crit, dbl, me, share, color, title }) {
+  return '<div class="combat-player q-row' + (me ? ' is-me' : '') + '" style="--c:' + color + ';--share:' + share + '%" title="' + esc(title || '') + '">'
+    + '<span class="q-name">' + icon + '<b class="combat-name">' + esc(name) + '</b>' + (cp ? '<span class="q-cp" title="Combat Power">' + cp + '</span>' : '') + '</span>'
+    + '<strong class="q-dps">' + dps + '</strong><span class="q-dmg">' + dmg + '</span><span class="q-pct">' + crit + '</span><span class="q-pct">' + dbl + '</span></div>';
+}
+function qHead({ time, live, dps, mine, boss, bossIcon, total, hp }) {
+  return '<header class="combat-summary q-head">'
+    + '<div class="q-top"><span class="q-brand">LOTUS</span><span class="q-time">' + time + (live ? ' <i class="combat-live"></i>' : '') + '</span></div>'
+    + '<div class="q-big"><strong>' + dps + '</strong><small>DPS</small>' + (mine ? '<span class="q-mine">' + mine + '</span>' : '') + '</div>'
+    + '<div class="combat-target">' + bossIcon + '<b>' + esc(boss) + '</b>' + total + '</div>'
+    + (hp || '') + '</header>';
+}
+
 // ---------- Modo posicionar: exemplos para arrastar cada widget antes da luta ----------
 const SAMPLE_ROWS = [['Jogador 1', 'cleric', '#e6c04a', 53.2, '1,4M', 35], ['Jogador 2', 'ranger', '#8bd16c', 47.4, '1,2M', 31], ['Você', 'sorcerer', '#78a8ff', 27.1, '0,7M', 18], ['Jogador 4', 'templar', '#c9c9c9', 22.7, '0,6M', 16]];
 function positioningBody(id) {
   if (id === 'party') {
-    return `
-      <header class="combat-summary">
-        <div class="combat-meta"><span>Combate <b>1:23</b></span><strong>150K <small>DPS</small></strong></div>
-        <div class="combat-target"><b>Chefe de exemplo</b><span class="combat-total">party <b>9,8M</b> · você <b>0,7M</b></span></div>
-        <div class="combat-hp"><i style="width:62%"></i><span>9.600.000 / 15.504.000 · 62%</span></div>
-      </header>
-      <div class="combat-ranking">${SAMPLE_ROWS.map(([name, cls, color, dps, dmg, share]) => `
-        <div class="combat-player ${name === 'Você' ? 'is-me' : ''}" style="--c:${color};--share:${share * 2.8}%">
-          ${classIcon(cls, 21)}<b class="combat-name">${name}</b>
-          <strong class="combat-dps">${dps}K<small>/s</small></strong><span class="combat-dmg">${dmg}</span><strong class="combat-share">${share}%</strong>
-        </div>`).join('')}</div>`;
+    return qHead({
+      time: '1:23', live: true, dps: '150K', mine: 'pico 48K · ativo 30K', boss: 'Chefe de exemplo', bossIcon: '',
+      total: '<span class="combat-total">party <b>9,8M</b> · você <b>0,7M</b></span>',
+      hp: '<div class="combat-hp"><i style="width:62%"></i><span>9.600.000 / 15.504.000 · 62%</span></div>',
+    }) + Q_COLS + '<div class="combat-ranking">' + SAMPLE_ROWS.map(([name, cls, color, dps, dmg, share]) => qRow({
+      icon: classIcon(cls, 20), name, cp: name === 'Você' ? '109,9K' : '', dps: dps + 'K', dmg, crit: '35,7%', dbl: '12,4%', me: name === 'Você', share: share * 2.8, color,
+    })).join('') + '</div>';
   }
   return `
     <header class="combat-summary skills-summary" style="--c:#78a8ff">
@@ -209,21 +220,24 @@ const BODIES = {
     const top = S.players[0]?.share || 1;
     const mine = myPlayer(S)?.name;
     const hp = S.bossHp?.max ? Math.max(0, Math.min(1, S.bossHp.current / S.bossHp.max)) : null;
-    return `
-      <header class="combat-summary">
-        <div class="combat-meta"><span>Combate <b>${duration(S.duration)}</b> ${S.live ? '<i class="combat-live"></i>' : ''}</span><strong>${compact(S.dps)} <small>DPS</small></strong></div>
-        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b><span class="combat-total" title="Dano contado de toda a party no chefe, e o seu">party <b>${compact(S.total)}</b>${myPlayer(S) ? ` · você <b>${compact(myPlayer(S).damage)}</b>` : ''}</span></div>
-        ${hp == null ? '' : `<div class="combat-hp"><i style="width:${hp * 100}%"></i><span>${int(S.bossHp.current)} / ${int(S.bossHp.max)} · ${pct(hp, 0)}</span></div>`}
-      </header>
-      <div class="combat-ranking">${S.players.map(p => {
-        const c = classInfo(p.class);
-        const profile = findProfileByName(p.name);
-        return `<div class="combat-player ${p.name === mine ? 'is-me' : ''}" style="--c:${c.color};--share:${(p.share / top) * 100}%">
-          ${classIcon(p.class, 21)}<b class="combat-name">${esc(p.name)}</b>
-          ${profile?.combatPower ? `<span class="combat-cp" title="Combat Power">CP ${compact(profile.combatPower)}</span>` : ''}
-          <span class="combat-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</span><strong class="combat-dps" title="DPS da luta (como no Questlog) · ativo ${compact(p.activeDps)} só o tempo batendo">${compact(p.dps)}<small>/s</small></strong><span class="combat-dmg" title="Dano total no chefe">${compact(p.damage)}</span><strong class="combat-share">${pct(p.share)}</strong>
-        </div>`;
-      }).join('')}</div>`;
+    const me = myPlayer(S);
+    const rows = S.players.map(p => {
+      const c = classInfo(p.class), profile = findProfileByName(p.name);
+      const doubles = (p.skills || []).reduce((n, s) => n + (Number(s.double) || 0), 0);
+      return qRow({
+        icon: classIcon(p.class, 20), name: p.name, cp: profile?.combatPower ? compact(profile.combatPower) : '',
+        dps: compact(p.dps), dmg: compact(p.damage), crit: pct(p.critRate), dbl: pct(p.hits ? doubles / p.hits : 0),
+        me: p.name === mine, share: (p.share / top) * 100, color: c.color,
+        title: p.name + ' · pico ' + compact(p.peak) + ' · ativo ' + compact(p.activeDps) + ' (só o tempo batendo) · ' + pct(p.share) + ' da party',
+      });
+    }).join('');
+    return qHead({
+      time: duration(S.duration), live: S.live, dps: compact(S.dps),
+      mine: me ? 'pico ' + compact(me.peak) + ' · ativo ' + compact(me.activeDps) : '',
+      boss: S.boss, bossIcon: entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon }),
+      total: '<span class="combat-total" title="Dano contado de toda a party no chefe, e o seu">party <b>' + compact(S.total) + '</b>' + (me ? ' · você <b>' + compact(me.damage) + '</b>' : '') + '</span>',
+      hp: hp == null ? '' : '<div class="combat-hp"><i style="width:' + hp * 100 + '%"></i><span>' + int(S.bossHp.current) + ' / ' + int(S.bossHp.max) + ' · ' + pct(hp, 0) + '</span></div>',
+    }) + Q_COLS + '<div class="combat-ranking">' + rows + '</div>';
   },
 
   skills() {
