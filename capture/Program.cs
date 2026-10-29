@@ -56,10 +56,10 @@ void NoteSelf()
 {
     if (!recorder.Active) { lastSelfNote = ""; return; }
     var prof = engine.Store.GetLocalProfile();
-    var line = JsonSerializer.Serialize(new { type = "self", at = DateTime.Now.ToString("o"), entityId = prof?.EntityId, name = prof?.Name, serverId = (int)(prof?.ServerId ?? 0), level = prof?.Level });
-    if (line == lastSelfNote) return;
-    lastSelfNote = line;
-    recorder.Note(line);
+    var key = $"{prof?.EntityId}|{prof?.Name}|{prof?.ServerId}|{prof?.Level}";
+    if (key == lastSelfNote) return;
+    lastSelfNote = key;
+    recorder.Note(JsonSerializer.Serialize(new { type = "self", at = DateTime.Now.ToString("o"), entityId = prof?.EntityId, name = prof?.Name, serverId = (int)(prof?.ServerId ?? 0), level = prof?.Level }));
 }
 void PollRecording()
 {
@@ -156,13 +156,15 @@ void SendPositions()
     if (now - lastPositions < 1000) return;
     lastPositions = now;
     var seen = tracker.Snapshot(8000);
-    if (seen.Count == 0) return;
     int? meId = engine.Store.GetLocalProfile()?.EntityId;
     object? self = null;
+    // O jogo só devolve a SUA posição enquanto você está montado: usa a última leitura (até 5 min) e informa a idade.
+    if (meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
+    if (seen.Count == 0 && self is null) return;
     var mobs = new List<object>();
     foreach (var (id, pos) in seen)
     {
-        if (id == meId) { self = new { x = pos.X, y = pos.Y, z = pos.Z }; continue; }
+        if (id == meId) continue;
         if (engine.Store.GetMobCode(id) is not int code) continue;
         mobs.Add(new { id, npcCode = code, name = data.Npc(code)?.Name ?? "", x = pos.X, y = pos.Y, z = pos.Z });
     }

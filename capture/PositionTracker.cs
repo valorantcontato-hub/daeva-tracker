@@ -37,6 +37,18 @@ public sealed class PositionTracker : IDisposable
         int i = 0;
         if (!Var(packet, ref i, out _) || i + 2 > packet.Length) return;
         byte op = packet[i], kind = packet[i + 1];
+        // 2a38: movimento do próprio personagem montado (id aparece duas vezes; x, y, z são os últimos 12 bytes).
+        if (kind == 0x38 && op == 0x2a)
+        {
+            int j = i + 2;
+            if (!Var(packet, ref j, out int mid) || mid <= 0 || packet.Length < 36 || packet.Length > 64) return;
+            float mx = BinaryPrimitives.ReadSingleLittleEndian(packet[(packet.Length - 12)..]);
+            float my = BinaryPrimitives.ReadSingleLittleEndian(packet[(packet.Length - 8)..]);
+            float mz = BinaryPrimitives.ReadSingleLittleEndian(packet[(packet.Length - 4)..]);
+            if (!Plausible(mx) || !Plausible(my) || !Plausible(mz) || (mx == 0f && my == 0f)) return;
+            lock (gate) positions[mid] = new Pos(mx, my, mz, Environment.TickCount64);
+            return;
+        }
         if (kind != 0x37 || op < 0x1a || op > 0x1c) return;
         i += 2;
         if (!Var(packet, ref i, out int id) || id <= 0) return;
@@ -50,13 +62,18 @@ public sealed class PositionTracker : IDisposable
         lock (gate) positions[id] = new Pos(x, y, z, Environment.TickCount64);
     }
 
+    public Pos? Get(int id, long maxAgeMs)
+    {
+        lock (gate) return positions.TryGetValue(id, out var p) && Environment.TickCount64 - p.At <= maxAgeMs ? p : null;
+    }
+
     /// <summary>Entidades vistas nos últimos <paramref name="maxAgeMs"/> ms; as mais antigas são descartadas.</summary>
     public List<KeyValuePair<int, Pos>> Snapshot(long maxAgeMs)
     {
         long now = Environment.TickCount64;
         lock (gate)
         {
-            foreach (var id in positions.Where(p => now - p.Value.At > 60_000).Select(p => p.Key).ToList()) positions.Remove(id);
+            foreach (var id in positions.Where(p => now - p.Value.At > 300_000).Select(p => p.Key).ToList()) positions.Remove(id);
             return positions.Where(p => now - p.Value.At <= maxAgeMs).ToList();
         }
     }
