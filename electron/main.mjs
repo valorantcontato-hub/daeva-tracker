@@ -47,6 +47,7 @@ const status = {
   progress: 0,
   npcap: existsSync(join(process.env.WINDIR || 'C:\\Windows', 'System32', 'Npcap', 'wpcap.dll')),
   capture: 'stopped', // stopped | running | missing
+  movementEnabled: false, // opt-in somente nesta sessão; solicita administrador
   autostart: app.isPackaged && app.getLoginItemSettings().openAtLogin,
 };
 const AUTOSTART = process.argv.includes('--autostart');
@@ -76,13 +77,33 @@ const captureExe = () => app.isPackaged
   : join(ROOT, 'capture', 'bin', 'daeva-capture.exe');
 let captureProc = null;
 let captureRestarts = 0;
+let captureGeneration = 0;
+let captureStopFile = '';
+let readMovement = false;
+const psLiteral = value => "'" + value.replace(/'/g, "''") + "'";
+
+function stopCapture() {
+  captureGeneration++;
+  if (captureStopFile) writeFileSync(captureStopFile, 'stop');
+  captureProc?.kill();
+  captureProc = null;
+}
 
 function startCapture() {
   if (process.env.DAEVA_NO_CAPTURE) return; // testes do app sem iniciar a captura
   const exe = captureExe();
   if (!existsSync(exe)) return setStatus({ capture: 'missing' });
   if (!status.npcap) return setStatus({ capture: 'stopped' });
-  captureProc = spawn(exe, ['--url', BASE], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  const generation = ++captureGeneration;
+  captureStopFile = join(app.getPath('userData'), `capture-${process.pid}-${generation}.stop`);
+  const args = ['--url', BASE, '--owner-pid', String(process.pid), '--stop-file', captureStopFile, ...(readMovement ? ['--read-movement'] : [])];
+  const options = { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] };
+  if (readMovement) {
+    // A elevação ocorre apenas após o clique explícito; o Windows controla o consentimento.
+    const argv = args.map(arg => '"' + arg + '"').join(' ');
+    const command = `$ErrorActionPreference='Stop';try {$p=Start-Process -FilePath ${psLiteral(exe)} -ArgumentList ${psLiteral(argv)} -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit $p.ExitCode} catch {exit 1}`;
+    captureProc = spawn('powershell.exe', ['-NoProfile', '-EncodedCommand', Buffer.from(command, 'utf16le').toString('base64')], options);
+  } else captureProc = spawn(exe, args, options);
   const startedAt = Date.now();
   setStatus({ capture: 'running' });
   // Rodou um bom tempo antes de cair: volta a tentar rápido na próxima vez.
@@ -90,10 +111,12 @@ function startCapture() {
   captureProc.stdout.on('data', d => process.stdout.write('[captura] ' + d));
   captureProc.stderr.on('data', d => process.stderr.write('[captura] ' + d));
   captureProc.on('exit', () => {
+    if (generation !== captureGeneration) return;
     captureProc = null;
     setStatus({ capture: 'stopped' });
     // Reinicia se cair (com espera crescente, até 1 min).
-    if (!app.isQuitting) setTimeout(startCapture, Math.min(60e3, 2000 * 2 ** captureRestarts++));
+    if (readMovement) { readMovement = false; setStatus({ movementEnabled: false }); }
+    if (!app.isQuitting) setTimeout(() => { if (generation === captureGeneration) startCapture(); }, Math.min(60e3, 2000 * 2 ** captureRestarts++));
   });
 }
 
@@ -232,6 +255,19 @@ ipcMain.on('widget:close-self', e => {
   for (const [id, w] of wins) if (w.webContents === e.sender) setWidget(id, { visible: false });
 });
 ipcMain.handle('app:status', () => status);
+ipcMain.handle('app:movement', (event, enabled) => {
+  if (BrowserWindow.fromWebContents(event.sender) !== mainWin) throw new Error('Abra o menu Widgets no aplicativo.');
+  try {
+    const recording = JSON.parse(readFileSync(join(app.getPath('appData'), 'DaevaTracker', 'record.status'), 'utf8'));
+    if (recording.state === 'recording' && Date.parse(recording.endsAt) > Date.now()) throw new Error('Aguarde a gravação terminar antes de reiniciar a captura.');
+  } catch (error) { if (error.message?.startsWith('Aguarde')) throw error; }
+  stopCapture();
+  readMovement = enabled === true;
+  setStatus({ capture: 'stopped', movementEnabled: readMovement, movementState: readMovement ? 'starting' : 'off', movementMessage: '' });
+  const pending = captureGeneration;
+  setTimeout(() => { if (pending === captureGeneration && !app.isQuitting) startCapture(); }, 750);
+  return readMovement;
+});
 // Botões da barra de título desenhada dentro do app (só valem para a janela principal).
 ipcMain.on('win:minimize', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.minimize(); });
 ipcMain.on('win:close', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.close(); });
@@ -298,7 +334,8 @@ async function liveUiOverlay() {
 
 app.whenReady().then(async () => {
   try {
-    await start(PORT, { overlay: await liveUiOverlay(), dev: DEV });
+    await start(PORT, { overlay: await liveUiOverlay(), dev: DEV,
+      onMovementStatus: message => setStatus({ movementState: message.state, movementMessage: message.message }) });
     if (DEV) watchAppCode();
   } catch (e) {
     // Outra instância já está servindo nesta porta: reaproveita.
@@ -325,7 +362,7 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
-  captureProc?.kill();
+  stopCapture();
 });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => app.quit());

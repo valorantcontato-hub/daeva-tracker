@@ -126,6 +126,16 @@ node tools/fake-capture.mjs --self "SeuNome" --server 2301 --skills "17010000:Ea
 ```
 Envia snapshots no mesmo formato da ponte de captura (números simulados). `tools/replay.mjs` envia eventos crus.
 
+## Direção do personagem no Mini mapa
+
+No app Windows, **Widgets → Ativar leitura de movimento** solicita administrador e reinicia a captura. A opção fica desligada a cada abertura do Lotus. Depois de ativá-la, entre novamente no personagem se o aplicativo pedir identificação.
+
+Esse modo opcional lê somente a chave temporária do protocolo no processo local do AION 2. A chave fica em memória, não é enviada ao servidor de atualizações nem salva pelo aplicativo. O modo comum continua usando apenas captura de rede. Desativar a opção ou fechar o Lotus encerra a captura elevada; a captura comum volta ao desativar.
+
+Os comandos de movimento fornecem posição e direção do personagem, normalmente perto de 10 atualizações/s. A seta mantém a última direção recebida quando os dados param. Girar somente a câmera, sem uma atualização enviada pelo jogo, não gira a seta. A identificação do perfil continua obrigatória: posições de outros jogadores não são usadas como a sua.
+
+O leitor depende do formato da versão do jogo. Se a chave ou o alinhamento não forem validados, não interpreta bytes cifrados como posições. A implementação usa a pesquisa de [Aion 2 Protocol Research](https://github.com/lunixxx37/aion2-protocol-research), com licença MIT incluída em `licenses/`.
+
 ## Créditos
 
 As imagens dos monstros vêm de [MetaBot.gg](https://metabot.gg/en/aion-2). O responsável informou que não há API, mas que as imagens do site podem ser usadas desde que o app mantenha um link de crédito (dofollow), que fica nas telas Boss e Mascotes. Dados além das imagens (por exemplo, pontos de spawn) não foram autorizados e não são coletados.
