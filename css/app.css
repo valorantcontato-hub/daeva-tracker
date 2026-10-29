@@ -821,7 +821,7 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 .hero { background: radial-gradient(ellipse at 73% 100%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 56%),var(--surface); }
 .hero { position: relative; isolation: isolate; overflow: hidden; }
 .hero::before { content: ''; position: absolute; z-index: -1; right: 42px; bottom: -22px; width: 410px; max-width: 80%; height: 145%; background: url('../icons/lotus-watermark-blue.png') center bottom / contain no-repeat; opacity: .18; pointer-events: none; }
-:root:not([data-theme="light"]) .hero::before { opacity: .09; filter: saturate(.7); }
+:root:not([data-theme="light"]) .hero::before { opacity: .2; filter: brightness(.42) saturate(1.25); }
 @media (max-width: 460px) { .hero::before { right: 12px; max-width: 86%; } }
 .hero-tabs a.active, .lang-switch button.active { background: linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 78%,#bc39fb)); color: #fff; }
 .hero-tabs a { padding: 5px 10px; }
