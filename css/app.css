@@ -981,3 +981,11 @@ html.home-fit, .home-fit body { height: 100%; overflow: hidden; }
   .dps-page .enc-list { display: flex; }
   .dps-page .mobile-select { display: none; }
 }
+
+/* foto do chefe em cada item da lista */
+.dps-page, .dps-page .enc-list { }
+.dps-page { grid-template-columns: 172px minmax(0, 1fr); }
+@media (max-width: 960px) { .dps-page { grid-template-columns: 172px minmax(0, 1fr); } }
+.enc-item { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 8px; align-items: center; }
+.enc-item .ico { --s: 36px !important; }
+.enc-txt { min-width: 0; }

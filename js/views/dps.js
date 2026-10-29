@@ -7,6 +7,7 @@ import { classIcon, entityIcon } from '../icons.js';
 import { findProfileByName, skillIcon, findSkill } from '../profiles.js';
 import { liveFight, onLive } from '../live.js';
 import { isFinalDungeonBoss } from '../combat-types.js';
+import { monsterPicture } from '../monster-catalog.js';
 import { esc, compact, int, pct, duration, dateTime, download, pickJson, toast } from '../util.js';
 
 export function getEncounters() {
@@ -87,9 +88,12 @@ export function renderDps(root, [id]) {
       </div>
       ${list.slice(0, 20).map(e => `
         <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/boss/${encodeURIComponent(e.id)}" title="${esc(e.boss)} · ${esc(e.dungeon)}">
-          <div class="t">${e.live ? '<span class="live-dot" style="display:inline-block;margin-right:6px"></span>' : ''}${esc(e.boss)}</div>
-          <div class="s"><span>${duration(e.duration)}</span><span class="d">${compact(encDps(e))} DPS</span>${e.result === 'wipe' && !e.live ? '<span class="badge wipe">Wipe</span>' : ''}</div>
-          <div class="s dim"><span>${dateTime(e.startedAt)}</span></div>
+          ${entityIcon('boss', e.boss, { size: 36, icon: e.bossIcon || monsterPicture({ name: e.boss, npcCode: e.npcCode }) })}
+          <div class="enc-txt">
+            <div class="t">${e.live ? '<span class="live-dot" style="display:inline-block;margin-right:6px"></span>' : ''}${esc(e.boss)}</div>
+            <div class="s"><span>${duration(e.duration)}</span><span class="d">${compact(encDps(e))} DPS</span>${e.result === 'wipe' && !e.live ? '<span class="badge wipe">Wipe</span>' : ''}</div>
+            <div class="s dim"><span>${dateTime(e.startedAt)}</span></div>
+          </div>
         </a>`).join('')}
     </aside>
 
@@ -117,7 +121,7 @@ export function renderDps(root, [id]) {
       <div class="kpis">
         <div class="kpi"><div class="l">DPS da party</div><div class="v">${compact(S.dps)}</div></div>
         <div class="kpi"><div class="l">Dano total</div><div class="v">${compact(S.total)}</div></div>
-        <div class="kpi"><div class="l">${S.isBoss === false ? 'Duração' : 'Tempo do boss'}</div><div class="v">${duration(S.duration)}</div></div>
+        <div class="kpi"><div class="l">${S.isBoss === false ? 'Duração' : 'Tempo boss'}</div><div class="v">${duration(S.duration)}</div></div>
         <div class="kpi"><div class="l">Maior DPS</div><div class="v top" style="color:${classInfo(top.class).color}"><span>${esc(top.name)}</span><small>${compact(top.dps)}</small></div></div>
       </div>
 
