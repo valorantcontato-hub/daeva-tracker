@@ -964,3 +964,20 @@ html.home-fit, .home-fit body { height: 100%; overflow: hidden; }
   .home-fit .hero .portrait { width: 112px; height: 112px; }
   .home-fit .hero-tabs a { font-size: 11px; }
 }
+
+/* ---------- Boss: lista dos últimos chefes sempre na esquerda (também na janela estreita) ---------- */
+.dps-page { grid-template-columns: 154px minmax(0, 1fr); gap: 10px; }
+.dps-page .enc-list { display: flex; position: sticky; top: 8px; max-height: calc(100vh - 140px); overflow-y: auto; gap: 4px; }
+.dps-page .mobile-select { display: none; }
+.dps-page .enc-list-head { padding: 0 2px 4px; }
+.enc-item { padding: 6px 8px; border: 1px solid var(--border); border-radius: 9px; background: color-mix(in srgb, var(--surface) 80%, transparent); }
+.enc-item.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.enc-item .t { font-size: 12.5px; }
+.enc-item .s { font-size: 10.5px; gap: 6px; flex-wrap: wrap; }
+.enc-item .s.dim { color: var(--muted); opacity: .8; }
+.enc-item .d { color: var(--text); }
+@media (max-width: 960px) {
+  .dps-page { grid-template-columns: 154px minmax(0, 1fr); }
+  .dps-page .enc-list { display: flex; }
+  .dps-page .mobile-select { display: none; }
+}

@@ -81,15 +81,15 @@ export function renderDps(root, [id]) {
   const maxShare = top.share || 1;
 
   root.innerHTML = `
-    <aside class="enc-list" aria-label="Encontros">
+    <aside class="enc-list" aria-label="Últimos bosses">
       <div class="enc-list-head">
-        <span class="muted small">Encontros (${list.length})</span>
+        <span class="muted small">Últimos bosses</span>
       </div>
-      ${list.map(e => `
-        <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/boss/${encodeURIComponent(e.id)}">
+      ${list.slice(0, 20).map(e => `
+        <a class="enc-item ${e.id === enc.id ? 'active' : ''}" href="#/boss/${encodeURIComponent(e.id)}" title="${esc(e.boss)} · ${esc(e.dungeon)}">
           <div class="t">${e.live ? '<span class="live-dot" style="display:inline-block;margin-right:6px"></span>' : ''}${esc(e.boss)}</div>
-          <div class="s"><span>${dateTime(e.startedAt)} · ${duration(e.duration)}</span><span class="d">${compact(encDps(e))}</span></div>
-          <div class="s"><span>${esc(e.dungeon)}</span>${e.live ? '<span class="badge">Ao vivo</span>' : e.result === 'wipe' ? '<span class="badge wipe">Wipe</span>' : ''}</div>
+          <div class="s"><span>${duration(e.duration)}</span><span class="d">${compact(encDps(e))} DPS</span>${e.result === 'wipe' && !e.live ? '<span class="badge wipe">Wipe</span>' : ''}</div>
+          <div class="s dim"><span>${dateTime(e.startedAt)}</span></div>
         </a>`).join('')}
     </aside>
 
