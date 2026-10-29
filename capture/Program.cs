@@ -39,7 +39,16 @@ var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
 engine.Store.EncounterEnded += r => outbox.Enqueue(Dto(r, "end"));
-engine.Store.LocalIdentityChanged += (id, name, source) => Console.WriteLine($"Personagem local: {name} ({source})");
+// O jogo só diz o nome do seu personagem em certos momentos (teleporte, entrada em DG). Lembramos o
+// último nome para identificar você já na primeira luta; o nome que o jogo informar depois o substitui.
+var nameFile = Path.Combine(configDir, "local-name.txt");
+try { if (File.Exists(nameFile)) engine.Store.RememberedLocalName = File.ReadAllText(nameFile).Trim(); } catch { }
+engine.Store.LocalIdentityChanged += (id, name, source) =>
+{
+    Console.WriteLine($"Personagem local: {name} ({source})");
+    if (!string.IsNullOrWhiteSpace(name) && !name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase))
+        try { File.WriteAllText(nameFile, name); } catch { }
+};
 engine.Error += ex => Console.Error.WriteLine("Erro no parser: " + ex.Message);
 
 if (replay != "")
@@ -95,7 +104,13 @@ async Task Flush()
 
 object Dto(EncounterRecord r, string type)
 {
-    var self = engine.Store.GetLocalProfile();
+    var profile = engine.Store.GetLocalProfile();
+    var local = r.Players.FirstOrDefault(p => p.IsLocal);
+    var selfName = profile?.Name ?? local?.Name;
+    if (selfName is not null && selfName.StartsWith("Player_", StringComparison.OrdinalIgnoreCase)) selfName = null;
+    // Classe: do perfil do jogo ou, se faltar, deduzida das skills que você usou.
+    var selfJob = profile is { Job: not JobClass.Unknown } ? profile.Job : local?.Job ?? JobClass.Unknown;
+    object? self = selfName is null ? null : new { name = selfName, serverId = (int)(profile?.ServerId ?? 0), @class = ClassKey(selfJob), level = profile?.Level };
     return new
     {
         type,
@@ -110,7 +125,7 @@ object Dto(EncounterRecord r, string type)
         duration = r.DurationSeconds,
         result = r.Killed ? "kill" : "wipe",
         bossHp = new { max = r.BossMaxHp, current = r.BossCurrentHp },
-        self = self is null ? null : new { name = self.Name, serverId = (int)self.ServerId, @class = ClassKey(self.Job), level = self.Level },
+        self,
         players = r.Players.Select(p => new
         {
             name = p.Name,

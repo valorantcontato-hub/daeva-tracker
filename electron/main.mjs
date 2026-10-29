@@ -39,7 +39,9 @@ const status = {
   progress: 0,
   npcap: existsSync(join(process.env.WINDIR || 'C:\\Windows', 'System32', 'Npcap', 'wpcap.dll')),
   capture: 'stopped', // stopped | running | missing
+  autostart: app.isPackaged && app.getLoginItemSettings().openAtLogin,
 };
+const AUTOSTART = process.argv.includes('--autostart');
 function setStatus(patch) {
   Object.assign(status, patch);
   for (const w of [mainWin, ...wins.values()]) if (w && !w.isDestroyed()) w.webContents.send('app:status', status);
@@ -172,9 +174,11 @@ function setWidget(id, patch) {
 function createMain() {
   mainWin = new BrowserWindow({
     width: 1280, height: 840, minWidth: 380, minHeight: 500,
-    backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true,
+    backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true, show: false,
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true },
   });
+  // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
+  mainWin.once('ready-to-show', () => { mainWin.show(); if (AUTOSTART) mainWin.minimize(); });
   mainWin.loadURL(BASE + '/');
   // Links externos (Npcap, GitHub) abrem no navegador padrão.
   mainWin.webContents.setWindowOpenHandler(({ url }) => {
@@ -196,6 +200,12 @@ ipcMain.on('widget:close-self', e => {
   for (const [id, w] of wins) if (w.webContents === e.sender) setWidget(id, { visible: false });
 });
 ipcMain.handle('app:status', () => status);
+// Opcional e só o usuário liga: abrir junto com o Windows deixa a captura rodando antes do jogo abrir.
+ipcMain.handle('app:autostart', (_e, on) => {
+  if (app.isPackaged && typeof on === 'boolean') app.setLoginItemSettings({ openAtLogin: on, args: ['--autostart'] });
+  setStatus({ autostart: app.isPackaged && app.getLoginItemSettings().openAtLogin });
+  return status.autostart;
+});
 ipcMain.handle('app:install-update', () => {
   if (status.update !== 'ready') return;
   app.isQuitting = true;

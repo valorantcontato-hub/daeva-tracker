@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld('desktop', {
   onStatus: cb => ipcRenderer.on('app:status', (_e, s) => cb(s)),
   installUpdate: () => ipcRenderer.invoke('app:install-update'),
   recheckNpcap: () => ipcRenderer.invoke('app:recheck-npcap'),
+  setAutostart: on => ipcRenderer.invoke('app:autostart', on),
 });

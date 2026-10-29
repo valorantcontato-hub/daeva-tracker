@@ -42,8 +42,9 @@ export function renderHome(root) {
     root.innerHTML = `
       <div class="card empty">
         <h1>Seu personagem aparece aqui</h1>
-        <p class="muted">Com o app aberto, entre numa DG ou teleporte no jogo: o Daeva Tracker identifica seu personagem e
-        carrega o visual e os equipamentos sozinho.<br>Ou vincule agora pela busca.</p>
+        <p class="muted">O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o
+        Daeva Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.<br>
+        Ou vincule agora pela busca.</p>
         <div class="head-actions"><a class="btn primary" href="#/conta">Buscar meu personagem</a></div>
       </div>`;
     return;
@@ -76,6 +77,8 @@ export function renderHome(root) {
           </div>
           <div class="live-line small muted"><span class="live-dot"></span><span id="sync">${status || syncText()}</span>
             <button class="btn sm ghost" data-act="refresh">Atualizar agora</button></div>
+          ${window.desktop ? `<label class="switch small" title="A captura já fica rodando quando o jogo abrir, e o app reconhece o personagem sozinho">
+            <input type="checkbox" id="autostart"> Abrir com o Windows</label>` : ''}
         </div>
       </section>
 
@@ -103,6 +106,7 @@ export function renderHome(root) {
           </div>
         </section>
       </div>`;
+    window.desktop?.status().then(s => { const box = root.querySelector('#autostart'); if (box) box.checked = !!s.autostart; });
   }
 
   const syncText = () => `Atualizado às ${new Date(me.fetchedAt).toLocaleTimeString('pt-BR')} · fonte: site oficial (PlayNC)`;
@@ -121,6 +125,9 @@ export function renderHome(root) {
 
   root.addEventListener('click', e => {
     if (e.target.closest('[data-act="refresh"]')) refresh();
+  });
+  root.addEventListener('change', e => {
+    if (e.target.id === 'autostart') window.desktop?.setAutostart(e.target.checked);
   });
   const timer = setInterval(refresh, REFRESH_MS);
   render();
