@@ -1167,3 +1167,10 @@ html.home-fit .home-main .stat-ico img { z-index: 1; }
 /* Atributos: sem traçado; só um fundo mais escuro ao passar o mouse */
 .home-main .stat-tile { border: 0; background: rgba(255, 255, 255, .035); }
 .home-main .stat-tile:hover { border: 0; background: rgba(0, 0, 0, .35); }
+
+/* Containers gerais: sem efeito ao passar o mouse */
+.card:hover, .card:focus-within,
+.home-main > .gear-card:hover, .home-main > .gear-card:focus-within,
+.home-main .stats-card:hover, .home-main .stats-card:focus-within,
+html .hero:hover { border-color: rgba(255, 255, 255, .08); }
+.card, .home-main > .gear-card, .home-main .stats-card { transition: none; }
