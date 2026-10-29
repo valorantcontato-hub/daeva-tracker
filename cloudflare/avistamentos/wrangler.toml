@@ -9,4 +9,4 @@ MIN_REPORTERS = "1"
 [[d1_databases]]
 binding = "DB"
 database_name = "lotus-avistamentos"
-database_id = "COLE_AQUI_O_ID_DO_BANCO"
+database_id = "6e58ca70-5d33-4940-9339-e386ed6c52f6"
