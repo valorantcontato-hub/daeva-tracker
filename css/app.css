@@ -453,8 +453,11 @@ html.widget-mode main { padding: 0; max-width: none; }
 .wg {
   --wg-alpha: 88%;
   --wg-opacity: .88;
+  --wg-scale: 1;
   opacity: var(--wg-opacity);
   position: fixed; inset: 0; display: flex; flex-direction: column;
+  right: auto; bottom: auto; width: calc(100% / var(--wg-scale)); height: calc(100% / var(--wg-scale));
+  transform: scale(var(--wg-scale)); transform-origin: top left;
   background: color-mix(in srgb, var(--bg) var(--wg-alpha), transparent);
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent); border-radius: 12px; overflow: hidden;
   font-size: 12px;
@@ -507,6 +510,9 @@ html.widget-mode main { padding: 0; max-width: none; }
 .opt { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
 .opt span { color: var(--muted); }
 .opt input[type="range"] { width: 120px; accent-color: var(--accent); }
+.widget-size { flex-wrap: wrap; }
+.widget-size output { min-width: 35px; font-variant-numeric: tabular-nums; }
+.party-widget .wg-empty { -webkit-app-region: drag; }
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
 .switch input { width: 34px; height: 20px; appearance: none; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
 .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
@@ -1477,6 +1483,7 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 
 /* Combat overlays: shared typography, class colors and compact meters. */
 .combat-widget { background: transparent; border: 0; border-radius: 8px; color: #f1f2f5; font-family: "Segoe UI", sans-serif; }
+.combat-widget.combat-idle { visibility: hidden; pointer-events: none; }
 .combat-widget .wg-head { height: 22px; padding: 0 8px; background: #14171ce8; border: 0; }
 .combat-widget .wg-head h1 { font-size: 10px; color: #9ba3b1; letter-spacing: .04em; }
 .combat-widget .wg-body { padding: 0; scrollbar-width: thin; }

@@ -61,6 +61,8 @@ function refreshOnData(e) {
   // O bestiário atualiza os contadores preservando busca, filtros e página atual.
   if (view.firstElementChild?.classList.contains('bestiary-page')) return;
   if (view.firstElementChild?.classList.contains('training-page')) return;
+  // Native widget state updates its own controls; combat must not replace a slider mid-drag.
+  if (view.firstElementChild?.classList.contains('widgets-page')) return;
   if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea')) return;
   route();
 }

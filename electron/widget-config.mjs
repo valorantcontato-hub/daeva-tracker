@@ -8,11 +8,15 @@ export function migrateWidgets(cfg) {
   return cfg;
 }
 
-/** Separate defaults; saved drag coordinates are clamped to a connected display. */
-export function widgetBounds(id, size, saved, area) {
+export function widgetScale(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(.75, Math.min(1.5, Math.round(value * 20) / 20)) : 1;
+}
+
+/** Fixed dimensions from the panel; saved bounds preserve only the drag position. */
+export function widgetBounds(id, size, saved, area, scale = 1) {
   const margin = 16;
-  const width = Math.min(Math.max(id === 'skills' ? 320 : 220, saved?.width || size.width), area.width - margin * 2);
-  const height = Math.min(Math.max(id === 'radar' ? 240 : 120, saved?.height || size.height), area.height - margin * 2);
+  const width = Math.min(Math.round(size.width * widgetScale(scale)), area.width - margin * 2);
+  const height = Math.min(Math.round(size.height * widgetScale(scale)), area.height - margin * 2);
   const left = area.x + margin, top = area.y + margin;
   const right = area.x + area.width - width - margin, bottom = area.y + area.height - height - margin;
   return { width, height,

@@ -11,7 +11,7 @@ import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
-import { migrateWidgets, widgetBounds, widgetPointerOpacity } from './widget-config.mjs';
+import { migrateWidgets, widgetBounds, widgetPointerOpacity, widgetScale } from './widget-config.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -37,6 +37,7 @@ const DEV = !app.isPackaged;
 
 let mainWin = null;
 const wins = new Map();
+const activeWidgets = new Map();
 const cfgPath = () => join(app.getPath('userData'), 'widgets.json');
 let cfg = {};
 
@@ -121,7 +122,10 @@ function startCapture() {
 function loadCfg() {
   try { cfg = JSON.parse(readFileSync(cfgPath(), 'utf8')); } catch { cfg = {}; }
   migrateWidgets(cfg);
-  for (const id of Object.keys(WIDGETS)) cfg[id] = { visible: false, locked: false, bounds: null, ...cfg[id] };
+  for (const id of Object.keys(WIDGETS)) {
+    cfg[id] = { visible: false, locked: false, bounds: null, ...cfg[id] };
+    cfg[id].scale = widgetScale(cfg[id].scale);
+  }
 }
 let saveTimer;
 function saveCfg() {
@@ -129,7 +133,7 @@ function saveCfg() {
   saveTimer = setTimeout(() => writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2)), 300);
 }
 function pushState() {
-  const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked }]));
+  const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked, scale: c.scale }]));
   for (const w of [mainWin, ...wins.values()]) if (w && !w.isDestroyed()) w.webContents.send('widgets:state', state);
   return state;
 }
@@ -137,35 +141,35 @@ function pushState() {
 function defaultBounds(id) {
   const saved = cfg[id].bounds;
   const area = (saved ? screen.getDisplayMatching(saved) : screen.getPrimaryDisplay()).workArea;
-  return widgetBounds(id, WIDGETS[id], saved, area);
+  return widgetBounds(id, WIDGETS[id], saved, area, cfg[id].scale);
 }
 
-function applyLock(win, locked) {
+function applyLock(win, locked, active = true) {
   // Travado: o mouse "atravessa" a janela até o jogo; forward mantém o hover.
-  win.setIgnoreMouseEvents(locked, { forward: true });
-  win.setFocusable(!locked);
-  applyPointerOpacity(win, locked);
+  win.setIgnoreMouseEvents(locked || !active, { forward: true });
+  win.setFocusable(!locked && active);
+  applyPointerOpacity(win, locked, active);
 }
 
-function applyPointerOpacity(win, locked) {
-  const opacity = widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint());
+function applyPointerOpacity(win, locked, active = true) {
+  const opacity = active ? widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint()) : 0;
   if (win.getOpacity() !== opacity) win.setOpacity(opacity);
 }
 
 // Polling the native pointer also sees it through a click-through window.
 // DOM mouseenter cannot reliably restore a window that is already invisible.
 setInterval(() => {
-  for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked);
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked, activeWidgets.get(id));
 }, 50).unref();
 
 function openWidget(id) {
   if (wins.has(id)) return wins.get(id).showInactive();
   const c = cfg[id];
+  activeWidgets.set(id, id === 'radar');
   const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
-    minWidth: id === 'skills' ? 320 : 220, minHeight: id === 'radar' ? 240 : 120,
-    frame: false, transparent: true, hasShadow: false, resizable: true,
+    frame: false, transparent: true, hasShadow: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
@@ -173,7 +177,7 @@ function openWidget(id) {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.loadURL(`${BASE}/#/w/${id}`);
-  win.once('ready-to-show', () => { win.showInactive(); applyLock(win, c.locked); });
+  win.once('ready-to-show', () => { win.showInactive(); applyLock(win, c.locked, activeWidgets.get(id)); });
   const remember = () => {
     if (win.isDestroyed()) return;
     c.bounds = win.getBounds();
@@ -183,19 +187,22 @@ function openWidget(id) {
   win.on('resized', remember);
   win.on('closed', () => {
     wins.delete(id);
+    activeWidgets.delete(id);
     if (!app.isQuitting) { c.visible = false; saveCfg(); pushState(); }
   });
   wins.set(id, win);
 }
 
 function setWidget(id, patch) {
+  if (!WIDGETS[id]) return;
   const c = cfg[id];
   if (!c) return;
   Object.assign(c, patch);
   const win = wins.get(id);
   if ('visible' in patch) patch.visible ? openWidget(id) : win?.close();
   if (win && !win.isDestroyed()) {
-    if ('locked' in patch) applyLock(win, c.locked);
+    if ('locked' in patch) applyLock(win, c.locked, activeWidgets.get(id));
+    if ('scale' in patch) win.setBounds(defaultBounds(id));
   }
   saveCfg();
   pushState();
@@ -241,10 +248,17 @@ function createMain() {
 }
 
 ipcMain.handle('widget:list', () => pushState());
+ipcMain.on('widget:activity', (event, id, active) => {
+  const win = wins.get(id);
+  if (!['party', 'skills'].includes(id) || !win || win.webContents !== event.sender) return;
+  activeWidgets.set(id, !!active);
+  applyLock(win, cfg[id].locked, !!active);
+});
 ipcMain.handle('widget:toggle', (_e, id, on) => setWidget(id, { visible: !!on }));
 ipcMain.handle('widget:set', (_e, id, patch) => {
   const allowed = {};
   if ('locked' in patch) allowed.locked = !!patch.locked;
+  if ('scale' in patch) allowed.scale = widgetScale(patch.scale);
   setWidget(id, allowed);
 });
 ipcMain.on('widget:close-self', e => {

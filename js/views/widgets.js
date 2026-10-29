@@ -10,8 +10,9 @@ import { mergeMonsterCatalog } from '../monster-catalog.js';
 import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { getMe, findProfileByName } from '../profiles.js';
-import { onLive, onPositions, lastPositions } from '../live.js';
-import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
+import { onLive, onPositions, lastPositions, liveFight } from '../live.js';
+import { playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
+import { createWidgetActivity } from '../widget-activity.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
 import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
@@ -27,9 +28,8 @@ export const bossOnly = () => load('wgBossOnly', true);
 
 /** Luta atual (ao vivo ou a última). Com "somente chefe", ignora pulls de mobs comuns. */
 function currentFight() {
-  const list = getEncounters();
-  const enc = bossOnly() ? list.find(isBossEncounter) : list[0];
-  if (!enc) return null;
+  const enc = liveFight();
+  if (!enc?.live || (bossOnly() && !isBossEncounter(enc))) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
@@ -231,18 +231,32 @@ export function renderWidget(root, [id]) {
   if (!preview) document.title = `${def.title} · Lotus Tracker`;
   root.innerHTML = `
     <div class="wg ${id === 'radar' ? 'radar-widget' : 'combat-widget ' + id + '-widget'}">
-      ${id === 'radar' ? '' : `<div class="wg-head">
-        <h1><span>${def.icon}</span>${esc(def.title)}${id === 'party' && bossOnly() ? ' <span class="muted" style="font-weight:500">· chefe</span>' : ''}</h1>
-      </div>`}
       <div class="wg-body"></div>
     </div>`;
   const wg = root.querySelector('.wg'), body = root.querySelector('.wg-body');
+  const applySize = state => {
+    if (root.isConnected) wg.style.setProperty('--wg-scale', state[id]?.scale || 1);
+  };
+  const ov = overlay();
+  if (ov && !preview) { ov.list().then(applySize); ov.onState(applySize); }
+  const activity = createWidgetActivity();
+  let idleTimer, wasVisible;
 
   const paint = () => {
     if (!root.isConnected) return false;
     wg.style.setProperty('--wg-opacity', Math.max(30, Math.min(100, Number(load('wgOpacity:' + id, 88)) || 88)) / 100);
+    clearTimeout(idleTimer);
+    let visible = true;
+    if (id !== 'radar') {
+      const fight = currentFight();
+      const remaining = activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
+      visible = remaining > 0;
+      wg.classList.toggle('combat-idle', !visible);
+      if (visible) idleTimer = setTimeout(paint, remaining + 10);
+      if (visible !== wasVisible) { ov?.activity?.(id, visible); wasVisible = visible; }
+    }
     const scroll = body.scrollTop;
-    body.innerHTML = BODIES[id]();
+    body.innerHTML = visible ? BODIES[id]() : '';
     body.scrollTop = scroll;
     return true;
   };
@@ -291,6 +305,7 @@ export async function renderWidgetsPage(root) {
           ${extra}
           ${ov ? `
             <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar <span class="muted small">(cliques passam para o jogo; oculta ao passar o mouse)</span></label>` : ''}
+          ${ov && s.scale != null ? `<label class="opt widget-size"><span>Tamanho</span><input aria-label="Tamanho de ${esc(w.title)}" type="range" min="75" max="150" step="5" value="${Math.round(s.scale * 100)}" data-opt="size"><output>${Math.round(s.scale * 100)}%</output><button class="btn sm" data-act="size-default" type="button">Padrão</button></label>` : ''}
           <label class="opt"><span>Opacidade</span><input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity"></label>
         </div>
       </section>`;
@@ -349,6 +364,10 @@ export async function renderWidgetsPage(root) {
       return;
     }
     const cardEl = e.target.closest('.widget-card');
+    if (cardEl && e.target.closest('[data-act="size-default"]')) {
+      ov?.set(cardEl.dataset.id, { scale: 1 });
+      return;
+    }
     if (cardEl && e.target.closest('[data-act="popup"]')) {
       const w = WIDGETS[cardEl.dataset.id];
       window.open(`${location.pathname}#/w/${cardEl.dataset.id}`, 'daeva-' + cardEl.dataset.id, `popup,width=${w.width},height=${w.height}`);
@@ -357,6 +376,7 @@ export async function renderWidgetsPage(root) {
   root.addEventListener('input', e => {
     const cardEl = e.target.closest('.widget-card');
     if (cardEl && e.target.dataset.opt === 'opacity') { save('wgOpacity:' + cardEl.dataset.id, +e.target.value); notifyChange(); }
+    if (cardEl && e.target.dataset.opt === 'size') ov?.set(cardEl.dataset.id, { scale: +e.target.value / 100 });
   });
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
@@ -374,6 +394,8 @@ export async function renderWidgetsPage(root) {
       if (!cardEl) continue;
       cardEl.querySelector('[data-opt="visible"]').checked = !!st.visible;
       cardEl.querySelector('[data-opt="locked"]').checked = !!st.locked;
+      const size = cardEl.querySelector('[data-opt="size"]');
+      if (size) { size.value = Math.round(st.scale * 100); size.nextElementSibling.value = `${Math.round(st.scale * 100)}%`; }
     }
   });
 }

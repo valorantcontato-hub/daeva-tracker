@@ -82,6 +82,8 @@ PlayNC (perfis oficiais) <──proxy── server.mjs <─────┘
 3. Abra o app: ele inicia a captura sozinho. Jogue em **Janela** ou **Tela cheia sem bordas**.
 4. Em **Widgets**, ligue os que quiser. DPS começa no alto à esquerda, skills embaixo à esquerda e mini mapa embaixo à direita. Destrave para arrastar; a posição fica salva. `Ctrl+Shift+L` trava/destrava e `Ctrl+Shift+H` (ou `Insert`) mostra/oculta. Travado, o widget deixa os cliques passarem para o jogo e some enquanto o mouse está sobre ele; ao sair, volta com a opacidade escolhida. A opacidade do mini mapa vale para o radar inteiro e os mascotes.
 
+Os widgets têm dimensões fixas, sem redimensionamento pelas bordas. Ajuste **Tamanho** no painel de cada widget (75% a 150%) ou use **Padrão** para voltar a 100%. Boss e skills aparecem somente durante dano ao vivo e somem após 3 segundos sem novos ataques; as skills acompanham o dano do seu personagem. O mini mapa continua independente.
+
 ### Atualização automática (nunca baixe outro instalador)
 
 | O que mudou | Como chega no app instalado | Tempo |
