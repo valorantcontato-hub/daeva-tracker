@@ -338,5 +338,5 @@ export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
   const dev = process.argv.includes('--dev') || process.env.DAEVA_DEV === '1';
-  start(undefined, { dev }).then(s => console.log(`Daeva Tracker em http://localhost:${s.address().port}${dev ? ' (dev: recarrega ao salvar)' : ''}`));
+  start(undefined, { dev }).then(s => console.log(`Lotus Tracker em http://localhost:${s.address().port}${dev ? ' (dev: recarrega ao salvar)' : ''}`));
 }
