@@ -13,7 +13,8 @@ export const discountOf = o => Math.round((1 - o.price / o.original) * 100);
 
 /**
  * Nome, categoria e avaliação de uma oferta.
- * ctx: { pets: catálogo de mascotes, isBossMob(nome) -> bool, progress(petId) -> {known, complete} | null }
+ * ctx: { pets: catálogo de mascotes, isBossMob(nome) -> bool, progress(petId) -> {known, complete} | null, owned(petId) -> bool }
+ * "Já tem" vem da sua coleção de mascotes (a loja do jogo desenha o Owned, mas ele não vai no pacote da loja).
  * Mascote vale a pena quando é difícil de conseguir de outro jeito (cai de chefe ou não cai de monstro nenhum, só na loja)
  * e ainda não está completo.
  */
@@ -22,7 +23,7 @@ export function describeOffer(offer, ctx = {}) {
   const name = info?.[0] || 'Item ' + offer.item;
   const category = info?.[1] || '';
   const grade = info?.[2] || '';
-  const out = { ...offer, name, category, grade, discount: discountOf(offer), known: !!info, pet: null, reason: '', worth: false, done: false };
+  const out = { ...offer, name, category, grade, discount: discountOf(offer), known: !!info, pet: null, reason: '', worth: false, done: false, owned: false };
   if (category !== 'Pet') return out;
   const petName = norm(name.replace(/^Pet:\s*/i, ''));
   const pet = (ctx.pets || []).find(p => norm(p.name) === petName);
@@ -30,6 +31,7 @@ export function describeOffer(offer, ctx = {}) {
   out.pet = pet;
   const progress = ctx.progress?.(pet.id);
   out.done = !!(progress?.known && progress.complete);
+  out.owned = !!ctx.owned?.(pet.id);
   const mobs = pet.mobs || [];
   if (!mobs.length) out.reason = 'shop';
   else if (mobs.some(m => ctx.isBossMob?.(m.name))) out.reason = 'boss';

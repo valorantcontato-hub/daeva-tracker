@@ -9,7 +9,7 @@ const pets = [
   { id: 1083, name: 'Spider', mobs: [{ name: 'Abyss Odyle Mutated Insectoid' }] },
   { id: 1500, name: 'Boss Pet', mobs: [{ name: 'Big Boss' }] },
 ];
-const ctx = { pets, isBossMob: n => n === 'Big Boss', progress: id => id === 1500 ? { known: true, complete: true } : null };
+const ctx = { pets, isBossMob: n => n === 'Big Boss', owned: id => id === 1133, progress: id => id === 1500 ? { known: true, complete: true } : null };
 
 test('nome, categoria e desconto vêm do id do item e dos preços', () => {
   const o = describeOffer(offer(534760039, 100000, 50000), ctx);
@@ -30,6 +30,11 @@ test('mascote só da loja ou de chefe vale comprar; comum e completo não', () =
   const done = describeOffer(offer(534760164, 100000, 70000), { ...ctx, progress: () => ({ known: true, complete: true }) });
   assert.equal(done.done, true);
   assert.equal(done.worth, false);
+});
+
+test('já tem vem da coleção de mascotes', () => {
+  assert.equal(describeOffer(offer(534760164, 100000, 70000), ctx).owned, true); // Forest Dionae
+  assert.equal(describeOffer(offer(534760082, 100000, 90000), ctx).owned, false); // Spider
 });
 
 test('item sem nome conhecido aparece pelo número e a lista põe o que vale primeiro', () => {

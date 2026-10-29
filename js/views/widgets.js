@@ -223,6 +223,8 @@ function marketRow(o) {
   let tag = o.category === 'Pet' ? 'Mascote' : o.category === 'Skin Reward Voucher' ? 'Skin' : o.category || '';
   if (o.worth) tag = '★ Vale comprar · ' + REASON[o.reason];
   else if (o.done) tag += ' · já completo';
+  else if (o.owned) tag += ' · já tem';
+  if (o.worth && o.owned) tag += ' (já tem)';
   return '<div class="mk-row' + (o.worth ? ' worth' : '') + (o.done ? ' done' : '') + '"><span class="mk-ico">' + icon + '</span>'
     + '<div class="mk-txt"><b style="color:' + color + '">' + esc(o.name.replace(/^Pet:\s*/, '')) + '</b><small>' + esc(tag) + '</small></div>'
     + '<div class="mk-price"><s>' + int(o.original) + '</s><strong>' + int(o.price) + '</strong><i>−' + o.discount + '%</i></div></div>';
@@ -232,7 +234,7 @@ function marketBody() {
   const tabs = shopTabs();
   if (!tabs.length) return '<div class="mk-empty">Abra o <b>Black Cloud Merchant</b> no jogo (abas Special, Pets e Skins) para carregar as ofertas da hora.</div>';
   const coll = readCollection();
-  const ctx = { pets: getPetCatalog(), isBossMob, progress: id => petProgress(coll, id) };
+  const ctx = { pets: getPetCatalog(), isBossMob, progress: id => petProgress(coll, id), owned: id => !!coll?.complete && coll.levels?.[id] !== undefined };
   const list = sortOffers(tabs.flatMap(t => t.offers.map(o => describeOffer(o, ctx))));
   const newest = Math.max(...tabs.map(t => Date.parse(t.capturedAt)));
   const mins = Math.max(0, Math.round((Date.now() - newest) / 60000));
