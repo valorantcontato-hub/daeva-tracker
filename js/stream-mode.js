@@ -1,6 +1,9 @@
 // Modo Stream: endereços dos widgets para a "Fonte de Navegador" do OBS/Streamlabs (a Twitch recebe o que o OBS captura).
 const ITEMS = [
-  { id: 'all', label: 'Todos os widgets', w: 1000, h: 470 },
+  { id: 'radar', label: 'Mini mapa', w: 300, h: 460 },
+  { id: 'party', label: 'DPS do chefe', w: 320, h: 270 },
+  { id: 'skills', label: 'Skills', w: 340, h: 340 },
+  { id: 'all', label: 'Todos juntos', w: 1000, h: 470 },
 ];
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -18,7 +21,7 @@ export function openStreamMode() {
   box.className = 'sm-backdrop';
   box.innerHTML = `<div class="sm-card" role="dialog" aria-label="Modo Stream">
     <div class="sm-title"><span>👁 Modo Stream</span><button class="sm-close" aria-label="Fechar">✕</button></div>
-    <p>Para os widgets aparecerem na Twitch, adicione no OBS (ou Streamlabs) como <b>Fonte → Navegador</b>, cole o endereço único abaixo e use a largura e a altura indicadas (um endereço só para os três: DPS do chefe, Skills e Mini mapa lado a lado; cada um some sozinho quando não está em uso). O fundo já é transparente. Deixe o Lotus Tracker aberto durante a live.</p>
+    <p>Escolha o que mostrar na Twitch: adicione no OBS (ou Streamlabs) como <b>Fonte → Navegador</b>, cole o endereço do overlay que quiser e use a largura e a altura indicadas. Cada um tem fundo transparente e some sozinho quando não está em uso; use <b>Todos juntos</b> se preferir uma fonte só. Deixe o Lotus Tracker aberto durante a live.</p>
     ${rows}
     <p class="sm-note">Dica: as janelas do overlay no jogo não são vistas pelo OBS em "Captura de jogo"; a fonte de navegador funciona em qualquer modo de captura.</p>
   </div>`;

@@ -1628,3 +1628,31 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 @container (max-width: 270px) { .q-cols span:nth-child(4), .q-cols span:nth-child(5), .q-row > :nth-child(4), .q-row > :nth-child(5) { display: none; } .q-cols, .q-row { grid-template-columns: minmax(0, 1fr) 50px 62px; } }
 /* Dano total do jogador no painel do chefe: branco e maior para ler no meio da luta */
 .combat-dmg { min-width: 46px; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000a; }
+
+/* Widget Mercador (Black Cloud Merchant) */
+.market-widget .wg-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-radius: 10px; background: rgba(13, 16, 22, calc(var(--wg-opacity, .88))); color: #fff; }
+.mk-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 10px 6px; font-size: 12px; background: #101318e8; }
+.mk-head span { color: #aeb4bf; font-size: 10px; white-space: nowrap; }
+.mk-stale { padding: 4px 10px; font-size: 10px; color: #ffda76; background: #3a2d0f99; }
+.mk-empty { padding: 18px 14px; font-size: 12px; line-height: 1.5; color: #c8ccd4; text-align: center; }
+.mk-list { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.mk-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 10px; border-top: 1px solid #ffffff10; }
+.mk-row.worth { background: linear-gradient(90deg, #8a6d2c55, #8a6d2c1a); box-shadow: inset 3px 0 #e6c04a; }
+.mk-row.done { opacity: .55; }
+.mk-ico { display: grid; place-items: center; width: 34px; height: 34px; }
+.mk-skin { width: 22px; height: 22px; border-radius: 6px; background: color-mix(in srgb, var(--c) 35%, transparent); border: 1px solid var(--c); }
+.mk-txt { min-width: 0; line-height: 1.25; }
+.mk-txt b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.mk-txt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: #aeb4bf; }
+.mk-row.worth .mk-txt small { color: #ffda76; }
+.mk-price { display: grid; justify-items: end; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.mk-price s { font-size: 9px; color: #8f96a3; }
+.mk-price strong { font-size: 13px; }
+.mk-price i { font-style: normal; font-size: 10px; font-weight: 700; color: #7ed67e; }
+.widgets-page .credit { margin: 10px 2px 0; }
+
+/* Marcadores sobre a loja do jogo (#/w/shopmarks) */
+.sm-stage { position: fixed; inset: 0; pointer-events: none; --u: calc(100vh / 1080); }
+.sm-mark { position: absolute; transform: translate(-50%, -100%); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: calc(8 * var(--u)); font-size: calc(17 * var(--u)); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap; color: #1b1405; background: #ffd24a; border: calc(2 * var(--u)) solid #fff3b8; box-shadow: 0 calc(2 * var(--u)) calc(10 * var(--u)) #000a; }
+.sm-mark small { display: block; font-size: calc(12 * var(--u)); font-weight: 700; }
+.sm-mark.rare { color: #fff; background: #3d7cff; border-color: #bcd2ff; }

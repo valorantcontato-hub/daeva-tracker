@@ -16,6 +16,7 @@ import { createWidgetActivity } from '../widget-activity.js';
 import { groupSkillVariants } from '../skill-meter.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
+import { shopTabs, onShop, describeOffer, sortOffers, shopMarks, SHOP_SCREEN } from '../shop.js';
 import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
 
 export const WIDGETS = {
@@ -27,6 +28,8 @@ export const WIDGETS = {
 // Quantas skills o widget de Skills mostra (0 = todas), escolhido na tela Widgets.
 const SKILL_LIMITS = [3, 5, 8, 10, 15, 0];
 export const skillLimit = () => { const n = Number(load('wgSkillLimit', 8)); return SKILL_LIMITS.includes(n) ? n : 8; };
+
+WIDGETS.market = { title: 'Mercador', icon: '🛒', width: 340, height: 420, desc: 'Black Cloud Merchant: ofertas da hora lidas quando você abre a loja no jogo. Destaca os mascotes que vale comprar (de chefe ou que só existem na loja) que você ainda não completou. Dados dos itens: aion2data.com.' };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
@@ -200,6 +203,48 @@ function qHead({ time, live, dps, mine, boss, bossIcon, total, hp }) {
     + (hp || '') + '</header>';
 }
 
+// ---------- Mercador (Black Cloud Merchant) ----------
+const GRADE_COLOR = { Heroic: '#ff8a3d', Unique: '#f5c542', Epic: '#b86cff', Special: '#5fd0a5', Rare: '#5aa9ff', Common: '#9aa3b0' };
+let bossMobs = null, bossMobsFrom = -1;
+/** Monstro do catálogo que é chefe (mascotes que caem de chefe são os mais difíceis). */
+function isBossMob(name) {
+  const catalog = mergeMonsterCatalog([]);
+  if (!bossMobs || bossMobsFrom !== catalog.length) {
+    bossMobs = new Set(catalog.filter(m => m.isBoss).map(m => normName(m.name)));
+    bossMobsFrom = catalog.length;
+  }
+  return bossMobs.has(normName(name));
+}
+const REASON = { boss: 'Cai de chefe', shop: 'Só na loja' };
+
+function marketRow(o) {
+  const color = GRADE_COLOR[o.grade] || GRADE_COLOR.Common;
+  const icon = o.pet ? entityIcon('monster', o.pet.name, { size: 34, icon: o.pet.icon }) : '<i class="mk-skin" style="--c:' + color + '"></i>';
+  let tag = o.category === 'Pet' ? 'Mascote' : o.category === 'Skin Reward Voucher' ? 'Skin' : o.category || '';
+  if (o.worth) tag = '★ Vale comprar · ' + REASON[o.reason];
+  else if (o.done) tag += ' · já completo';
+  else if (o.owned) tag += ' · já tem';
+  if (o.worth && o.owned) tag += ' (já tem)';
+  return '<div class="mk-row' + (o.worth ? ' worth' : '') + (o.done ? ' done' : '') + '"><span class="mk-ico">' + icon + '</span>'
+    + '<div class="mk-txt"><b style="color:' + color + '">' + esc(o.name.replace(/^Pet:\s*/, '')) + '</b><small>' + esc(tag) + '</small></div>'
+    + '<div class="mk-price"><s>' + int(o.original) + '</s><strong>' + int(o.price) + '</strong><i>−' + o.discount + '%</i></div></div>';
+}
+
+function marketBody() {
+  const tabs = shopTabs();
+  if (!tabs.length) return '<div class="mk-empty">Abra o <b>Black Cloud Merchant</b> no jogo (abas Special, Pets e Skins) para carregar as ofertas da hora.</div>';
+  const coll = readCollection();
+  const ctx = { pets: getPetCatalog(), isBossMob, progress: id => petProgress(coll, id), owned: id => !!coll?.complete && coll.levels?.[id] !== undefined };
+  const list = sortOffers(tabs.flatMap(t => t.offers.map(o => describeOffer(o, ctx))));
+  const newest = Math.max(...tabs.map(t => Date.parse(t.capturedAt)));
+  const mins = Math.max(0, Math.round((Date.now() - newest) / 60000));
+  const stale = tabs.every(t => t.stale);
+  const worth = list.filter(o => o.worth).length;
+  return '<div class="mk-head"><b>Black Cloud Merchant</b><span>' + (worth ? worth + ' vale comprar · ' : '') + 'lida há ' + mins + ' min</span></div>'
+    + (stale ? '<div class="mk-stale">Lista antiga: a loja troca a cada hora. Abra o mercador no jogo para atualizar.</div>' : '')
+    + '<div class="mk-list">' + list.map(marketRow).join('') + '</div>';
+}
+
 // ---------- Modo posicionar: exemplos para arrastar cada widget antes da luta ----------
 const SAMPLE_ROWS = [['Jogador 1', 'cleric', '#e6c04a', 53.2, '1,4M', 35], ['Jogador 2', 'ranger', '#8bd16c', 47.4, '1,2M', 31], ['Você', 'sorcerer', '#78a8ff', 27.1, '0,7M', 18], ['Jogador 4', 'templar', '#c9c9c9', 22.7, '0,6M', 16]];
 function positioningBody(id) {
@@ -227,6 +272,7 @@ function positioningBody(id) {
 // ---------- Corpo de cada widget ----------
 const BODIES = {
   radar: radarBody,
+  market: marketBody,
   party() {
     const S = currentFight('party');
     if (!S) return '';
@@ -279,10 +325,30 @@ const BODIES = {
 };
 
 // ---------- Widget isolado ----------
+/** Janela transparente sobre a loja do jogo (#/w/shopmarks): um selo em cima de cada oferta que vale a pena. */
+function renderShopMarks(root) {
+  document.title = 'Marcadores da loja · Lotus Tracker';
+  const paint = () => {
+    if (!root.isConnected) return false;
+    const tabs = shopTabs();
+    const current = tabs.sort((a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt))[0]; // a aba aberta é a última lida
+    const coll = readCollection();
+    const ctx = { pets: getPetCatalog(), isBossMob, progress: id => petProgress(coll, id), owned: id => !!coll?.complete && coll.levels?.[id] !== undefined };
+    const [w, h] = SHOP_SCREEN;
+    root.innerHTML = '<div class="sm-stage">' + shopMarks(current, ctx).map(m =>
+      '<div class="sm-mark ' + m.kind + '" style="left:' + (m.x / w * 100).toFixed(3) + '%;top:' + (m.y / h * 100).toFixed(3) + '%">'
+      + (m.kind === 'worth' ? '★ ' : '◆ ') + m.label + (m.reason ? '<small>' + esc(REASON[m.reason]) + '</small>' : '') + '</div>').join('') + '</div>';
+    return true;
+  };
+  const off = onShop(() => paint() || off());
+  paint();
+}
+
 export function renderWidget(root, [id]) {
+  if (id === 'shopmarks') return renderShopMarks(root);
   // #/w/all: os três widgets em uma só página (um único endereço para a fonte de navegador do OBS), lado a lado.
   if (id === 'all') {
-    root.innerHTML = '<div class="wg-all">' + Object.keys(WIDGETS).map(w => '<div class="wg-all-cell" data-w="' + w + '" style="width:' + WIDGETS[w].width + 'px;height:' + WIDGETS[w].height + 'px"></div>').join('') + '</div>';
+    root.innerHTML = '<div class="wg-all">' + ['party', 'skills', 'radar'].map(w => '<div class="wg-all-cell" data-w="' + w + '" style="width:' + WIDGETS[w].width + 'px;height:' + WIDGETS[w].height + 'px"></div>').join('') + '</div>';
     root.querySelectorAll('.wg-all-cell').forEach(cell => renderWidget(cell, [cell.dataset.w]));
     document.title = 'Widgets · Lotus Tracker';
     return;
@@ -293,7 +359,7 @@ export function renderWidget(root, [id]) {
   const preview = root.hasAttribute('data-preview');
   if (!preview) document.title = `${def.title} · Lotus Tracker`;
   root.innerHTML = `
-    <div class="wg ${id === 'radar' ? 'radar-widget' : 'combat-widget ' + id + '-widget'}">
+    <div class="wg ${id === 'radar' ? 'radar-widget' : id === 'market' ? 'market-widget' : 'combat-widget ' + id + '-widget'}">
       <div class="wg-body"></div>
     </div>`;
   const wg = root.querySelector('.wg'), body = root.querySelector('.wg-body');
@@ -311,9 +377,9 @@ export function renderWidget(root, [id]) {
     clearTimeout(idleTimer);
     wg.classList.toggle('wg-positioning', positioningOn);
     // Modo posicionar: exemplo fixo para arrastar o widget antes de entrar em combate.
-    if (positioningOn && id !== 'radar') { wg.classList.remove('combat-idle'); body.innerHTML = positioningBody(id); return true; }
+    if (positioningOn && id !== 'radar' && id !== 'market') { wg.classList.remove('combat-idle'); body.innerHTML = positioningBody(id); return true; }
     let visible = true;
-    if (id !== 'radar') {
+    if (id !== 'radar' && id !== 'market') {
       const fight = currentFight(id);
       const remaining = fight?.lingerLeft ?? activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
       visible = remaining > 0;
@@ -329,6 +395,7 @@ export function renderWidget(root, [id]) {
 
   const off = onLive(() => paint() || off());
   if (ov && !preview && ov.onPositioning) { ov.getPositioning().then(on => { positioningOn = on; paint(); }); ov.onPositioning(on => { positioningOn = on; paint(); }); }
+  if (id === 'market') { const offShop = onShop(() => paint() || offShop()); }
   if (id === 'radar') { const offPos = onPositions(() => paint() || offPos()); }
   // Mudou algo (em outra janela: evento "storage"; nesta: "a2t:changed"): repinta o widget.
   const onData = () => {
@@ -373,6 +440,11 @@ export async function renderWidgetsPage(root) {
   root.innerHTML = `
     ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
+    ${ov?.setShopMarks ? `<section class="card shopmarks-card">
+      <div class="widget-top"><span class="widget-ico">★</span><div class="widget-txt"><h2>Marcadores na loja do Mercador</h2></div>
+        <label class="switch"><input type="checkbox" data-opt="shopmarks"> Ligado</label></div>
+      <p class="muted small widget-desc">Com o Mercador aberto no jogo, põe um selo ★ em cima das ofertas que valem comprar (mascote de chefe ou só da loja) e ◆ nas raras. Alinhado para a tela do jogo em 16:9; some sozinho depois de 90 s sem trocar de aba.</p>
+    </section>` : ''}
     ${ov ? `<section class="card position-card">
       <div class="widget-top"><span class="widget-ico">✥</span><div class="widget-txt"><h2>Posição dos widgets</h2></div>
         <button class="btn primary sm" data-act="position-toggle">Posicionar no jogo</button></div>
@@ -383,7 +455,9 @@ export async function renderWidgetsPage(root) {
       ${card('party', WIDGETS.party)}
       ${card('skills', WIDGETS.skills)}
       ${card('radar', WIDGETS.radar)}
-    </div>`;
+      ${card('market', WIDGETS.market)}
+    </div>
+    <p class="muted small credit">Nomes dos itens do Mercador: <a href="https://aion2data.com" target="_blank" rel="noopener">aion2data.com</a>.</p>`;
 
 
   root.addEventListener('click', e => {
@@ -408,12 +482,14 @@ export async function renderWidgetsPage(root) {
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (opt === 'skillLimit') { save('wgSkillLimit', Number(e.target.value)); notifyChange(); return; }
+    if (opt === 'shopmarks') { ov?.setShopMarks(e.target.checked); return; }
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
   });
+  ov?.getShopMarks?.().then(on => { const c = root.querySelector('[data-opt="shopmarks"]'); if (c) c.checked = !!on; });
   const setToggle = on => {
     const b = root.querySelector('[data-act="position-toggle"]');
     if (b) { b.dataset.on = on ? '1' : '0'; b.textContent = on ? 'Concluir posicionamento' : 'Posicionar no jogo'; }

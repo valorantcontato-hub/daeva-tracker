@@ -31,6 +31,7 @@ const WIDGETS = {
   party: { width: 320, height: 270 },
   skills: { width: 340, height: 340 },
   radar: { width: 300, height: 460 },
+  market: { width: 340, height: 420 },
 };
 const UPDATE_CHECK_MS = 15 * 60e3;
 // npm run dev: recarrega ao salvar a interface e reinicia ao salvar o código do app.
@@ -56,8 +57,41 @@ function syncOverlay(id, win) {
 function syncOverlays() { for (const [id, win] of wins) syncOverlay(id, win); }
 function updateGameFocus(message) {
   lastGameFocus = Date.now();
+  if (message.game === true && message.bounds?.w > 0 && message.bounds?.h > 0) shopMarks.bounds = message.bounds;
   const handles = [...wins.values()].filter(win => !win.isDestroyed()).map(win => win.getNativeWindowHandle().readBigUInt64LE().toString());
   allowGameOverlays(gameFocusAllows(message, handles, gameAllowed));
+}
+// Marcadores sobre a loja do jogo (Black Cloud Merchant): uma janela transparente, sem foco e que deixa o mouse passar,
+// do tamanho da janela do jogo. Só existe enquanto a loja foi lida há pouco e o jogo está em primeiro plano; opcional (desligada por padrão).
+const SHOP_MARKS_MS = 90e3;
+const shopMarks = { win: null, lastAt: 0, bounds: null };
+function syncShopMarks() {
+  const want = cfg.shopMarks === true && gameAllowed && !widgetsHidden && shopMarks.bounds && Date.now() - shopMarks.lastAt < SHOP_MARKS_MS;
+  if (!want) {
+    if (shopMarks.win && !shopMarks.win.isDestroyed()) shopMarks.win.destroy();
+    shopMarks.win = null;
+    return;
+  }
+  const b = shopMarks.bounds;
+  const rect = screen.screenToDipRect(null, { x: b.x, y: b.y, width: b.w, height: b.h });
+  if (shopMarks.win && !shopMarks.win.isDestroyed()) {
+    const cur = shopMarks.win.getBounds();
+    if (cur.x !== rect.x || cur.y !== rect.y || cur.width !== rect.width || cur.height !== rect.height) shopMarks.win.setBounds(rect);
+    return;
+  }
+  const win = new BrowserWindow({
+    ...rect, frame: false, transparent: true, hasShadow: false, resizable: false, focusable: false,
+    alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
+    show: false, backgroundColor: '#00000000',
+    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
+  });
+  win.setAlwaysOnTop(true, 'screen-saver');
+  win.setIgnoreMouseEvents(true);
+  win.setFocusable(false);
+  win.loadURL(`${BASE}/#/w/shopmarks`);
+  win.once('ready-to-show', () => { if (!win.isDestroyed()) win.showInactive(); });
+  win.on('closed', () => { if (shopMarks.win === win) shopMarks.win = null; });
+  shopMarks.win = win;
 }
 const cfgPath = () => join(app.getPath('userData'), 'widgets.json');
 let cfg = {};
@@ -190,13 +224,14 @@ function applyPointerOpacity(win, locked) {
 setInterval(() => {
   if (gameAllowed && Date.now() - lastGameFocus > 2000) allowGameOverlays(false);
   syncOverlays();
+  syncShopMarks();
   for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked);
 }, 50).unref();
 
 function openWidget(id) {
   if (wins.has(id)) return syncOverlay(id, wins.get(id));
   const c = cfg[id];
-  activeWidgets.set(id, id === 'radar');
+  activeWidgets.set(id, id === 'radar' || id === 'market');
   const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
@@ -288,6 +323,8 @@ function setPositioning(on) {
 }
 ipcMain.handle('widget:positioning', (_e, on) => setPositioning(on));
 ipcMain.handle('widget:positioning-state', () => positioning);
+ipcMain.handle('shopmarks:get', () => cfg.shopMarks === true);
+ipcMain.handle('shopmarks:set', (_e, on) => { cfg.shopMarks = !!on; saveCfg(); syncShopMarks(); return cfg.shopMarks; });
 ipcMain.handle('widget:reset-positions', () => {
   for (const id of Object.keys(WIDGETS)) {
     if (!cfg[id]) continue;
@@ -384,7 +421,8 @@ app.whenReady().then(async () => {
   try {
     await start(PORT, { overlay: await liveUiOverlay(), dev: DEV,
       onMovementStatus: message => setStatus({ movementState: message.state, movementMessage: message.message }),
-      onGameFocus: updateGameFocus });
+      onGameFocus: updateGameFocus,
+      onShop: () => { shopMarks.lastAt = Date.now(); syncShopMarks(); } });
     if (DEV) watchAppCode();
   } catch (e) {
     // Outra instância já está servindo nesta porta: reaproveita.

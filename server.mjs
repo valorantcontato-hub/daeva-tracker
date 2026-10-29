@@ -208,6 +208,22 @@ function announcePositions(ev) {
   for (const client of live.clients) client.write(line);
 }
 
+// Ofertas do Black Cloud Merchant (uma lista por aba), vindas da captura; ficam para quem abrir o widget depois.
+const lastShop = new Map();
+function announceShop(ev) {
+  if (!Array.isArray(ev?.offers) || typeof ev.tab !== 'string') return;
+  const offers = ev.offers.slice(0, 40).map(o => ({ item: Number(o.item), original: Number(o.original), price: Number(o.price), tier: Number(o.tier) || 0, order: Number(o.order) || 0 }))
+    .filter(o => o.item > 0 && o.original > 0 && o.price > 0);
+  if (!offers.length) return;
+  const msg = { type: 'shop', capturedAt: ev.capturedAt || new Date().toISOString(), tab: ev.tab.slice(0, 20), offers };
+  lastShop.set(msg.tab, msg);
+  const line = `data: ${JSON.stringify(msg)}\n\n`;
+  publishEvent('live', msg);
+  for (const client of live.clients) client.write(line);
+  shopStatus?.(msg);
+}
+const freshShop = () => [...lastShop.values()].filter(m => Date.now() - Date.parse(m.capturedAt) < 3600_000);
+
 function snapshot() {
   const f = live.fight;
   if (!f) return null;
@@ -303,7 +319,7 @@ async function handle(req, res) {
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'game-focus' ? gameFocusStatus?.(message) : message?.type === 'account-state' ? accounts.ingest(message) : message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'game-focus' ? gameFocusStatus?.(message) : message?.type === 'account-state' ? accounts.ingest(message) : message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : message?.type === 'positions' ? announcePositions(message) : message?.type === 'shop' ? announceShop(message) : message?.type === 'movement-status' ? movementStatus?.(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
@@ -312,6 +328,7 @@ async function handle(req, res) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       const initial = [['live', snapshot()], ['pets', pets.snapshot()], ['account', accounts.snapshot()]];
       if (lastSelf) initial.push(['live', lastSelf]);
+      for (const m of freshShop()) initial.push(['live', m]);
       if (lastPositions && Date.now() - Date.parse(lastPositions.capturedAt) < 15000) initial.push(['live', lastPositions]);
       for (const [channel, data] of initial) res.write(`event: ${channel}\ndata: ${JSON.stringify(data)}\n\n`);
       eventClients.add(res);
@@ -330,6 +347,7 @@ async function handle(req, res) {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(`data: ${JSON.stringify(snapshot())}\n\n`);
       if (lastSelf) res.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
+      for (const m of freshShop()) res.write(`data: ${JSON.stringify(m)}\n\n`);
       if (lastPositions && Date.now() - Date.parse(lastPositions.capturedAt) < 15000) res.write(`data: ${JSON.stringify(lastPositions)}\n\n`);
       live.clients.add(res);
       req.on('close', () => live.clients.delete(res));
@@ -360,6 +378,7 @@ const reloadClients = new Set();
 let overlayDir = '';
 let movementStatus = null;
 let gameFocusStatus = null;
+let shopStatus = null;
 
 export function notifyReload() {
   publishEvent('reload', 'reload');
@@ -387,6 +406,7 @@ export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
   overlayDir = opts.overlay || '';
   movementStatus = opts.onMovementStatus || null;
   gameFocusStatus = opts.onGameFocus || null;
+  shopStatus = opts.onShop || null;
   if (opts.dev) watchForDev();
   return new Promise((resolve, reject) => {
     const server = createServer(handle);
