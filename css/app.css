@@ -1264,3 +1264,7 @@ html.home-fit .stats-card .stat-grid { flex: none; grid-template-rows: none; gri
 html.home-fit .stats-card .stat-tile { height: 100%; }
 html.home-fit .stats-card .stat-ico { width: 22px; height: 22px; }
 html.home-fit .stats-card .stat-name { font-size: 11px; }
+
+/* Avatar do personagem com o mesmo traçado grosso dos containers */
+.hero .portrait, html.home-fit .hero .portrait { border: 2px solid rgba(255, 255, 255, .08); border-radius: 12px; overflow: hidden; }
+:root[data-theme="light"] .hero .portrait { border-color: rgba(30, 55, 100, .14); }
