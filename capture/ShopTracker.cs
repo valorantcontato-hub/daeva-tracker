@@ -10,7 +10,7 @@ namespace DaevaCapture;
 public sealed class ShopTracker : IDisposable
 {
     readonly Action<object> emit;
-    readonly Dictionary<int, string> last = new();
+    readonly Dictionary<byte, (string Fingerprint, long At)> last = new();
     public ShopTracker(Action<object> emit) { this.emit = emit; PacketParser.DaevaPacket += Packet; }
     public void Dispose() => PacketParser.DaevaPacket -= Packet;
 
@@ -41,8 +41,10 @@ public sealed class ShopTracker : IDisposable
             }
             if (offers.Count == 0) return;
             string fingerprint = string.Join(",", offers.Select(o => o.ToString()));
-            if (last.TryGetValue(tab, out var before) && before == fingerprint) return;
-            last[tab] = fingerprint;
+            // A mesma lista chega de novo quando a loja é fechada e reaberta: isso renova os marcadores. Só ignora repetição colada (mesmo lote de pacotes).
+            long now = Environment.TickCount64;
+            if (last.TryGetValue(tab, out var before) && before.Fingerprint == fingerprint && now - before.At < 1500) return;
+            last[tab] = (fingerprint, now);
             emit(new { type = "shop", capturedAt = DateTime.UtcNow.ToString("o"), tab = TabName(tab), offers });
         }
         catch (Exception) { /* pacote incompleto ou de outra versão: ignora */ }
