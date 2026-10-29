@@ -14,6 +14,9 @@ public sealed class PositionTracker : IDisposable
     readonly object gate = new();
     readonly Dictionary<int, Pos> positions = new();
 
+    /// <summary>Último id visto num pacote 2a38 (movimento montado): nas gravações, só o personagem local aparece neles.</summary>
+    public int MountSelfId { get; private set; }
+
     public PositionTracker() { PacketParser.DaevaPacket += OnPacket; }
     public void Dispose() { PacketParser.DaevaPacket -= OnPacket; }
 
@@ -47,6 +50,7 @@ public sealed class PositionTracker : IDisposable
             float mz = BinaryPrimitives.ReadSingleLittleEndian(packet[(packet.Length - 4)..]);
             if (!Plausible(mx) || !Plausible(my) || !Plausible(mz) || (mx == 0f && my == 0f)) return;
             lock (gate) positions[mid] = new Pos(mx, my, mz, Environment.TickCount64);
+            MountSelfId = mid;
             return;
         }
         if (kind != 0x37 || op < 0x1a || op > 0x1c) return;
