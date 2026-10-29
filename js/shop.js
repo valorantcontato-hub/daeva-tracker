@@ -39,6 +39,24 @@ export function describeOffer(offer, ctx = {}) {
   return out;
 }
 
+// Posição de cada cartão na tela da loja (1920x1080, em pixels): 6 em cima, da esquerda para a direita, e 4 embaixo
+// (dois de cada lado do vendedor). A ordem do pacote (campo "order", do menor para o maior) segue essa sequência.
+export const SHOP_SLOTS = [[420, 283], [636, 330], [852, 350], [1068, 350], [1284, 330], [1500, 283], [461, 553], [677, 592], [1241, 592], [1457, 553]];
+export const SHOP_SCREEN = [1920, 1080];
+const RARE_GRADES = new Set(['Unique', 'Heroic']);
+
+/** Marcadores a desenhar sobre a loja: só as ofertas que valem comprar ou são raras, com a posição do cartão. */
+export function shopMarks(tab, ctx = {}) {
+  const offers = [...(tab?.offers || [])];
+  if (offers.length !== SHOP_SLOTS.length || offers.some(o => !o.order)) return []; // sem a ordem completa, a posição seria um palpite
+  offers.sort((a, b) => a.order - b.order);
+  return offers.map((o, i) => {
+    const d = describeOffer(o, ctx);
+    const kind = d.worth ? 'worth' : RARE_GRADES.has(d.grade) && d.category !== 'Pet' ? 'rare' : '';
+    return kind ? { kind, label: d.worth ? 'Vale comprar' : 'Raro', reason: d.reason, x: SHOP_SLOTS[i][0], y: SHOP_SLOTS[i][1], name: d.name } : null;
+  }).filter(Boolean);
+}
+
 /** Ordem da lista: o que vale comprar primeiro, depois maior desconto. */
 export const sortOffers = list => [...list].sort((a, b) => (b.worth - a.worth) || (b.discount - a.discount) || a.name.localeCompare(b.name));
 

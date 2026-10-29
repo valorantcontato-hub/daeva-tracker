@@ -212,7 +212,7 @@ function announcePositions(ev) {
 const lastShop = new Map();
 function announceShop(ev) {
   if (!Array.isArray(ev?.offers) || typeof ev.tab !== 'string') return;
-  const offers = ev.offers.slice(0, 40).map(o => ({ item: Number(o.item), original: Number(o.original), price: Number(o.price), tier: Number(o.tier) || 0 }))
+  const offers = ev.offers.slice(0, 40).map(o => ({ item: Number(o.item), original: Number(o.original), price: Number(o.price), tier: Number(o.tier) || 0, order: Number(o.order) || 0 }))
     .filter(o => o.item > 0 && o.original > 0 && o.price > 0);
   if (!offers.length) return;
   const msg = { type: 'shop', capturedAt: ev.capturedAt || new Date().toISOString(), tab: ev.tab.slice(0, 20), offers };
@@ -220,6 +220,7 @@ function announceShop(ev) {
   const line = `data: ${JSON.stringify(msg)}\n\n`;
   publishEvent('live', msg);
   for (const client of live.clients) client.write(line);
+  shopStatus?.(msg);
 }
 const freshShop = () => [...lastShop.values()].filter(m => Date.now() - Date.parse(m.capturedAt) < 3600_000);
 
@@ -377,6 +378,7 @@ const reloadClients = new Set();
 let overlayDir = '';
 let movementStatus = null;
 let gameFocusStatus = null;
+let shopStatus = null;
 
 export function notifyReload() {
   publishEvent('reload', 'reload');
@@ -404,6 +406,7 @@ export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
   overlayDir = opts.overlay || '';
   movementStatus = opts.onMovementStatus || null;
   gameFocusStatus = opts.onGameFocus || null;
+  shopStatus = opts.onShop || null;
   if (opts.dev) watchForDev();
   return new Promise((resolve, reject) => {
     const server = createServer(handle);

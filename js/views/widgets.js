@@ -16,7 +16,7 @@ import { createWidgetActivity } from '../widget-activity.js';
 import { groupSkillVariants } from '../skill-meter.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
-import { shopTabs, onShop, describeOffer, sortOffers } from '../shop.js';
+import { shopTabs, onShop, describeOffer, sortOffers, shopMarks, SHOP_SCREEN } from '../shop.js';
 import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
 
 export const WIDGETS = {
@@ -325,10 +325,30 @@ const BODIES = {
 };
 
 // ---------- Widget isolado ----------
+/** Janela transparente sobre a loja do jogo (#/w/shopmarks): um selo em cima de cada oferta que vale a pena. */
+function renderShopMarks(root) {
+  document.title = 'Marcadores da loja · Lotus Tracker';
+  const paint = () => {
+    if (!root.isConnected) return false;
+    const tabs = shopTabs();
+    const current = tabs.sort((a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt))[0]; // a aba aberta é a última lida
+    const coll = readCollection();
+    const ctx = { pets: getPetCatalog(), isBossMob, progress: id => petProgress(coll, id), owned: id => !!coll?.complete && coll.levels?.[id] !== undefined };
+    const [w, h] = SHOP_SCREEN;
+    root.innerHTML = '<div class="sm-stage">' + shopMarks(current, ctx).map(m =>
+      '<div class="sm-mark ' + m.kind + '" style="left:' + (m.x / w * 100).toFixed(3) + '%;top:' + (m.y / h * 100).toFixed(3) + '%">'
+      + (m.kind === 'worth' ? '★ ' : '◆ ') + m.label + (m.reason ? '<small>' + esc(REASON[m.reason]) + '</small>' : '') + '</div>').join('') + '</div>';
+    return true;
+  };
+  const off = onShop(() => paint() || off());
+  paint();
+}
+
 export function renderWidget(root, [id]) {
+  if (id === 'shopmarks') return renderShopMarks(root);
   // #/w/all: os três widgets em uma só página (um único endereço para a fonte de navegador do OBS), lado a lado.
   if (id === 'all') {
-    root.innerHTML = '<div class="wg-all">' + Object.keys(WIDGETS).map(w => '<div class="wg-all-cell" data-w="' + w + '" style="width:' + WIDGETS[w].width + 'px;height:' + WIDGETS[w].height + 'px"></div>').join('') + '</div>';
+    root.innerHTML = '<div class="wg-all">' + ['party', 'skills', 'radar'].map(w => '<div class="wg-all-cell" data-w="' + w + '" style="width:' + WIDGETS[w].width + 'px;height:' + WIDGETS[w].height + 'px"></div>').join('') + '</div>';
     root.querySelectorAll('.wg-all-cell').forEach(cell => renderWidget(cell, [cell.dataset.w]));
     document.title = 'Widgets · Lotus Tracker';
     return;
@@ -420,6 +440,11 @@ export async function renderWidgetsPage(root) {
   root.innerHTML = `
     ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
+    ${ov?.setShopMarks ? `<section class="card shopmarks-card">
+      <div class="widget-top"><span class="widget-ico">★</span><div class="widget-txt"><h2>Marcadores na loja do Mercador</h2></div>
+        <label class="switch"><input type="checkbox" data-opt="shopmarks"> Ligado</label></div>
+      <p class="muted small widget-desc">Com o Mercador aberto no jogo, põe um selo ★ em cima das ofertas que valem comprar (mascote de chefe ou só da loja) e ◆ nas raras. Alinhado para a tela do jogo em 16:9; some sozinho depois de 90 s sem trocar de aba.</p>
+    </section>` : ''}
     ${ov ? `<section class="card position-card">
       <div class="widget-top"><span class="widget-ico">✥</span><div class="widget-txt"><h2>Posição dos widgets</h2></div>
         <button class="btn primary sm" data-act="position-toggle">Posicionar no jogo</button></div>
@@ -457,12 +482,14 @@ export async function renderWidgetsPage(root) {
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (opt === 'skillLimit') { save('wgSkillLimit', Number(e.target.value)); notifyChange(); return; }
+    if (opt === 'shopmarks') { ov?.setShopMarks(e.target.checked); return; }
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
   });
+  ov?.getShopMarks?.().then(on => { const c = root.querySelector('[data-opt="shopmarks"]'); if (c) c.checked = !!on; });
   const setToggle = on => {
     const b = root.querySelector('[data-act="position-toggle"]');
     if (b) { b.dataset.on = on ? '1' : '0'; b.textContent = on ? 'Concluir posicionamento' : 'Posicionar no jogo'; }

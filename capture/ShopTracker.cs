@@ -26,7 +26,7 @@ public sealed class ShopTracker : IDisposable
             byte tab = packet[i + 2];
             var offers = new List<object>();
             // Cada oferta: id do item (4) + quantidade (8) + nível de desconto (1) + 0x5d + preço original (8) + preço final (8) + código (4).
-            for (int p = i + 2 + 13; p + 17 <= packet.Length; p++)
+            for (int p = i + 2 + 17; p + 17 <= packet.Length; p++)
             {
                 if (packet[p] != 0x5d) continue;
                 long original = BinaryPrimitives.ReadInt64LittleEndian(packet[(p + 1)..]);
@@ -34,7 +34,9 @@ public sealed class ShopTracker : IDisposable
                 if (original <= 0 || price <= 0 || price > original || original > 100_000_000) continue;
                 uint item = BinaryPrimitives.ReadUInt32LittleEndian(packet[(p - 13)..]);
                 if (item < 100_000_000) continue;
-                offers.Add(new { item, original, price, tier = packet[p - 1] });
+                // Os 4 bytes antes do id do item dão a ordem das ofertas na tela da loja (menor = mais à esquerda/em cima).
+                uint order = BinaryPrimitives.ReadUInt32LittleEndian(packet[(p - 17)..]);
+                offers.Add(new { item, original, price, tier = packet[p - 1], order });
                 p += 16;
             }
             if (offers.Count == 0) return;

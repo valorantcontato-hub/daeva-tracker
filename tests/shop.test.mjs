@@ -43,3 +43,15 @@ test('item sem nome conhecido aparece pelo número e a lista põe o que vale pri
   const list = sortOffers([unknown, describeOffer(offer(534760164, 100000, 70000), ctx), describeOffer(offer(535710014, 240000, 192000), ctx)]);
   assert.equal(list[0].worth, true);
 });
+
+test('marcadores seguem a ordem do pacote até a posição do cartão e exigem as 10 ofertas', async () => {
+  const { shopMarks, SHOP_SLOTS } = await import('../js/shop.js');
+  const mk = (item, order, original = 100000, price = 90000) => ({ item, original, price, tier: 0, order });
+  // Forest Dionae (só na loja) tem a 4ª menor ordem: quarto cartão da fila de cima... aqui vira o 3º por ordem.
+  const offers = [mk(534760082, 300), mk(534760164, 120), ...Array.from({ length: 8 }, (_, i) => mk(534760001 + i, 100 + i))];
+  const marks = shopMarks({ offers }, ctx);
+  const dion = marks.find(m => m.name.includes('Forest Dionae'));
+  assert.ok(dion, 'Forest Dionae deve ser marcado');
+  assert.deepEqual([dion.x, dion.y], SHOP_SLOTS.slice().sort(() => 0).at(offers.map(o => o.order).sort((a, b) => a - b).indexOf(120)));
+  assert.equal(shopMarks({ offers: offers.slice(0, 5) }, ctx).length, 0); // lista incompleta: não chuta posição
+});

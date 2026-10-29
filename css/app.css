@@ -1650,3 +1650,9 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 .mk-price strong { font-size: 13px; }
 .mk-price i { font-style: normal; font-size: 10px; font-weight: 700; color: #7ed67e; }
 .widgets-page .credit { margin: 10px 2px 0; }
+
+/* Marcadores sobre a loja do jogo (#/w/shopmarks) */
+.sm-stage { position: fixed; inset: 0; pointer-events: none; --u: calc(100vh / 1080); }
+.sm-mark { position: absolute; transform: translate(-50%, -100%); padding: calc(4 * var(--u)) calc(10 * var(--u)); border-radius: calc(8 * var(--u)); font-size: calc(17 * var(--u)); font-weight: 800; line-height: 1.15; text-align: center; white-space: nowrap; color: #1b1405; background: #ffd24a; border: calc(2 * var(--u)) solid #fff3b8; box-shadow: 0 calc(2 * var(--u)) calc(10 * var(--u)) #000a; }
+.sm-mark small { display: block; font-size: calc(12 * var(--u)); font-weight: 700; }
+.sm-mark.rare { color: #fff; background: #3d7cff; border-color: #bcd2ff; }

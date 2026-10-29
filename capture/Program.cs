@@ -138,7 +138,7 @@ while (!cts.IsCancellationRequested)
     var focus = DaevaCapture.GameWindowFocus.Read();
     if (focus != previousFocus || Environment.TickCount64 - lastFocusSent >= 500) {
         previousFocus = focus; lastFocusSent = Environment.TickCount64;
-        outbox.Enqueue(new { type = "game-focus", game = focus.Game, handle = focus.Handle });
+        outbox.Enqueue(new { type = "game-focus", game = focus.Game, handle = focus.Handle, bounds = focus.W > 0 ? new { x = focus.X, y = focus.Y, w = focus.W, h = focus.H } : null });
     }
     var r = engine.Store.GetDisplayRecord();
     if (r is { InProgress: true } && (r.Id != lastId || r.TotalDamage != lastDamage))
