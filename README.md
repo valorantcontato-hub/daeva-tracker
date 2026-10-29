@@ -1,4 +1,4 @@
-# Daeva Tracker — AION 2
+# Lotus Tracker — AION 2
 
 Tracker leve para AION 2 com dados **reais**:
 
@@ -64,7 +64,7 @@ PlayNC (perfis oficiais) <──proxy── server.mjs <─────┘
 ## Para quem joga (instalador)
 
 1. Instale o **[Npcap](https://npcap.com)** marcando *"WinPcap API-compatible Mode"* (o app avisa se faltar).
-2. Rode o instalador `Daeva Tracker Setup x.y.z.exe`. Não precisa de .NET nem de Node.
+2. Rode o instalador `Lotus Tracker Setup x.y.z.exe`. Não precisa de .NET nem de Node.
 3. Abra o app: ele inicia a captura sozinho. Jogue em **Janela** ou **Tela cheia sem bordas**.
 4. Em **Widgets**, ligue os que quiser e posicione nos cantos. `Ctrl+Shift+L` trava (clique atravessa), `Ctrl+Shift+H` mostra/oculta.
 
@@ -114,7 +114,7 @@ Envia snapshots no mesmo formato da ponte de captura (números simulados). `tool
 
 ## Licença
 
-A ponte `capture/` depende do Aion2DpsMeter, que é **GPL-3.0**. Se você distribuir o Daeva Tracker junto com a captura, o projeto precisa ser distribuído sob a GPL-3.0 (código-fonte aberto).
+A ponte `capture/` depende do Aion2DpsMeter, que é **GPL-3.0**. Se você distribuir o Lotus Tracker junto com a captura, o projeto precisa ser distribuído sob a GPL-3.0 (código-fonte aberto).
 
 ## Estrutura
 

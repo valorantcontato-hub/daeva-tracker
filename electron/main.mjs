@@ -14,7 +14,10 @@ import { uiRepository } from './ui-source.mjs';
 const { autoUpdater } = updaterPkg;
 
 // Testes do app em desenvolvimento sem mexer nos dados (nem na instância única) do app instalado.
-if (process.env.DAEVA_USERDATA) app.setPath('userData', process.env.DAEVA_USERDATA);
+// The display name changes; the legacy storage path and app ID keep installed profiles intact.
+app.setName('Lotus Tracker');
+app.setPath('userData', process.env.DAEVA_USERDATA || join(app.getPath('appData'), 'daeva-tracker'));
+app.setAppUserModelId('app.daevatracker');
 
 // Porta fixa: o localStorage (progresso, perfis, histórico) é por origem, então ela não pode variar.
 const PORT = Number(process.env.DAEVA_PORT) || 47173;
@@ -195,7 +198,7 @@ function createMain() {
     ...mainBounds(),
     // Sem barra do Windows: o nome e os botões (minimizar/fechar) são desenhados dentro do app.
     frame: false, resizable: false, maximizable: false, fullscreenable: false,
-    backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true, show: false,
+    backgroundColor: '#0d0b14', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus.png'), autoHideMenuBar: true, show: false,
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).

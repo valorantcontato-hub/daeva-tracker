@@ -22,7 +22,7 @@ export function initDesktopBanner() {
     el.innerHTML = html;
     el.hidden = !html;
     const v = document.querySelector('.brand');
-    if (v) v.title = `Daeva Tracker ${s.version} · captura ${s.capture === 'running' ? 'ativa' : 'parada'}`;
+    if (v) v.title = `Lotus Tracker ${s.version} · captura ${s.capture === 'running' ? 'ativa' : 'parada'}`;
   }
 
   el.addEventListener('click', async e => {

@@ -43,6 +43,7 @@ function route() {
 document.getElementById('theme-toggle').addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
+  document.getElementById('app-icon').href = `icons/lotus-${next}.svg`;
   save('theme', next);
 });
 

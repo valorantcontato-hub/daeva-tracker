@@ -1,5 +1,5 @@
 // daeva-capture: lê o tráfego do AION 2 de forma passiva (Npcap) usando o motor do
-// Aion2DpsMeter e envia a luta ao vivo para o Daeva Tracker (POST /api/live).
+// Aion2DpsMeter e envia a luta ao vivo para o Lotus Tracker (POST /api/live).
 //
 //   daeva-capture [--url http://localhost:47173] [--all-damage] [--replay arquivo.pcap]
 using System.Collections.Concurrent;
@@ -98,7 +98,7 @@ async Task Flush()
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Daeva Tracker offline ({ex.Message}). Abra o app.");
+            Console.Error.WriteLine($"Lotus Tracker offline ({ex.Message}). Abra o app.");
             break;
         }
     }

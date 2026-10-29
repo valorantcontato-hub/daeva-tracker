@@ -103,7 +103,7 @@ export function renderWidget(root, [id]) {
   if (!def) { root.innerHTML = '<div class="wg"><div class="wg-empty">Widget desconhecido.</div></div>'; return; }
   // Prévia dentro da página Widgets (data-preview): sem botões de janela e sem mexer no título.
   const preview = root.hasAttribute('data-preview');
-  if (!preview) document.title = `${def.title} · Daeva Tracker`;
+  if (!preview) document.title = `${def.title} · Lotus Tracker`;
   root.innerHTML = `
     <div class="wg">
       <div class="wg-head">

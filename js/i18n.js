@@ -175,7 +175,7 @@ const PHRASES = [
   ['Abates registrados neste app. O histórico anterior da conta e o catálogo completo não são fornecidos pelo perfil público; zero aqui não confirma que o monstro esteja faltando no jogo.', 'Kills recorded in this app. The public profile does not provide previous account history or the full catalog; zero here does not mean the monster is missing in game.'],
   ['Os membros entram sozinhos nas lutas contra chefes, ou use a busca em Conta (+ Party).', 'Members are linked automatically during boss fights, or use Account search (+ Party).'],
   ['O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o', 'The game only reveals your character name when you teleport or enter a dungeon. Do one of those with the app open and'],
-  ['Daeva Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.', 'Daeva Tracker loads your look and equipment by itself — next time it already remembers you.'],
+  ['Lotus Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.', 'Lotus Tracker loads your look and equipment by itself — next time it already remembers you.'],
   ['Ou vincule agora pela busca.', 'Or link it now using search.'],
   ['Nenhuma luta ainda', 'No fights yet'],
   ['Abra o jogo com a captura ligada', 'Open the game with capture running'],

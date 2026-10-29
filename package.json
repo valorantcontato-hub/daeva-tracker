@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Tracker leve para AION 2: DPS da party, skills, perfis reais e bestiário, com widgets de overlay.",
-  "author": "Daeva Tracker",
+  "author": "Lotus Tracker",
   "type": "module",
   "daevaUpdates": {
     "owner": "valorantcontato-hub",
@@ -21,7 +21,7 @@
   },
   "build": {
     "appId": "app.daevatracker",
-    "productName": "Daeva Tracker",
+    "productName": "Lotus Tracker",
     "files": [
       "index.html",
       "css/**",
@@ -40,7 +40,8 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icons/lotus.ico"
     },
     "nsis": {
       "oneClick": true,

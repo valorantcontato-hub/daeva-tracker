@@ -170,7 +170,7 @@ export function renderHome(root, [tab = ''] = []) {
       <div class="card empty">
         <h1>Seu personagem aparece aqui</h1>
         <p class="muted">O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o
-        Daeva Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.<br>
+        Lotus Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.<br>
         Ou vincule agora pela busca.</p>
         <div class="head-actions"><a class="btn primary" href="#/conta">Buscar meu personagem</a></div>
       </div>`;
@@ -178,7 +178,7 @@ export function renderHome(root, [tab = ''] = []) {
   }
 
   function render() {
-    characterSheet(root, me, { tab, base: '#/inicio', withParty: true });
+    characterSheet(root, me, { tab, base: '#/inicio' });
   }
 
   // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
