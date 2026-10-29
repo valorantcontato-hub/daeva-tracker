@@ -440,11 +440,6 @@ export async function renderWidgetsPage(root) {
   root.innerHTML = `
     ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
-    ${ov?.setShopMarks ? `<section class="card shopmarks-card">
-      <div class="widget-top"><span class="widget-ico">🛒</span><div class="widget-txt"><h2>Mercador</h2></div>
-        <label class="switch"><input type="checkbox" data-opt="shopmarks"> Ligado</label></div>
-      <p class="muted small widget-desc">Com o Mercador aberto no jogo, põe um selo ★ em cima das ofertas que valem comprar (mascote de chefe ou só da loja) e ◆ nas raras. Alinhado para a tela do jogo em 16:9; some sozinho depois de 90 s sem trocar de aba.</p>
-    </section>` : ''}
     ${ov ? `<section class="card position-card">
       <div class="widget-top"><span class="widget-ico">✥</span><div class="widget-txt"><h2>Posição dos widgets</h2></div>
         <button class="btn primary sm" data-act="position-toggle">Posicionar no jogo</button></div>
@@ -480,14 +475,12 @@ export async function renderWidgetsPage(root) {
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (opt === 'skillLimit') { save('wgSkillLimit', Number(e.target.value)); notifyChange(); return; }
-    if (opt === 'shopmarks') { ov?.setShopMarks(e.target.checked); return; }
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
   });
-  ov?.getShopMarks?.().then(on => { const c = root.querySelector('[data-opt="shopmarks"]'); if (c) c.checked = !!on; });
   const setToggle = on => {
     const b = root.querySelector('[data-act="position-toggle"]');
     if (b) { b.dataset.on = on ? '1' : '0'; b.textContent = on ? 'Concluir posicionamento' : 'Posicionar no jogo'; }
