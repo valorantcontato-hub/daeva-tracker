@@ -363,6 +363,8 @@ export function renderWidget(root, [id]) {
       <div class="wg-body"></div>
     </div>`;
   const wg = root.querySelector('.wg'), body = root.querySelector('.wg-body');
+  // Fora do app desktop (fonte de navegador do OBS), o widget tem o tamanho próprio do painel, qualquer que seja o tamanho da fonte.
+  if (!window.overlay && !preview) { wg.style.width = def.width + 'px'; wg.style.height = def.height + 'px'; }
   const applySize = state => {
     if (root.isConnected) wg.style.setProperty('--wg-scale', state[id]?.scale || 1);
   };
