@@ -39,6 +39,12 @@ public sealed class PacketRecorder : IDisposable
         }
     }
 
+    /// <summary>Anota uma linha de contexto (ex.: quem é o personagem local) no arquivo da gravação.</summary>
+    public void Note(string jsonLine)
+    {
+        lock (gate) { if (file is null) return; file.WriteLine(jsonLine); }
+    }
+
     /// <summary>Chamado a cada ciclo do laço principal: encerra a gravação quando o tempo acaba.</summary>
     public bool Tick()
     {

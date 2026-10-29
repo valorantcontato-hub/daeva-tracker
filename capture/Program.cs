@@ -51,8 +51,19 @@ void StartRecording(int seconds)
     Console.WriteLine($"Gravando pacotes por {seconds}s em {file}");
     try { File.WriteAllText(recordStatus, JsonSerializer.Serialize(new { state = "recording", file, seconds, endsAt = DateTime.UtcNow.AddSeconds(seconds).ToString("o") })); } catch { }
 }
+string lastSelfNote = "";
+void NoteSelf()
+{
+    if (!recorder.Active) { lastSelfNote = ""; return; }
+    var prof = engine.Store.GetLocalProfile();
+    var line = JsonSerializer.Serialize(new { type = "self", at = DateTime.Now.ToString("o"), entityId = prof?.EntityId, name = prof?.Name, serverId = (int)(prof?.ServerId ?? 0), level = prof?.Level });
+    if (line == lastSelfNote) return;
+    lastSelfNote = line;
+    recorder.Note(line);
+}
 void PollRecording()
 {
+    NoteSelf();
     try
     {
         if (!recorder.Active && File.Exists(recordTrigger))
