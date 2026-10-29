@@ -10,6 +10,7 @@ import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
+import { migrateWidgets } from './widget-config.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -27,8 +28,7 @@ const PRELOAD = fileURLToPath(new URL('./preload.cjs', import.meta.url));
 const WIDGETS = {
   party: { width: 320, height: 270 },
   skills: { width: 340, height: 340 },
-  farm: { width: 300, height: 300 },
-  radar: { width: 280, height: 380 },
+  radar: { width: 300, height: 460 },
 };
 const MARGIN = 16;
 const UPDATE_CHECK_MS = 15 * 60e3;
@@ -100,6 +100,7 @@ function startCapture() {
 // ---------- Widgets ----------
 function loadCfg() {
   try { cfg = JSON.parse(readFileSync(cfgPath(), 'utf8')); } catch { cfg = {}; }
+  migrateWidgets(cfg);
   for (const id of Object.keys(WIDGETS)) cfg[id] = { visible: false, locked: false, corner: '', bounds: null, ...cfg[id] };
 }
 let saveTimer;
