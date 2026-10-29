@@ -20,3 +20,9 @@ test('overlay só aparece com o jogo em foco há um instante, sem ocultar manual
   assert.equal(overlayShouldShow({ ...base, active: false }), false);
   assert.equal(overlayShouldShow({ ...base, active: undefined }), true);
 });
+
+test('modo posicionar mostra o overlay mesmo fora do jogo, sem atividade ou oculto', () => {
+  const base = { gameAllowed: false, since: 0, now: 1, manualHidden: true, active: false };
+  assert.equal(overlayShouldShow(base), false);
+  assert.equal(overlayShouldShow({ ...base, positioning: true }), true);
+});

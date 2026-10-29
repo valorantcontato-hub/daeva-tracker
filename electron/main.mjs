@@ -39,7 +39,7 @@ const DEV = !app.isPackaged;
 let mainWin = null;
 const wins = new Map();
 const activeWidgets = new Map();
-let gameAllowed = false, lastGameFocus = 0, gameAllowedSince = 0, widgetsHidden = false;
+let gameAllowed = false, lastGameFocus = 0, gameAllowedSince = 0, widgetsHidden = false, positioning = false;
 function allowGameOverlays(allowed) {
   if (allowed === gameAllowed) return;
   gameAllowed = allowed;
@@ -49,7 +49,7 @@ function allowGameOverlays(allowed) {
 // Mostra ou esconde (de verdade) cada overlay conforme o jogo estar em primeiro plano.
 function syncOverlay(id, win) {
   if (win.isDestroyed()) return;
-  const want = overlayShouldShow({ gameAllowed, since: gameAllowedSince, now: Date.now(), manualHidden: widgetsHidden, active: activeWidgets.get(id) });
+  const want = overlayShouldShow({ gameAllowed, since: gameAllowedSince, now: Date.now(), manualHidden: widgetsHidden, active: activeWidgets.get(id), positioning });
   if (want && !win.isVisible()) win.showInactive();
   else if (!want && win.isVisible()) win.hide();
 }
@@ -173,7 +173,7 @@ function defaultBounds(id) {
 function applyLock(win, locked) {
   // Travado: o mouse "atravessa" a janela até o jogo. O estado só muda quando você trava/destrava: mexer nos estilos da
   // janela a cada troca de foco (alt-tab) deixava o jogo preso com o cursor no centro.
-  win.setIgnoreMouseEvents(locked);
+  win.setIgnoreMouseEvents(locked && !positioning); // no modo posicionar o widget precisa receber o mouse para ser arrastado
   // O overlay nunca recebe foco: assim ele não tira o jogo do primeiro plano nem atrapalha o alt-tab.
   win.setFocusable(false);
   applyPointerOpacity(win, locked);
@@ -181,7 +181,7 @@ function applyLock(win, locked) {
 
 function applyPointerOpacity(win, locked) {
   if (!win.isVisible()) return;
-  const opacity = widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint());
+  const opacity = widgetPointerOpacity(locked && !positioning, win.getBounds(), screen.getCursorScreenPoint());
   if (win.getOpacity() !== opacity) win.setOpacity(opacity);
 }
 
@@ -278,6 +278,26 @@ function createMain() {
   mainWin.on('closed', () => { mainWin = null; app.quit(); });
 }
 
+// Modo posicionar: mostra os widgets ligados (com exemplos), destravados, para o usuário arrastá-los antes da luta.
+function setPositioning(on) {
+  positioning = !!on;
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyLock(win, cfg[id].locked);
+  syncOverlays();
+  for (const w of [mainWin, ...wins.values()]) if (w && !w.isDestroyed()) w.webContents.send('widgets:positioning', positioning);
+  return positioning;
+}
+ipcMain.handle('widget:positioning', (_e, on) => setPositioning(on));
+ipcMain.handle('widget:positioning-state', () => positioning);
+ipcMain.handle('widget:reset-positions', () => {
+  for (const id of Object.keys(WIDGETS)) {
+    if (!cfg[id]) continue;
+    cfg[id].bounds = null;
+    const win = wins.get(id);
+    if (win && !win.isDestroyed()) win.setBounds(defaultBounds(id));
+  }
+  saveCfg();
+  return true;
+});
 ipcMain.handle('widget:list', () => pushState());
 ipcMain.on('widget:activity', (event, id, active) => {
   const win = wins.get(id);
