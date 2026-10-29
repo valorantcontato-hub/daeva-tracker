@@ -6,14 +6,14 @@ import { readBestiary, writeBestiary, imageUrl, bestiaryKey } from '../bestiary-
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
 
-// Tipos de mascote (campo "family" do catálogo). Ícones próprios em traço, no estilo do app.
-const ICON = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+// Tipos de mascote (campo "family" do catálogo), com as pedras do jogo como ícone.
+const STONE = key => '<img class="stone" src="icons/pets/' + key + '.png" alt="" draggable="false">';
 const FAMILIES = [
-  ['Cogni', 'Intelectual', ICON('M12 4a5 5 0 0 0-5 5c0 1.6.7 2.4 1.5 3.3.6.7 1 1.4 1 2.2h5c0-.8.4-1.5 1-2.2.8-.9 1.5-1.7 1.5-3.3a5 5 0 0 0-5-5zM9.5 18.5h5M10.5 21h3')],
-  ['Fera', 'Feral', ICON('M5 6c1.5 4 2 8 2 13M10 4c1 4 1.4 9 1.2 15M15 4c.5 4 .3 9-.8 15M20 7c-1.5 4-2 8-1.8 12')],
-  ['Natura', 'Natural', ICON('M5 19c0-9 6-14 15-14 0 9-5 15-14 15zM5 19l8-8')],
-  ['Varian', 'Variante', ICON('M12 3l8 5v8l-8 5-8-5V8zM12 3v18M4 8l8 5 8-5')],
-  ['Special', 'Especial', ICON('M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z')],
+  ['Cogni', 'Intelectual', STONE('cogni')],
+  ['Fera', 'Feral', STONE('fera')],
+  ['Natura', 'Natural', STONE('natura')],
+  ['Varian', 'Variante', STONE('varian')],
+  ['Special', 'Especial', STONE('special')],
 ];
 const PAGE_SIZE = 60;
 
@@ -52,7 +52,7 @@ export function renderBestiary(root) {
     const pct = p.complete ? 100 : p.known && p.goal ? (p.points / p.goal) * 100 : 0;
     const tip = `${m.name}\n${!p.known ? 'Não sincronizado' : p.complete ? 'Completo · Lv 3' : `Nv. ${p.level} · ${p.points}/${p.goal} almas`}${m.note ? '\n' + m.note : ''}`;
     return `
-      <button class="pet2 ${p.complete ? 'maxed' : ''} ${focused ? 'focused' : ''}" data-favorite="${esc(m.id)}" aria-pressed="${focused}" data-tip="${esc(tip)}">
+      <button class="pet2 t-${String(m.region || "").toLowerCase()} ${p.complete ? 'maxed' : ''} ${focused ? 'focused' : ''}" data-favorite="${esc(m.id)}" aria-pressed="${focused}" data-tip="${esc(tip)}">
         <span class="pet2-ico">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" draggable="false" onerror="this.remove()">` : `<b>${esc(initials(m.name))}</b>`}</span>
         <span class="pet2-body">
           <span class="pet2-title"><b class="pet2-name">${esc(m.name)}</b>${typeBadge(m.region)}</span>
