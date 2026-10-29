@@ -43,9 +43,9 @@ function route() {
 
 document.documentElement.dataset.theme = 'dark';
 save('theme', 'dark');
-// Fit the overview to the real space left by the title bar, update banner and navigation.
+// The navigation occupies the left rail; only horizontal bars consume content height.
 const measureShell = () => {
-  for (const [variable,selector] of [['topbar','.topbar'],['navigation','.tabs'],['banner','#app-banner']])
+  for (const [variable,selector] of [['topbar','.topbar'],['banner','#app-banner']])
     document.documentElement.style.setProperty(`--${variable}-height`, `${document.querySelector(selector)?.getBoundingClientRect().height || 0}px`);
 };
 const shellObserver = new ResizeObserver(measureShell);
