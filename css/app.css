@@ -1280,10 +1280,35 @@ html .btn.primary { background: var(--accent); color: #fff; }
 html .btn.primary:hover { filter: brightness(1.1); }
 
 /* Moldura por cima da imagem dos itens (a sombra interna ficava escondida atrás dela) */
-.slot:not(.blank)::after {
+.arcana-block .slot:not(.blank)::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   border: 2px solid color-mix(in srgb, var(--g1) 55%, #fff 25%);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
 }
 .arcana-block .slot { border-radius: 9px; }
 .arcana-block .slot img { object-fit: cover; }
+/* Itens: sem traçado ao passar o mouse */
+.tile-grid .slot:hover, :root[data-theme="light"] .tile-grid .slot:hover { box-shadow: none; }
+
+/* Favoritos (abaixo do Daevanion): contas listadas como uma party; clicar abre a ficha */
+.fav-block { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; flex: 1; min-height: 0; }
+.fav-head { display: flex; align-items: center; justify-content: space-between; margin: 0; }
+.fav-head .btn { height: 26px; padding: 0 10px; font-size: 12px; }
+.fav-search { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.fav-search input { grid-column: 1 / -1; }
+.fav-search input, .fav-search select { background: var(--surface-2); border: 0; border-radius: 10px; padding: 6px 10px; font-size: 12px; min-width: 0; }
+.fav-results, .fav-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.fav-results::-webkit-scrollbar, .fav-list::-webkit-scrollbar { display: none; }
+.fav-list { flex: 1; }
+.fav-results { max-height: 110px; }
+.fav-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, .035); color: inherit; text-decoration: none; }
+a.fav-row:hover { background: rgba(0, 0, 0, .35); }
+.fav-avatar { flex: none; width: 28px; height: 28px; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.fav-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fav-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.fav-txt b { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-txt .muted { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-x { flex: none; width: 22px; height: 22px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; }
+.fav-x:hover { background: rgba(0, 0, 0, .35); color: var(--text); }
+:root[data-theme="light"] .fav-row { background: rgba(30, 55, 100, .05); }
+:root[data-theme="light"] a.fav-row:hover { background: rgba(30, 55, 100, .12); }

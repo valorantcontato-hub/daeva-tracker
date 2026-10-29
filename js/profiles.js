@@ -44,13 +44,19 @@ const catalogOf = cls => (load('skillcat', {})[getLang()] || {})[cls] || {};
 
 export const getMe = () => load('me', null);
 export const getParty = () => load('party', []);
-const allProfiles = () => [getMe(), ...getParty()].filter(Boolean);
+export const getFavorites = () => load('favorites', []);
+const allProfiles = () => [getMe(), ...getParty(), ...getFavorites()].filter(Boolean);
 
 export function setMe(p) { save('me', p); }
 export function upsertPartyMember(p) {
   const party = getParty().filter(x => x.characterId !== p.characterId);
   save('party', [...party, p]);
 }
+export function addFavorite(p) {
+  save('favorites', [...getFavorites().filter(x => x.characterId !== p.characterId), p]);
+}
+export const removeFavorite = id => save('favorites', getFavorites().filter(x => x.characterId !== id));
+export const isFavorite = id => getFavorites().some(x => x.characterId === id);
 export function removePartyMember(id) { save('party', getParty().filter(x => x.characterId !== id)); }
 
 /** Atualiza o perfil salvo (eu ou party) com os dados mais recentes da PlayNC. */
@@ -59,6 +65,7 @@ export async function refreshProfile(p) {
   // Só grava onde o personagem já está: se você o desvinculou durante a atualização, ele não volta sozinho.
   if (getMe()?.characterId === p.characterId) setMe(fresh);
   else if (getParty().some(x => x.characterId === p.characterId)) upsertPartyMember(fresh);
+  else if (isFavorite(p.characterId)) addFavorite(fresh);
   return fresh;
 }
 
