@@ -1312,3 +1312,25 @@ a.fav-row:hover { background: rgba(0, 0, 0, .35); }
 .fav-x:hover { background: rgba(0, 0, 0, .35); color: var(--text); }
 :root[data-theme="light"] .fav-row { background: rgba(30, 55, 100, .05); }
 :root[data-theme="light"] a.fav-row:hover { background: rgba(30, 55, 100, .12); }
+
+/* Início com o mesmo dimensionamento da tela Contas: cartões do tamanho do conteúdo, sem esticar */
+html.home-fit .home-main { align-items: start; }
+html.home-fit .gear-card, html.home-fit .stats-card { height: auto; min-height: 0; }
+html.home-fit .gear-block { flex: none; }
+html.home-fit .tile-grid { flex: none; grid-template-rows: none; }
+html.home-fit .tile-grid .slot { width: 100%; height: auto; max-height: none; aspect-ratio: 1; justify-self: stretch; }
+html.home-fit .arcana-block { flex: none; margin-top: 0; padding-top: 8px; }
+html.home-fit .stats-card .stat-grid { grid-auto-rows: 34px; }
+html.home-fit .stats-card .stat-ico { width: 24px; height: 24px; }
+html.home-fit .fav-block { flex: none; }
+html.home-fit .fav-list { max-height: 150px; flex: none; }
+html.home-fit .equipment-and-look > .gear-block, html.home-fit .gear-card .arcana-block { flex: none; min-height: auto; height: auto; }
+html.home-fit .gear-card { overflow: visible; }
+html.home-fit .gear-card, html.home-fit .stats-card { padding: 12px; gap: 10px; }
+html.home-fit .tile-grid { gap: 5px; }
+html.home-fit .stats-card .stat-grid { gap: 6px; grid-auto-rows: 38px; }
+/* Conteúdo do tamanho natural: se passar da altura da janela, rola sem barra visível */
+html.home-fit #view { overflow-y: auto; scrollbar-width: none; }
+html.home-fit #view::-webkit-scrollbar { display: none; }
+html.home-fit, html.home-fit body { overflow: hidden; }
+html.home-fit .home-page { height: auto; grid-template-rows: auto auto; }
