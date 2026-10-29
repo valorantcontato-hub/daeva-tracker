@@ -88,7 +88,6 @@ function radarSvg(P, mobs, range) {
     + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
     + dots
     + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me"/>'
-    + '<text x="188" y="190" class="rd-lbl" text-anchor="end">' + Math.round(range / 3) + ' · ' + Math.round(range * 2 / 3) + ' · ' + range + ' m</text>'
     + '</svg>';
 }
 
@@ -151,7 +150,6 @@ function radarBody() {
 
   return top
     + '<div class="rd-bar">'
-    + '<button class="mini" data-act="range" title="Alcance do radar">' + range + ' m</button>'
     + '<button class="mini' + (showAll ? ' on' : '') + '" data-act="all" title="Mostrar no radar todos os monstros, não só os marcados com ★">' + (showAll ? 'Todos' : '★ Farmando') + '</button>'
     + '</div>'
     + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>');
