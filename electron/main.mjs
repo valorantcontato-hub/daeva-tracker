@@ -179,12 +179,12 @@ function setWidget(id, patch) {
   pushState();
 }
 
-// Proporção da referência: 580 × 940, limitada à área útil do monitor.
+// Preserve the 580px content area and reserve 164px for the navigation rail.
 function mainBounds() {
   const b = cfg.mainBounds;
   const saved = b && Number.isFinite(b.x) && Number.isFinite(b.y);
-  const area = (saved ? screen.getDisplayMatching({ x: b.x, y: b.y, width: 580, height: 940 }) : screen.getPrimaryDisplay()).workArea;
-  const size = { width: Math.min(580, area.width - 24), height: Math.min(940, area.height - 24) };
+  const area = (saved ? screen.getDisplayMatching({ x: b.x, y: b.y, width: 744, height: 940 }) : screen.getPrimaryDisplay()).workArea;
+  const size = { width: Math.min(744, area.width - 24), height: Math.min(940, area.height - 24) };
   if (!saved) return size;
   return { ...size,
     x: Math.max(area.x + 12, Math.min(b.x, area.x + area.width - size.width - 12)),

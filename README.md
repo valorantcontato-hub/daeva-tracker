@@ -9,8 +9,11 @@ Tracker leve para AION 2 com dados **reais**:
 - **Bestiário**: coleção de 207 pets, com níveis e almas lidos do jogo; catálogo de monstros e abates locais em uma aba separada.
 - **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
 
-A interface usa um único tema escuro. A janela compacta abre em 580 × 940 px, limitada à área útil
-do monitor. O Início ajusta a altura dos itens ao espaço disponível, incluindo a faixa de atualização,
+A interface usa um único tema escuro. A janela abre em 744 × 940 px: 164 px para a navegação lateral
+e 580 px para o conteúdo, limitada à área útil do monitor. O cabeçalho do personagem mantém posição
+e medidas idênticas no Início, Skills e Daevanion. O contorno dos painéis segue os cards “Animes do ano”
+do Funima: borda branca de 2 px a 8%, cantos de 14 px e realce a 22% no hover/foco em 250 ms.
+O Início ajusta a altura dos itens ao espaço disponível, incluindo a faixa de atualização,
 para caber sem rolagem. Equipamentos, aparência e arcanas ficam empilhados; Aparência prioriza
 a asa visual equipada e não repete a asa base. O retrato é requisitado novamente ao atualizar o
 perfil, a cada minuto e ao voltar para a janela; a mudança visual depende da imagem publicada pela PlayNC.
