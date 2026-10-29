@@ -24,7 +24,7 @@ export function renderBestiary(root) {
       <div class="chips" role="tablist" aria-label="Filtro">${FILTERS.map(([k, l]) => `<button class="chip" data-filter="${k}" role="tab">${l}</button>`).join('')}</div>
     </div>
     <div class="small muted" id="bestiary-summary"></div>
-    <div id="list" class="pet-grid"></div>
+    <div id="list" class="pet2-grid"></div>
     <div class="bestiary-pagination"><button class="btn sm" data-page="-1">Anterior</button><span class="small muted" id="bestiary-page-count"></span><button class="btn sm" data-page="1">Próxima</button></div>`;
   const $ = selector => root.querySelector(selector);
 
@@ -34,18 +34,22 @@ export function renderBestiary(root) {
     const p = petProgress(collection, m.petId);
     const focused = state.focus.includes(m.id);
     const photo = imageUrl(m.icon);
-    const label = !p.known ? 'Não sincronizado' : p.complete ? 'Completo · III' : `Nv. ${p.level} · ${p.points}/${p.goal} almas`;
-    const tip = `${m.name}\n${label}${p.known && !p.complete ? '\n' + p.remaining + ' almas até o nível III' : ''}${m.note ? '\n' + m.note : ''}`;
-    const dim = !p.known || (p.level === 0 && p.points === 0);
+    const locked = p.known && p.level === 0;
+    const left = p.known && !p.complete ? p.goal - p.points : 0;
+    const badge = !p.known ? '<span class="pet2-badge">Sem dados</span>' : p.complete ? '<span class="pet2-badge max">Lv 3 MAX</span>'
+      : locked ? '<span class="pet2-badge">Bloqueado</span>' : `<span class="pet2-badge lv">Lv ${p.level}</span>`;
+    const detail = !p.known ? '' : p.complete ? '' : `${p.points}/${p.goal} · faltam ${left}`;
+    const pct = p.complete ? 100 : p.known && p.goal ? (p.points / p.goal) * 100 : 0;
+    const tip = `${m.name}\n${!p.known ? 'Não sincronizado' : p.complete ? 'Completo · Lv 3' : `Nv. ${p.level} · ${p.points}/${p.goal} almas`}${m.note ? '\n' + m.note : ''}`;
     return `
-      <button class="pet-card ${photo ? '' : 'nophoto'} ${dim ? 'dim' : ''} ${focused ? 'focused' : ''} ${p.complete ? 'maxed' : ''}" data-favorite="${esc(m.id)}" aria-pressed="${focused}" data-tip="${esc(tip)}">
-        ${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" draggable="false" onerror="this.parentElement.classList.add('nophoto');this.remove()">` : ''}
-        <span class="pet-initials">${esc(initials(m.name))}</span>
-        <span class="pet-name">${esc(m.name)}</span>
-        ${focused ? '<span class="pet-flag">Farmando</span>' : ''}
-        ${p.known && p.level > 0 ? `<span class="pet-badge">${p.level}</span>` : ''}
-        ${p.complete ? '<b class="pet-max">MÁX.</b>'
-          : p.known && p.points ? `<span class="pet-prog"><i style="width:${(p.points / p.goal) * 100}%"></i></span><b class="pet-count">${p.points}/${p.goal}</b>` : ''}
+      <button class="pet2 ${p.complete ? 'maxed' : ''} ${focused ? 'focused' : ''}" data-favorite="${esc(m.id)}" aria-pressed="${focused}" data-tip="${esc(tip)}">
+        <span class="pet2-ico">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" draggable="false" onerror="this.remove()">` : `<b>${esc(initials(m.name))}</b>`}</span>
+        <span class="pet2-body">
+          <b class="pet2-name">${esc(m.name)}</b>
+          <span class="pet2-bar"><i style="width:${pct}%"></i></span>
+          <span class="pet2-info">${badge}<span class="pet2-count">${detail}</span></span>
+        </span>
+        ${focused ? '<span class="pet2-flag">★</span>' : ''}
       </button>`;
   }
 

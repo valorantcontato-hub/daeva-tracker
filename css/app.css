@@ -1343,3 +1343,28 @@ html.home-fit .sub-body { min-width: 0; }
 html.home-fit .sub-body .page-head { display: none; }
 html.home-fit .sub-body .page { padding: 0; gap: 10px; }
 html.home-fit .sub-body .card { padding: 12px; }
+
+/* Mascotes: cartões horizontais com ícone redondo, barra de progresso e nível */
+.pet2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pet2 { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; color: inherit; cursor: pointer;
+  background: var(--surface); border: 2px solid rgba(255, 255, 255, .08); border-radius: 14px; }
+.pet2:hover { background: var(--surface-2); }
+.pet2-ico { flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--surface-2);
+  box-shadow: 0 0 0 2px #e0605a; }
+.pet2.maxed .pet2-ico { box-shadow: 0 0 0 2px #4fd1c5; }
+.pet2-ico img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; display: block; }
+.pet2-ico b { font-size: 13px; color: var(--muted); }
+.pet2-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pet2-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pet2-bar { display: block; height: 6px; border-radius: 99px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.pet2-bar i { display: block; height: 100%; border-radius: inherit; background: #e0605a; }
+.pet2.maxed .pet2-bar i { background: linear-gradient(90deg, #d9a441, #5ec8e8); }
+.pet2-info { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0; }
+.pet2-badge { flex: none; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .07); color: var(--muted); font-weight: 700; font-size: 11px; }
+.pet2-badge.lv { color: var(--text); }
+.pet2-badge.max { color: var(--text); background: rgba(94, 200, 232, .16); }
+.pet2-count { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pet2-flag { position: absolute; top: 8px; right: 10px; color: #e9b949; font-size: 13px; }
+.pet2.focused { border-color: rgba(233, 185, 73, .45); }
+:root[data-theme="light"] .pet2 { border-color: rgba(30, 55, 100, .14); }
+:root[data-theme="light"] .pet2-bar, :root[data-theme="light"] .pet2-badge { background: rgba(30, 55, 100, .1); }
