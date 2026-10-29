@@ -206,6 +206,7 @@ function announcePositions(ev) {
   const line = `data: ${JSON.stringify(lastPositions)}\n\n`;
   publishEvent('live', lastPositions);
   for (const client of live.clients) client.write(line);
+  selfStatus?.(lastPositions.self);
 }
 
 let streamState = { rev: 0, data: null };
@@ -390,6 +391,7 @@ let overlayDir = '';
 let movementStatus = null;
 let gameFocusStatus = null;
 let shopStatus = null;
+let selfStatus = null;
 
 export function notifyReload() {
   publishEvent('reload', 'reload');
@@ -418,6 +420,7 @@ export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
   movementStatus = opts.onMovementStatus || null;
   gameFocusStatus = opts.onGameFocus || null;
   shopStatus = opts.onShop || null;
+  selfStatus = opts.onSelfPosition || null;
   if (opts.dev) watchForDev();
   return new Promise((resolve, reject) => {
     const server = createServer(handle);

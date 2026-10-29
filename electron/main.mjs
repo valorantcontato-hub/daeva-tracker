@@ -13,6 +13,7 @@ import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
 import { migrateWidgets, widgetBounds, widgetPointerOpacity, widgetScale } from './widget-config.mjs';
 import { gameFocusAllows, overlayShouldShow } from './game-focus.mjs';
+import { leftShop } from './shop-marks.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -63,8 +64,8 @@ function updateGameFocus(message) {
 }
 // Marcadores sobre a loja do jogo (Black Cloud Merchant): uma janela transparente, sem foco e que deixa o mouse passar,
 // do tamanho da janela do jogo. Automático: só existe enquanto a loja foi lida há pouco e o jogo está em primeiro plano.
-const SHOP_MARKS_MS = 90e3;
-const shopMarks = { win: null, lastAt: 0, bounds: null };
+const SHOP_MARKS_MS = 40e3; // sem aba nova lida por 40 s, os selos somem (o app não vê a loja fechar)
+const shopMarks = { win: null, lastAt: 0, bounds: null, anchor: null, pos: null };
 function syncShopMarks() {
   const want = gameAllowed && !widgetsHidden && shopMarks.bounds && Date.now() - shopMarks.lastAt < SHOP_MARKS_MS;
   if (!want) {
@@ -420,7 +421,18 @@ app.whenReady().then(async () => {
     await start(PORT, { overlay: await liveUiOverlay(), dev: DEV,
       onMovementStatus: message => setStatus({ movementState: message.state, movementMessage: message.message }),
       onGameFocus: updateGameFocus,
-      onShop: () => { shopMarks.lastAt = Date.now(); syncShopMarks(); } });
+      onShop: () => {
+        shopMarks.lastAt = Date.now();
+        // Onde o personagem está quando a loja é lida; se ele se afastar daí, a loja foi fechada.
+        shopMarks.anchor = shopMarks.pos && Date.now() - shopMarks.pos.at < 3000 ? { x: shopMarks.pos.x, y: shopMarks.pos.y } : null;
+        syncShopMarks();
+      },
+      onSelfPosition: self => {
+        if (!Number.isFinite(self?.x) || !Number.isFinite(self?.y)) return;
+        shopMarks.pos = { x: self.x, y: self.y, at: Date.now() };
+        const a = shopMarks.anchor;
+        if (shopMarks.lastAt && leftShop(a, self)) { shopMarks.lastAt = 0; shopMarks.anchor = null; syncShopMarks(); }
+      } });
     if (DEV) watchAppCode();
   } catch (e) {
     // Outra instância já está servindo nesta porta: reaproveita.
