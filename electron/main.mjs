@@ -346,10 +346,12 @@ app.whenReady().then(async () => {
   startCapture();
   setupUpdater();
 
-  globalShortcut.register('CommandOrControl+Shift+L', () => {
+  const toggleLock = () => {
     const lock = ![...wins.keys()].every(id => cfg[id].locked);
     for (const id of wins.keys()) setWidget(id, { locked: lock });
-  });
+  };
+  if (!globalShortcut.register('PageUp', toggleLock)) console.warn('Tecla PgUp já está em uso por outro programa');
+  globalShortcut.register('CommandOrControl+Shift+L', toggleLock);
   // Insert (ou Ctrl+Shift+H): mostra/esconde no jogo os widgets que estão ligados.
   const toggleWidgets = () => {
     const anyVisible = [...wins.values()].some(w => w.isVisible());
