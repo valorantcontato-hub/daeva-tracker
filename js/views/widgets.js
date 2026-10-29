@@ -243,6 +243,7 @@ export async function renderWidgetsPage(root) {
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
       ${card('farm', WIDGETS.farm)}
+      ${card('radar', WIDGETS.radar)}
     </div>
     ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 5 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 5 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
