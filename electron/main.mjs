@@ -140,9 +140,13 @@ function loadCfg() {
   }
 }
 let saveTimer;
+function flushCfg() {
+  clearTimeout(saveTimer);
+  writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2));
+}
 function saveCfg() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2)), 300);
+  saveTimer = setTimeout(flushCfg, 300);
 }
 function pushState() {
   const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked, scale: c.scale }]));
@@ -241,7 +245,7 @@ function createMain() {
     ...mainBounds(),
     // Sem barra do Windows: o nome e os botões (minimizar/fechar) são desenhados dentro do app.
     frame: false, transparent: true, hasShadow: false, resizable: false, maximizable: false, fullscreenable: false,
-    backgroundColor: '#00000000', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus.png'), autoHideMenuBar: true, show: false,
+    backgroundColor: '#00000000', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus-blue.png'), autoHideMenuBar: true, show: false,
     webPreferences: { additionalArguments: ['--lotus-rounded'], preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
@@ -380,6 +384,9 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  // Persist final geometry even if Windows has not sent the end-of-drag event yet.
+  for (const [id, win] of wins) if (!win.isDestroyed()) cfg[id].bounds = win.getBounds();
+  flushCfg();
   stopCapture();
 });
 app.on('will-quit', () => globalShortcut.unregisterAll());
