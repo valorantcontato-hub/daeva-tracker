@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('overlay', {
   list: () => ipcRenderer.invoke('widget:list'),
   toggle: (id, on) => ipcRenderer.invoke('widget:toggle', id, on),
   set: (id, patch) => ipcRenderer.invoke('widget:set', id, patch),
+  activity: (id, active) => ipcRenderer.send('widget:activity', id, !!active),
   closeSelf: () => ipcRenderer.send('widget:close-self'),
   onState: cb => ipcRenderer.on('widgets:state', (_e, state) => cb(state)),
 });
