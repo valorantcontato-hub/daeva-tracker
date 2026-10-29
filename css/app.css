@@ -820,9 +820,9 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 .stats-card .stat-tile b { font-size: 14px; }
 .hero { background: radial-gradient(ellipse at 73% 100%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 56%),var(--surface); }
 .hero { position: relative; isolation: isolate; overflow: hidden; }
-.hero::before { content: ''; position: absolute; z-index: -1; right: 64px; bottom: -6px; width: 300px; max-width: 56%; height: 100%; background: url('../icons/lotus-watermark-blue.png') center bottom / contain no-repeat; opacity: .18; pointer-events: none; }
+.hero::before { content: ''; position: absolute; z-index: -1; right: 42px; bottom: -22px; width: 410px; max-width: 80%; height: 145%; background: url('../icons/lotus-watermark-blue.png') center bottom / contain no-repeat; opacity: .18; pointer-events: none; }
 :root:not([data-theme="light"]) .hero::before { opacity: .09; filter: saturate(.7); }
-@media (max-width: 460px) { .hero::before { right: 30px; max-width: 60%; } }
+@media (max-width: 460px) { .hero::before { right: 12px; max-width: 86%; } }
 .hero-tabs a.active, .lang-switch button.active { background: linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 78%,#bc39fb)); color: #fff; }
 .hero-tabs a { padding: 5px 10px; }
 .tooltip { border-color: color-mix(in srgb,var(--accent) 45%,var(--border)); background: color-mix(in srgb,var(--surface) 95%,var(--accent)); }
