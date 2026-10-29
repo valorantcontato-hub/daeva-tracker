@@ -13,6 +13,7 @@ import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
 import { loadMonsterCatalog } from './monster-catalog.js';
 import { startLive } from './live.js';
+import { openStreamMode } from './stream-mode.js';
 import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
 import { load, save, notifyChange } from './store.js';
@@ -90,6 +91,7 @@ if (window.desktop) {
 }
 
 // Idioma (PT/EN): troca a interface e os nomes reais do jogo (vindos do site oficial no idioma escolhido).
+document.getElementById('stream-mode-btn')?.addEventListener('click', openStreamMode);
 const langBtns = [...document.querySelectorAll('.lang-switch [data-lang]')];
 langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === getLang()));
 document.querySelector('.lang-switch')?.addEventListener('click', async e => {
