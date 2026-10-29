@@ -112,7 +112,7 @@ const EXACT = {
   'Nenhuma luta ainda': 'No fights yet', 'Ver demonstração': 'See demo', 'Nenhum encontro salvo': 'No saved encounters',
   'DPS ao vivo': 'Live DPS', 'Jogadores': 'Players',
   // Bestiário
-  'Todos': 'All', '★ Farmando': '★ Farming', 'Em progresso': 'In progress', 'Não iniciado': 'Not started', 'Completo': 'Complete',
+  'Todos': 'All', 'MÁX.': 'MAX', 'Farmando': 'Farming', 'Sem foto': 'No photo', '★ Farmando': '★ Farming', 'Em progresso': 'In progress', 'Não iniciado': 'Not started', 'Completo': 'Complete',
   '+ Monstro': '+ Monster', 'Novo monstro': 'New monster', 'Editar monstro': 'Edit monster', 'Nome': 'Name', 'Nível': 'Level', 'Abates': 'Kills',
   'Salvar': 'Save', 'Cancelar': 'Cancel', 'Todas as regiões': 'All regions', 'Progresso geral': 'Overall progress',
   'Buscar monstro, região ou nota…': 'Search monster, region or note…', 'Buscar': 'Search', 'Farmando agora': 'Farming now',
