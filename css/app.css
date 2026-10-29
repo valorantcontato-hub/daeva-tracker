@@ -1574,3 +1574,5 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .combat-dmg { flex: none; min-width: 36px; text-align: right; font-size: 10px; color: #aeb4bf; font-variant-numeric: tabular-nums; }
 @container (max-width: 270px) { .combat-dmg { display: none; } }
 .prow .pk { display: block; font-size: 10px; font-weight: 500; color: #ffda76; line-height: 1.1; }
+
+.dps-active { font-style: normal; font-size: 10px; font-weight: 600; color: #8fd0ff; margin-right: 7px; }

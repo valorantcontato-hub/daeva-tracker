@@ -118,9 +118,10 @@ export function summarize(enc) {
   const players = enc.players.map(p => {
     let damage = 0, hits = 0, crits = 0;
     for (const s of p.skills) { damage += s.damage; hits += s.hits; crits += s.crits; }
-    const dps = damage / activeSeconds(p.timeline, dur);
-    // O pico nunca fica abaixo do DPS contínuo (em lutas curtas a janela de 10 s ainda não encheu).
-    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps, peak: Math.max(peakDps(p.timeline), dps) };
+    // dps: dano / duração da luta, o mesmo critério do Questlog (confere com ele até a 0,1K). activeDps: só o tempo em que o jogador
+    // bateu (mostra a taxa real quando ele entrou tarde ou houve pausas). peak: melhor momento de 10 s, nunca abaixo do ativo.
+    const activeDps = damage / activeSeconds(p.timeline, dur);
+    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / dur, activeDps, peak: Math.max(peakDps(p.timeline), activeDps) };
   }).sort((a, b) => b.damage - a.damage);
   const total = players.reduce((a, p) => a + p.damage, 0);
   for (const p of players) p.share = total ? p.damage / total : 0;

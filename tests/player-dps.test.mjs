@@ -11,8 +11,9 @@ test('quem entra depois não tem o DPS diluído pelo tempo em que ainda não bat
     { name: 'B', class: '', skills: skills(20000), timeline: flat(20, 39, 1000, 40) },
   ] };
   const S = summarize(enc);
-  assert.equal(S.players.find(p => p.name === 'A').dps, 1000);
-  assert.equal(S.players.find(p => p.name === 'B').dps, 1000); // antes: 500
+  assert.equal(S.players.find(p => p.name === 'A').activeDps, 1000);
+  assert.equal(S.players.find(p => p.name === 'B').activeDps, 1000); // sem diluir pelos 20 s em que ainda não batia
+  assert.equal(S.players.find(p => p.name === 'B').dps, 500); // DPS da luta: igual ao Questlog
   assert.equal(S.dps, 1500); // o DPS total da luta continua sobre a duração inteira
 });
 
@@ -38,9 +39,10 @@ test('pico é o melhor momento de 10 s; o DPS contínuo fica mais baixo quando h
   const S = summarize({ duration: 20, players: [{ name: 'A', class: '', skills: skills(80000), timeline: tl }] });
   assert.equal(S.players[0].peak, 6000);
   assert.equal(S.players[0].dps, 4000);
+  assert.equal(S.players[0].activeDps, 4000);
 });
 
 test('em luta curta o pico não fica abaixo do DPS contínuo', () => {
   const S = summarize({ duration: 9, players: [{ name: 'A', class: '', skills: skills(540000), timeline: [0, ...Array(8).fill(67500)] }] });
-  assert.ok(S.players[0].peak >= S.players[0].dps);
+  assert.ok(S.players[0].peak >= S.players[0].activeDps);
 });

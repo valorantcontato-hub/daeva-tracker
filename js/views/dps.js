@@ -127,7 +127,7 @@ export function renderDps(root, [id]) {
               <span class="rank">${i + 1}</span>
               <span class="pname">${classIcon(p.class, 22)}<span class="pname-txt"><b>${esc(p.name)}</b><span class="cls">${esc(c.name)}</span></span></span>
               <span class="pbar"><i style="width:${(p.share / maxShare) * 100}%"></i></span>
-              <span class="num c-dps">${compact(p.dps)}<small class="pk" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</small></span>
+              <span class="num c-dps">${compact(p.dps)}<small class="pk" title="Pico: melhor momento de 10 s · ativo: só o tempo batendo">pico ${compact(p.peak)} · ativo ${compact(p.activeDps)}</small></span>
               <span class="num c-total hide-sm">${compact(p.damage)}</span>
               <span class="num c-crit hide-sm">${pct(p.critRate, 0)}</span>
               <span class="num c-share">${pct(p.share)}</span>
