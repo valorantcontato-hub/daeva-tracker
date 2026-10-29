@@ -24,12 +24,11 @@ export const WIDGETS = {
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
-export const bossOnly = () => load('wgBossOnly', true);
 
-/** Luta atual (ao vivo ou a última). Com "somente chefe", ignora pulls de mobs comuns. */
-function currentFight() {
+/** Somente combate ao vivo: DPS de chefes; skills também em mobs e bonecos. */
+function currentFight(id) {
   const enc = liveFight();
-  if (!enc?.live || (bossOnly() && !isBossEncounter(enc))) return null;
+  if (!enc?.live || (id === 'party' && !isBossEncounter(enc))) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
@@ -173,8 +172,8 @@ function radarBody() {
 const BODIES = {
   radar: radarBody,
   party() {
-    const S = currentFight();
-    if (!S) return `<div class="wg-empty">${bossOnly() ? 'Nenhuma luta contra chefe ainda.' : 'Sem lutas ainda.'}</div>`;
+    const S = currentFight('party');
+    if (!S) return '';
     const top = S.players[0]?.share || 1;
     const mine = myPlayer(S)?.name;
     const hp = S.bossHp?.max ? Math.max(0, Math.min(1, S.bossHp.current / S.bossHp.max)) : null;
@@ -196,7 +195,7 @@ const BODIES = {
   },
 
   skills() {
-    const S = currentFight();
+    const S = currentFight('skills');
     const p = S && myPlayer(S);
     if (!p) return `<div class="wg-empty">${S ? 'Seu personagem ainda não foi identificado nesta luta.' : 'Sem lutas ainda.'}</div>`;
     const c = classInfo(p.class);
@@ -245,7 +244,7 @@ export function renderWidget(root, [id]) {
     clearTimeout(idleTimer);
     let visible = true;
     if (id !== 'radar') {
-      const fight = currentFight();
+      const fight = currentFight(id);
       const remaining = activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
       visible = remaining > 0;
       wg.classList.toggle('combat-idle', !visible);
@@ -261,11 +260,8 @@ export function renderWidget(root, [id]) {
   const off = onLive(() => paint() || off());
   if (id === 'radar') { const offPos = onPositions(() => paint() || offPos()); }
   // Mudou algo (em outra janela: evento "storage"; nesta: "a2t:changed"): repinta o widget.
-  let lastBossOnly = bossOnly();
   const onData = () => {
     if (!root.isConnected) { removeEventListener('storage', onData); removeEventListener('a2t:changed', onData); return; }
-    // Opção "somente chefe" muda o título também: redesenha o widget inteiro.
-    if (bossOnly() !== lastBossOnly) return renderWidget(root, [id]);
     paint();
   };
   addEventListener('storage', onData);
@@ -281,7 +277,7 @@ export async function renderWidgetsPage(root) {
   const ov = overlay();
   const state = ov ? await ov.list() : {};
 
-  const card = (id, w, extra = '') => {
+  const card = (id, w) => {
     const s = state[id] || {};
     return `
       <section class="card widget-card" data-id="${id}">
@@ -294,7 +290,6 @@ export async function renderWidgetsPage(root) {
         <p class="muted small widget-desc">${esc(w.desc)}</p>
 
         <div class="widget-opts">
-          ${extra}
           ${ov ? `
             <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar <span class="muted small">(cliques passam para o jogo; oculta ao passar o mouse)</span></label>` : ''}
           ${ov && s.scale != null ? `<label class="opt widget-size"><span>Tamanho</span><input aria-label="Tamanho de ${esc(w.title)}" type="range" min="75" max="150" step="5" value="${Math.round(s.scale * 100)}" data-opt="size"><output>${Math.round(s.scale * 100)}%</output><button class="btn sm" data-act="size-default" type="button">Padrão</button></label>` : ''}
@@ -304,57 +299,16 @@ export async function renderWidgetsPage(root) {
   };
 
   root.innerHTML = `
-    <div class="page-head">
-      <div>
-        <h1>Widgets</h1>
-        <p class="muted">Boss no alto à esquerda, skills à esquerda acima do chat e mini mapa embaixo à direita. Destrave para arrastar; cada posição fica salva.</p>
-      </div>
-    </div>
-    ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
+    ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/oculta os widgets · <kbd>PgUp</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
-    ${window.desktop ? '<section class="card rec-card"><h2>Posição e direção em tempo real</h2><p class="muted small">Leitura nativa iniciada automaticamente com o Lotus. Autorize o administrador quando o Windows solicitar.</p><p class="small muted" id="movement-status">Inicializando leitura de movimento…</p></section>' : ''}
     <div class="widget-list">
-      ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
+      ${card('party', WIDGETS.party)}
       ${card('skills', WIDGETS.skills)}
       ${card('radar', WIDGETS.radar)}
-    </div>
-    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Grava 2 minutos de dados recebidos e enviados na conexão do jogo, somente em um arquivo neste computador. Para estudar posição e direção: primeiro gire parado, depois ande em frente e para os lados. Entre novamente no personagem com a captura ligada para registrar também a identidade.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
+    </div>`;
 
 
-  const recStatus = root.querySelector('#rec-status');
-  const movementStatus = root.querySelector('#movement-status');
-  const paintMovement = status => {
-    if (!root.isConnected || !movementStatus) return;
-    movementStatus.textContent = status.movementMessage || 'Aguardando administrador e dados do personagem.';
-  };
-  if (movementStatus) {
-    window.desktop.status().then(paintMovement).catch(() => {});
-    window.desktop.onStatus(paintMovement);
-  }
-  let recTimer;
-  async function pollRecording() {
-    clearTimeout(recTimer);
-    if (!root.isConnected || !recStatus) return;
-    try {
-      const st = await (await fetch('/api/capture/record')).json();
-      if (st.state === 'recording') {
-        const left = Math.max(0, Math.round((Date.parse(st.endsAt) - Date.now()) / 1000));
-        recStatus.textContent = 'Gravando… faltam ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
-        recTimer = setTimeout(pollRecording, 2000);
-      } else if (st.state === 'done') recStatus.textContent = 'Pronto. Arquivo: ' + st.file;
-    } catch { /* servidor fora do ar */ }
-  }
-  pollRecording();
-  root.addEventListener('click', async e => {
-    if (e.target.closest('[data-act="record"]')) {
-      recStatus.textContent = 'Pedindo à captura…';
-      try {
-        await fetch('/api/capture/record?seconds=120', { method: 'POST' });
-        recStatus.textContent = 'Aguardando a captura iniciar (precisa estar ligada e com o jogo aberto)…';
-        setTimeout(pollRecording, 2500);
-      } catch { recStatus.textContent = 'Não consegui falar com a captura.'; }
-      return;
-    }
+  root.addEventListener('click', e => {
     const cardEl = e.target.closest('.widget-card');
     if (cardEl && e.target.closest('[data-act="size-default"]')) {
       ov?.set(cardEl.dataset.id, { scale: 1 });
@@ -374,7 +328,6 @@ export async function renderWidgetsPage(root) {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
-    if (opt === 'bossOnly') { save('wgBossOnly', e.target.checked); return notifyChange(); }
     if (!ov) return;
     if (opt === 'visible') ov.toggle(id, e.target.checked);
     if (opt === 'locked') ov.set(id, { locked: e.target.checked });
