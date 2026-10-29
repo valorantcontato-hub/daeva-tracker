@@ -1387,3 +1387,7 @@ html.home-fit .sub-body .card { padding: 12px; }
 .rd-row b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .rd-dot-i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #e9b949; }
 .rd-bar .mini { flex: 1; white-space: nowrap; width: auto; height: 26px; padding: 0 8px; font-size: 12px; }
+
+/* Filtro por tipo de mascote, com ícone */
+.fam-chip { display: inline-flex; align-items: center; gap: 6px; }
+.fam-chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }

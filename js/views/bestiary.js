@@ -6,14 +6,22 @@ import { readBestiary, writeBestiary, imageUrl, bestiaryKey } from '../bestiary-
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
 
-const FILTERS = [['all', 'Todos'], ['focus', '★ Farmando'], ['progress', 'Em progresso'], ['done', 'Completos']];
+// Tipos de mascote (campo "family" do catálogo). Ícones próprios em traço, no estilo do app.
+const ICON = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+const FAMILIES = [
+  ['Cogni', 'Intelectual', ICON('M12 4a5 5 0 0 0-5 5c0 1.6.7 2.4 1.5 3.3.6.7 1 1.4 1 2.2h5c0-.8.4-1.5 1-2.2.8-.9 1.5-1.7 1.5-3.3a5 5 0 0 0-5-5zM9.5 18.5h5M10.5 21h3')],
+  ['Fera', 'Feral', ICON('M5 6c1.5 4 2 8 2 13M10 4c1 4 1.4 9 1.2 15M15 4c.5 4 .3 9-.8 15M20 7c-1.5 4-2 8-1.8 12')],
+  ['Natura', 'Natural', ICON('M5 19c0-9 6-14 15-14 0 9-5 15-14 15zM5 19l8-8')],
+  ['Varian', 'Variante', ICON('M12 3l8 5v8l-8 5-8-5V8zM12 3v18M4 8l8 5 8-5')],
+  ['Special', 'Especial', ICON('M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z')],
+];
 const PAGE_SIZE = 60;
 
 export function renderBestiary(root) {
   root.className = 'page bestiary-page';
   const me = getMe();
   let pets, state, collection;
-  const ui = { q: '', region: '', page: 0, status: 'all' };
+  const ui = { q: '', region: '', page: 0, family: '' };
 
   root.innerHTML = `
     <div class="page-head"><div><h1>Mascotes</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
@@ -21,7 +29,7 @@ export function renderBestiary(root) {
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro ou região…" aria-label="Buscar">
       <select id="region" aria-label="Região"></select>
-      <div class="chips" role="tablist" aria-label="Filtro">${FILTERS.map(([k, l]) => `<button class="chip" data-filter="${k}" role="tab">${l}</button>`).join('')}</div>
+      <div class="chips" role="tablist" aria-label="Filtro">${FAMILIES.map(([k, l, icon]) => `<button class="chip fam-chip" data-filter="${k}" aria-pressed="false">${icon}${l}</button>`).join('')}</div>
     </div>
     <div class="small muted" id="bestiary-summary"></div>
     <div id="list" class="pet2-grid"></div>
@@ -58,10 +66,7 @@ export function renderBestiary(root) {
     const q = ui.q.trim().toLowerCase();
     const visible = pets.filter(m => {
       const p = petProgress(collection, m.petId);
-      const matches = ui.status === 'focus' ? state.focus.includes(m.id)
-        : ui.status === 'progress' ? p.known && !p.complete && p.total > 0
-        : ui.status === 'done' ? p.complete : true;
-      return matches && (!ui.region || m.maps?.includes(ui.region) || m.region === ui.region)
+      return (!ui.family || m.region === ui.family) && (!ui.region || m.maps?.includes(ui.region))
         && (!q || `${m.name} ${m.note} ${m.maps?.join(' ')}`.toLowerCase().includes(q));
     });
     const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -71,9 +76,9 @@ export function renderBestiary(root) {
     $('[data-page="-1"]').disabled = ui.page === 0;
     $('[data-page="1"]').disabled = ui.page + 1 >= pages;
     root.querySelectorAll('[data-filter]').forEach(el => {
-      const on = el.dataset.filter === ui.status;
+      const on = el.dataset.filter === ui.family;
       el.classList.toggle('active', on);
-      el.setAttribute('aria-selected', on);
+      el.setAttribute('aria-pressed', on);
     });
     $('#bestiary-summary').textContent = `${pets.filter(m => petProgress(collection, m.petId).complete).length} / ${pets.length} completos · ${state.focus.length} farmando`;
     $('#collection-status').textContent = collection
@@ -91,7 +96,7 @@ export function renderBestiary(root) {
       id: 'pet-' + p.id, petId: p.id, name: p.name, icon: p.icon, region: p.family,
       maps: [...new Set(p.mobs.flatMap(m => m.maps))], note: p.mobs.map(m => m.name).join(', '),
     }));
-    const regions = [...new Set(pets.flatMap(m => [m.region, ...(m.maps || [])]).filter(Boolean))].sort();
+    const regions = [...new Set(pets.flatMap(m => m.maps || []).filter(Boolean))].sort();
     $('#region').innerHTML = '<option value="">Todas as regiões</option>' + regions.map(r => `<option value="${esc(r)}" ${r === ui.region ? 'selected' : ''}>${esc(r)}</option>`).join('');
     renderList();
   }
@@ -105,7 +110,7 @@ export function renderBestiary(root) {
       state = readBestiary(me);
       renderList();
     }
-    if (filter) { ui.status = filter.dataset.filter; ui.page = 0; renderList(); }
+    if (filter) { ui.family = ui.family === filter.dataset.filter ? '' : filter.dataset.filter; ui.page = 0; renderList(); }
     if (page) { ui.page = Math.max(0, ui.page + Number(page.dataset.page)); renderList(); $('.toolbar').scrollIntoView({ block: 'start' }); }
   });
   $('#q').addEventListener('input', e => { ui.q = e.target.value; ui.page = 0; renderList(); });
