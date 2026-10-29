@@ -78,16 +78,38 @@ export function normalizeEncounter(raw) {
 /** Tempo mínimo (s) usado no DPS de quem bateu só um instante: evita um golpe isolado virar um DPS enorme. */
 const MIN_ACTIVE_SECONDS = 5;
 
+/** Pausas de até 2 s entre golpes (animação, macro) contam como tempo batendo; pausas maiores não. */
+const MAX_BRIDGED_GAP = 2;
+
 /**
- * Tempo em que o jogador esteve batendo: do primeiro ao último segundo com dano dele. Numa luta com várias
- * pessoas (boneco de treino, monstros em grupo) o combate começa quando o primeiro bate; quem entra depois não
- * pode ter o DPS diluído pelos segundos em que ainda nem tinha começado.
+ * Tempo em que o jogador esteve batendo: os segundos com dano dele mais as pausas curtas entre eles. Pausas longas
+ * (esperar o boneco de treino renascer, andar até outro monstro) e o tempo antes de ele entrar na luta não contam, para
+ * o DPS refletir a taxa em que ele realmente bate, e não quanto tempo a luta ficou aberta.
  */
 export function activeSeconds(timeline, fallback) {
-  let first = -1, last = -1;
-  for (let i = 0; i < (timeline || []).length; i++) if (timeline[i] > 0) { if (first < 0) first = i; last = i; }
-  if (first < 0) return fallback;
-  return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, last - first + 1));
+  let seconds = 0, last = -1;
+  for (let i = 0; i < (timeline || []).length; i++) {
+    if (!(timeline[i] > 0)) continue;
+    if (last >= 0 && i - last - 1 <= MAX_BRIDGED_GAP) seconds += i - last - 1;
+    seconds += 1;
+    last = i;
+  }
+  if (seconds === 0) return fallback;
+  return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, seconds));
+}
+
+/** Pico: o melhor momento de 'window' segundos seguidos (DPS médio dessa janela). */
+export function peakDps(timeline, window = 10) {
+  const t = timeline || [];
+  if (!t.length) return 0;
+  const w = Math.min(window, t.length);
+  let sum = 0, best = 0;
+  for (let i = 0; i < t.length; i++) {
+    sum += t[i] || 0;
+    if (i >= w) sum -= t[i - w] || 0;
+    if (i >= w - 1) best = Math.max(best, sum);
+  }
+  return best / w;
 }
 
 /** Totais derivados: dano, DPS, crit e participação por jogador (ordenado por dano). */
@@ -96,7 +118,10 @@ export function summarize(enc) {
   const players = enc.players.map(p => {
     let damage = 0, hits = 0, crits = 0;
     for (const s of p.skills) { damage += s.damage; hits += s.hits; crits += s.crits; }
-    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / activeSeconds(p.timeline, dur) };
+    // dps: dano / duração da luta, o mesmo critério do Questlog (confere com ele até a 0,1K). activeDps: só o tempo em que o jogador
+    // bateu (mostra a taxa real quando ele entrou tarde ou houve pausas). peak: melhor momento de 10 s, nunca abaixo do ativo.
+    const activeDps = damage / activeSeconds(p.timeline, dur);
+    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / dur, activeDps, peak: Math.max(peakDps(p.timeline), activeDps) };
   }).sort((a, b) => b.damage - a.damage);
   const total = players.reduce((a, p) => a + p.damage, 0);
   for (const p of players) p.share = total ? p.damage / total : 0;

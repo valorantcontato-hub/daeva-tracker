@@ -184,7 +184,7 @@ const BODIES = {
     return `
       <header class="combat-summary">
         <div class="combat-meta"><span>Combate <b>${duration(S.duration)}</b> ${S.live ? '<i class="combat-live"></i>' : ''}</span><strong>${compact(S.dps)} <small>DPS</small></strong></div>
-        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b></div>
+        <div class="combat-target">${entityIcon('boss', S.boss, { size: 18, icon: S.bossIcon })}<b>${esc(S.boss)}</b><span class="combat-total" title="Dano total de todos no chefe">dano <b>${compact(S.total)}</b></span></div>
         ${hp == null ? '' : `<div class="combat-hp"><i style="width:${hp * 100}%"></i><span>${int(S.bossHp.current)} / ${int(S.bossHp.max)} · ${pct(hp, 0)}</span></div>`}
       </header>
       <div class="combat-ranking">${S.players.map(p => {
@@ -193,7 +193,7 @@ const BODIES = {
         return `<div class="combat-player ${p.name === mine ? 'is-me' : ''}" style="--c:${c.color};--share:${(p.share / top) * 100}%">
           ${classIcon(p.class, 21)}<b class="combat-name">${esc(p.name)}</b>
           ${profile?.combatPower ? `<span class="combat-cp" title="Combat Power">CP ${compact(profile.combatPower)}</span>` : ''}
-          <strong class="combat-dps">${compact(p.dps)}<small>/s</small></strong><strong class="combat-share">${pct(p.share)}</strong>
+          <span class="combat-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</span><strong class="combat-dps" title="DPS da luta (como no Questlog) · ativo ${compact(p.activeDps)} só o tempo batendo">${compact(p.dps)}<small>/s</small></strong><span class="combat-dmg" title="Dano total no chefe">${compact(p.damage)}</span><strong class="combat-share">${pct(p.share)}</strong>
         </div>`;
       }).join('')}</div>`;
   },
@@ -207,7 +207,7 @@ const BODIES = {
     const best = rows[0]?.damage || 1;
     return `
       <header class="combat-summary skills-summary" style="--c:${c.color}" title="${esc(S.boss)} · ${pct(p.critRate)} crítico">
-        <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong>${compact(p.dps)} <small>DPS</small></strong></div>
+        <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong><em class="dps-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</em><em class="dps-active" title="DPS só no tempo em que você bateu">ativo ${compact(p.activeDps)}</em>${compact(p.dps)} <small>DPS</small></strong></div>
       </header>
       <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span><span>DMG</span><span>Crít.</span></div>
       <div class="skill-meters">${rows.map(s => `
