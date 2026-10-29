@@ -1337,3 +1337,9 @@ html.home-fit .home-page { height: auto; grid-template-rows: auto auto; }
 .fav-stats { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .fav-stats b { font-size: 12px; font-weight: 700; color: var(--text); }
 .fav-stats span { font-size: 11px; color: var(--muted); }
+
+/* Skills e Daevanion dentro do Início: mesmo cabeçalho e cartões da ficha */
+html.home-fit .sub-body { min-width: 0; }
+html.home-fit .sub-body .page-head { display: none; }
+html.home-fit .sub-body .page { padding: 0; gap: 10px; }
+html.home-fit .sub-body .card { padding: 12px; }

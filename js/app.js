@@ -29,7 +29,7 @@ function route() {
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');
-  document.documentElement.classList.toggle('home-fit', key === 'inicio' && !params[0]);
+  document.documentElement.classList.toggle('home-fit', key === 'inicio');
   document.querySelectorAll('[data-route]').forEach(a => {
     const on = a.dataset.route === key;
     a.classList.toggle('active', on);
