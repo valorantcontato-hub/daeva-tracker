@@ -146,7 +146,7 @@ O leitor depende do formato da versão do jogo. Se a chave ou o alinhamento não
 
 ## Créditos
 
-As imagens dos monstros vêm de [MetaBot.gg](https://metabot.gg/en/aion-2). O responsável informou que não há API, mas que as imagens do site podem ser usadas desde que o app mantenha um link de crédito (dofollow), que fica nas telas Boss e Mascotes. Dados além das imagens (por exemplo, pontos de spawn) não foram autorizados e não são coletados.
+As imagens dos monstros vêm de [MetaBot.gg](https://metabot.gg/en/aion-2), com a autorização do responsável do site; ele confirmou que o crédito no app não é necessário. Dados além das imagens (por exemplo, pontos de spawn) não foram autorizados e não são coletados.
 
 ## Licença
 
