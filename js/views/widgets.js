@@ -26,10 +26,10 @@ export const WIDGETS = {
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
-/** Somente combate ao vivo de CHEFE em DG instanciada: mundo aberto, mobs comuns e bonecos não aparecem nos overlays. */
-function currentFight() {
+/** Combate ao vivo. O painel de DPS da party ("party") só aparece em chefe de DG instanciada; o de skills também em mobs e bonecos. */
+function currentFight(id) {
   const enc = liveFight();
-  if (!enc?.live || !isInstancedBossFight(enc)) return null;
+  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
