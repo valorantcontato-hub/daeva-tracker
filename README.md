@@ -7,7 +7,7 @@ Tracker leve para AION 2 com dados **reais**:
 - **Boss**: histórico e status de DPS dos chefes finais de DG identificados no catálogo. Intermediários e bonecos não entram nessa página.
 - **Boneco de Treinamento**: tentativas com nome, duração, preparação de 5 segundos, dano próprio e comparação de duas tentativas concluídas.
 - **Bestiário**: coleção de 207 pets, com níveis e almas lidos do jogo; catálogo de monstros e abates locais em uma aba separada.
-- **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
+- **Widgets de overlay**: DPS da party, Skills e Mini mapa com mascotes, em janelas independentes que podem ficar abertas juntas.
 
 A interface usa um único tema escuro. A janela compacta abre em 580 × 940 px, limitada à área útil
 do monitor. O Início ajusta a altura dos itens ao espaço disponível, incluindo a faixa de atualização,
@@ -80,7 +80,7 @@ PlayNC (perfis oficiais) <──proxy── server.mjs <─────┘
 1. Instale o **[Npcap](https://npcap.com)** marcando *"WinPcap API-compatible Mode"* (o app avisa se faltar).
 2. Rode o instalador `Lotus Tracker Setup x.y.z.exe`. Não precisa de .NET nem de Node.
 3. Abra o app: ele inicia a captura sozinho. Jogue em **Janela** ou **Tela cheia sem bordas**.
-4. Em **Widgets**, ligue os que quiser e posicione nos cantos. `Ctrl+Shift+L` trava (clique atravessa), `Ctrl+Shift+H` mostra/oculta.
+4. Em **Widgets**, ligue os que quiser. DPS começa no alto à esquerda, skills embaixo à esquerda e mini mapa embaixo à direita. Destrave para arrastar; a posição fica salva. `Ctrl+Shift+L` trava/destrava e `Ctrl+Shift+H` (ou `Insert`) mostra/oculta. Travado, o widget deixa os cliques passarem para o jogo e some enquanto o mouse está sobre ele; ao sair, volta com a opacidade escolhida. A opacidade do mini mapa vale para o radar inteiro e os mascotes.
 
 ### Atualização automática (nunca baixe outro instalador)
 
@@ -134,7 +134,7 @@ A leitura consulta a chave temporária do protocolo no processo local do AION 2.
 
 Os comandos de movimento fornecem posição e direção do personagem, normalmente perto de 10 atualizações/s. A seta mantém a última direção recebida quando os dados param. Girar somente a câmera, sem uma atualização enviada pelo jogo, não gira a seta. A identificação do perfil continua obrigatória: posições de outros jogadores não são usadas como a sua.
 
-O radar usa a mesma orientação vertical do minimapa do jogo para os monstros e para a seta. Se precisar ajustar a referência visual, **Widgets → Mini mapa → Rotação do radar** gira o conjunto sem alterar as posições capturadas.
+O radar usa a mesma orientação vertical do minimapa do jogo para os monstros e para a seta, automaticamente. Não há ajuste manual de rotação.
 
 O leitor depende do formato da versão do jogo. Se a chave ou o alinhamento não forem validados, não interpreta bytes cifrados como posições. A implementação usa a pesquisa de [Aion 2 Protocol Research](https://github.com/lunixxx37/aion2-protocol-research), com licença MIT incluída em `licenses/`.
 

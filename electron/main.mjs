@@ -11,7 +11,7 @@ import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
 import { uiRepository } from './ui-source.mjs';
-import { migrateWidgets } from './widget-config.mjs';
+import { migrateWidgets, widgetBounds, widgetPointerOpacity } from './widget-config.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -31,7 +31,6 @@ const WIDGETS = {
   skills: { width: 340, height: 340 },
   radar: { width: 300, height: 460 },
 };
-const MARGIN = 16;
 const UPDATE_CHECK_MS = 15 * 60e3;
 // npm run dev: recarrega ao salvar a interface e reinicia ao salvar o código do app.
 const DEV = !app.isPackaged;
@@ -122,7 +121,7 @@ function startCapture() {
 function loadCfg() {
   try { cfg = JSON.parse(readFileSync(cfgPath(), 'utf8')); } catch { cfg = {}; }
   migrateWidgets(cfg);
-  for (const id of Object.keys(WIDGETS)) cfg[id] = { visible: false, locked: false, corner: '', bounds: null, ...cfg[id] };
+  for (const id of Object.keys(WIDGETS)) cfg[id] = { visible: false, locked: false, bounds: null, ...cfg[id] };
 }
 let saveTimer;
 function saveCfg() {
@@ -130,41 +129,42 @@ function saveCfg() {
   saveTimer = setTimeout(() => writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2)), 300);
 }
 function pushState() {
-  const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked, corner: c.corner }]));
+  const state = Object.fromEntries(Object.entries(cfg).filter(([id]) => WIDGETS[id]).map(([id, c]) => [id, { visible: c.visible, locked: c.locked }]));
   for (const w of [mainWin, ...wins.values()]) if (w && !w.isDestroyed()) w.webContents.send('widgets:state', state);
   return state;
 }
 
-function cornerBounds(id, corner) {
-  const { width, height } = cfg[id].bounds || WIDGETS[id];
-  const area = screen.getPrimaryDisplay().workArea;
-  const left = area.x + MARGIN, right = area.x + area.width - width - MARGIN;
-  const top = area.y + MARGIN, bottom = area.y + area.height - height - MARGIN;
-  const pos = { tl: [left, top], tr: [right, top], bl: [left, bottom], br: [right, bottom] }[corner];
-  return pos ? { x: pos[0], y: pos[1], width, height } : null;
-}
-
 function defaultBounds(id) {
-  // Empilha os widgets no canto superior direito na primeira vez.
-  const area = screen.getPrimaryDisplay().workArea;
-  const order = Object.keys(WIDGETS).indexOf(id);
-  const { width, height } = WIDGETS[id];
-  return { x: area.x + area.width - width - MARGIN - order * 24, y: area.y + MARGIN + order * 40, width, height };
+  const saved = cfg[id].bounds;
+  const area = (saved ? screen.getDisplayMatching(saved) : screen.getPrimaryDisplay()).workArea;
+  return widgetBounds(id, WIDGETS[id], saved, area);
 }
 
 function applyLock(win, locked) {
   // Travado: o mouse "atravessa" a janela até o jogo; forward mantém o hover.
   win.setIgnoreMouseEvents(locked, { forward: true });
   win.setFocusable(!locked);
+  applyPointerOpacity(win, locked);
 }
+
+function applyPointerOpacity(win, locked) {
+  const opacity = widgetPointerOpacity(locked, win.getBounds(), screen.getCursorScreenPoint());
+  if (win.getOpacity() !== opacity) win.setOpacity(opacity);
+}
+
+// Polling the native pointer also sees it through a click-through window.
+// DOM mouseenter cannot reliably restore a window that is already invisible.
+setInterval(() => {
+  for (const [id, win] of wins) if (!win.isDestroyed()) applyPointerOpacity(win, cfg[id].locked);
+}, 50).unref();
 
 function openWidget(id) {
   if (wins.has(id)) return wins.get(id).showInactive();
   const c = cfg[id];
-  const bounds = cornerBounds(id, c.corner) || c.bounds || defaultBounds(id);
+  const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,
-    minWidth: 220, minHeight: id === 'radar' ? 240 : 120,
+    minWidth: id === 'skills' ? 320 : 220, minHeight: id === 'radar' ? 240 : 120,
     frame: false, transparent: true, hasShadow: false, resizable: true,
     alwaysOnTop: true, skipTaskbar: true, fullscreenable: false, maximizable: false, minimizable: false,
     show: false, backgroundColor: '#00000000',
@@ -179,7 +179,7 @@ function openWidget(id) {
     c.bounds = win.getBounds();
     saveCfg();
   };
-  win.on('moved', () => { c.corner = ''; remember(); pushState(); });
+  win.on('moved', remember);
   win.on('resized', remember);
   win.on('closed', () => {
     wins.delete(id);
@@ -196,7 +196,6 @@ function setWidget(id, patch) {
   if ('visible' in patch) patch.visible ? openWidget(id) : win?.close();
   if (win && !win.isDestroyed()) {
     if ('locked' in patch) applyLock(win, c.locked);
-    if ('corner' in patch && c.corner) win.setBounds(cornerBounds(id, c.corner));
   }
   saveCfg();
   pushState();
@@ -246,7 +245,6 @@ ipcMain.handle('widget:toggle', (_e, id, on) => setWidget(id, { visible: !!on })
 ipcMain.handle('widget:set', (_e, id, patch) => {
   const allowed = {};
   if ('locked' in patch) allowed.locked = !!patch.locked;
-  if ('corner' in patch) allowed.corner = ['', 'tl', 'tr', 'bl', 'br'].includes(patch.corner) ? patch.corner : '';
   setWidget(id, allowed);
 });
 ipcMain.on('widget:close-self', e => {

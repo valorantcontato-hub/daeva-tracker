@@ -16,6 +16,7 @@ import { startLive } from './live.js';
 import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
 import { load, save, notifyChange } from './store.js';
+import { listenStream } from './stream.js';
 
 const view = document.getElementById('view');
 const routes = { inicio: renderHome, boss: renderDps, treinamento: renderTraining, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
@@ -74,9 +75,6 @@ if (!load('realDataOnly', false)) {
   save('realDataOnly', true);
 }
 // Interface atualizada (dev ao salvar, ou atualização ao vivo do app instalado): recarrega a janela.
-if (typeof EventSource !== 'undefined') {
-  new EventSource('/api/reload/stream').onmessage = () => location.reload();
-}
 
 // App desktop: janela sem barra do Windows; o topo do app arrasta a janela e tem minimizar/fechar.
 if (window.desktop) {
@@ -119,6 +117,7 @@ await loadMonsterCatalog();
 await loadPetCatalog();
 startCollection();
 startLive();
+listenStream('reload', () => location.reload());
 startTrainingRecorder();
 route();
 initDesktopBanner();

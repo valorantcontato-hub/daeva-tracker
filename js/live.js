@@ -9,6 +9,7 @@ import { readBestiary, writeBestiary, imageUrl } from './bestiary-state.js';
 import { findCatalogMonster, monsterPicture } from './monster-catalog.js';
 import { toast } from './util.js';
 import { isTrainingDummy, isBossEncounter } from './combat-types.js';
+import { listenStream } from './stream.js';
 
 let current = null;
 const subs = new Set();
@@ -58,8 +59,7 @@ function countKills(snap) {
 
 export function startLive() {
   if (startLive.es || typeof EventSource === 'undefined') return;
-  const es = startLive.es = new EventSource('/api/live/stream');
-  es.onmessage = e => {
+  startLive.es = listenStream('live', e => {
     const snap = JSON.parse(e.data);
     if (snap?.type === 'positions') { lastPos = snap; [...posSubs].forEach(fn => fn(snap)); return; }
     // Identidade (teleporte/relogin): vincula o personagem sem esperar uma luta.
@@ -82,7 +82,7 @@ export function startLive() {
     current = snap?.players?.length && snap.live ? snap : null;
     // Cópia: um handler pode re-renderizar a view e assinar de novo durante a iteração.
     [...subs].forEach(fn => fn(current));
-  };
+  });
 }
 
 let lastPos = null;
