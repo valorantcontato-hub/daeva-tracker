@@ -301,6 +301,7 @@ export async function renderWidgetsPage(root) {
     </div>
     ${ov ? `<div class="note"><kbd>Insert</kbd> mostra/esconde os widgets no jogo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> trava/destrava todos. Use o jogo em <b>Janela</b> ou <b>Tela cheia sem bordas</b>.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
+    ${window.desktop?.setMovement ? '<section class="card rec-card"><h2>Posição e direção em tempo real</h2><p class="muted small">Opção avançada: solicita administrador e reinicia a captura para ler os dados locais de movimento do jogo. Fica desligada ao abrir o Lotus. Usa a direção do personagem; girar somente a câmera não envia uma atualização.</p><div class="rec-row"><button class="btn primary sm" data-act="movement" aria-pressed="false">Ativar leitura de movimento</button><span class="small muted" id="movement-status"></span></div></section>' : ''}
     <div class="widget-list">
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
@@ -310,6 +311,17 @@ export async function renderWidgetsPage(root) {
 
 
   const recStatus = root.querySelector('#rec-status');
+  const movementButton = root.querySelector('[data-act="movement"]');
+  const paintMovement = status => {
+    if (!root.isConnected || !movementButton) return;
+    movementButton.setAttribute('aria-pressed', !!status.movementEnabled);
+    movementButton.textContent = status.movementEnabled ? 'Desativar leitura de movimento' : 'Ativar leitura de movimento';
+    root.querySelector('#movement-status').textContent = status.movementEnabled ? (status.movementMessage || 'Aguardando administrador e dados do personagem') : 'Desligada';
+  };
+  if (movementButton) {
+    window.desktop.status().then(paintMovement).catch(() => {});
+    window.desktop.onStatus(paintMovement);
+  }
   let recTimer;
   async function pollRecording() {
     clearTimeout(recTimer);
@@ -325,6 +337,15 @@ export async function renderWidgetsPage(root) {
   }
   pollRecording();
   root.addEventListener('click', async e => {
+    if (e.target.closest('[data-act="movement"]')) {
+      movementButton.disabled = true;
+      try {
+        const enabled = await window.desktop.setMovement(movementButton.getAttribute('aria-pressed') !== 'true');
+        paintMovement({ movementEnabled: enabled });
+      } catch (error) { root.querySelector('#movement-status').textContent = error.message || 'Não foi possível iniciar a leitura.'; }
+      finally { movementButton.disabled = false; }
+      return;
+    }
     if (e.target.closest('[data-act="record"]')) {
       recStatus.textContent = 'Pedindo à captura…';
       try {

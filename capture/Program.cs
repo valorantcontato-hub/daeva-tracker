@@ -40,6 +40,10 @@ var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.C
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder(engine.Dispatcher);
 using var tracker = new DaevaCapture.PositionTracker();
+// Opt-in da sessão: a captura comum continua sem leitura da memória do jogo.
+using var movement = args.Contains("--read-movement") ? new DaevaCapture.LiveMovement(engine.Dispatcher, engine.Store.GetLocalProfile, outbox.Enqueue) : null;
+var stopFile=Arg("--stop-file", "");
+int.TryParse(Arg("--owner-pid", "0"),out int ownerPid);
 long lastPositions = 0;
 string lastIdentity = "";
 var recordDir = Path.Combine(configDir, "recordings");
@@ -119,6 +123,8 @@ long lastDamage = -1;
 Guid lastId = Guid.Empty;
 while (!cts.IsCancellationRequested)
 {
+    if(stopFile.Length>0&&File.Exists(stopFile))break;
+    if(ownerPid>0) {try {using var owner=System.Diagnostics.Process.GetProcessById(ownerPid);if(owner.HasExited)break;}catch{break;}}
     engine.Tick();
     PollRecording();
     AnnounceIdentity();
@@ -161,8 +167,10 @@ void SendPositions()
     // local nomeado pelo jogo, com servidor, autoriza usar a entidade como sua posição.
     int? meId = DaevaCapture.PositionTracker.VerifiedLocalId(prof);
     object? self = null;
+    if(movement?.Get(prof) is { } live) self = new { x=live.Position.X,y=live.Position.Y,z=live.Position.Z,
+        heading=live.Position.Heading,headingSource="facing",ageMs=live.Age };
     // Usa somente a entidade local confirmada, com idade explícita da última posição recebida.
-    if (meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
+    if (self is null && meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
     if (seen.Count == 0 && self is null) return;
     var mobs = new List<object>();
     foreach (var (id, pos) in seen)

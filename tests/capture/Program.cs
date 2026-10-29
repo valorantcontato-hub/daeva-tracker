@@ -98,3 +98,49 @@ int observed=segments.Count;clientDispatcher.Process(Outgoing());
 Check(segments.Count==observed,"reset removes client connection observation");
 File.Delete(recordingFile);Directory.Delete(recordingDir);
 Console.WriteLine("PASS: another player's mounted position is not self; exact reverse game flow; recording lifecycle, sequence and truncation.");
+
+var vector=new Rc4(System.Text.Encoding.ASCII.GetBytes("Key"));
+Check(Convert.ToHexString(System.Text.Encoding.ASCII.GetBytes("Plaintext").Select(b=>(byte)(b^vector.Next())).ToArray())=="BBF316E8D940AF0AD3","published RC4 known-answer vector");
+long clock=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+byte[] MovementBody(int length=30,float facing=45) {
+    var p=new byte[length];p[0]=1;p[1]=0x37;p[2]=(byte)(length==30?2:0);
+    BitConverter.GetBytes(1000f).CopyTo(p,3);BitConverter.GetBytes(2000f).CopyTo(p,7);BitConverter.GetBytes(3000f).CopyTo(p,11);
+    BitConverter.GetBytes(facing).CopyTo(p,17);BitConverter.GetBytes(clock).CopyTo(p,length-8);return p;
+}
+Check(MovementCrypto.TryMovement(MovementBody(),clock,out var direct)&&direct.Heading==45&&direct.X==1000,"independent character-facing field decoded");
+Check(MovementCrypto.TryMovement(MovementBody(29,-90),clock,out direct)&&direct.Heading==180,"stop form keeps explicit facing");
+foreach(var (facing,expected) in new(float,float)[]{(0,90),(90,0),(-90,180),(180,270)})
+    Check(MovementCrypto.TryMovement(MovementBody(30,facing),clock,out direct)&&direct.Heading==expected,"facing converts world X/Y to radar north");
+Check(!MovementCrypto.TryMovement(MovementBody(30,float.NaN),clock,out _),"invalid facing rejected");
+Check(!MovementCrypto.TryMovement(MovementBody(),clock+1000000,out _),"stale or wrong-stream movement rejected");
+var testKey=Enumerable.Range(0,214).Select(i=>(byte)i).ToArray();var cipher=new Rc4(testKey);
+for(int n=0;n<517;n++)cipher.Next();
+byte[] CryptFrame(byte[] plain) => [..Var(plain.Length+4),..plain.Select(b=>(byte)(b^cipher.Next()))];
+byte[] timeBody=[1,0x36,..BitConverter.GetBytes(clock)];
+byte[] wire=[..CryptFrame(timeBody),..CryptFrame(timeBody),..CryptFrame(timeBody),..CryptFrame(MovementBody())];
+var moves=new List<ClientMovement>();var movementDecoder=new MovementCrypto(testKey,moves.Add);
+movementDecoder.Feed(100,wire.AsSpan(0,5),clock);
+movementDecoder.Feed(115,wire.AsSpan(15),clock+1);
+movementDecoder.Feed(105,wire.AsSpan(5,10),clock+2);
+movementDecoder.Feed(100,wire.AsSpan(0,5),clock+3);
+Check(moves.Count==1&&moves[0].Heading==45,"midstream cipher alignment, split/out-of-order TCP and retransmission");
+Console.WriteLine("PASS: RC4 vector, facing/stop layouts, invalid inputs and continuous midstream movement across TCP segments.");
+
+// Optional local investigation: neither captures nor keys are embedded in the repository or CI.
+if(args.Length==3&&args[0]=="--local-replay") {
+    var key=File.ReadAllBytes(args[2]);var replayMoves=new List<ClientMovement>();var replayDecoder=new MovementCrypto(key,replayMoves.Add);
+    foreach(var line in File.ReadLines(args[1])) {
+        var row=JsonSerializer.Deserialize<JsonElement>(line);
+        if(!row.TryGetProperty("type",out var type)||type.GetString()!="client-segment")continue;
+        Check(!row.GetProperty("truncated").GetBoolean(),"local recording truncated");
+        replayDecoder.Feed(row.GetProperty("seq").GetUInt32(),Convert.FromHexString(row.GetProperty("hex").GetString()!),row.GetProperty("t").GetInt64());
+    }
+    Check(replayMoves.Count==753,"local independent decoder agrees on all 753 real updates");
+    Console.WriteLine("PASS: 753 real movement updates independently decoded by C#.");
+}
+if(args.Length==2&&args[0]=="--probe-live-key") {
+    using var sourceReader=new MovementKeyReader(CancellationToken.None);var liveKey=sourceReader.CurrentKey(13328);
+    Console.WriteLine("Native locator found a pair: "+(liveKey is not null));
+    Check(liveKey is not null&&liveKey.AsSpan().SequenceEqual(File.ReadAllBytes(args[1])),"native locator must match independently validated local session key");
+    Console.WriteLine("PASS: native read-only locator matches independent local key.");
+}
