@@ -10,7 +10,7 @@ namespace DaevaCapture;
 
 public sealed class PacketRecorder : IDisposable
 {
-    const int SampleBytes = 160;
+    const int SampleBytes = 1024;
     const long MaxFileBytes = 150L * 1024 * 1024;
     readonly object gate = new();
     readonly CaptureDispatcher? dispatcher;
