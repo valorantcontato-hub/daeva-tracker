@@ -1256,3 +1256,5 @@ html.home-fit .hero-tabs a.active, html .account-page .hero-tabs a.active, .hero
 html .tabs a.active { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent); box-shadow: none; }
 html .tabs a.active .tab-ico { color: var(--accent); }
 html .slot .skin-mark { background: var(--accent); }
+/* Sem brilho nos botões ativos */
+html .hero-tabs a.active, html .lang-switch button.active, .hero-tabs a.active, .lang-switch button.active { box-shadow: none; }
