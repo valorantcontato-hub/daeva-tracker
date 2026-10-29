@@ -48,6 +48,11 @@ function fetchItem(profile, id, enchant, slotPos) {
   return p;
 }
 
+/** Detalhes já guardados dos itens equipados (para somar os totais). */
+export function cachedItems(profile) {
+  return (profile?.equipment || []).map(e => mem.get(keyOf(profile, e.id, e.enchant, e.slotPos))?.d).filter(Boolean);
+}
+
 /** Busca em segundo plano os itens equipados (2 por vez, para não sobrecarregar o site oficial). */
 let prefetchFor = '';
 export function prefetchItems(profile) {
@@ -64,7 +69,8 @@ export function prefetchItems(profile) {
       await fetchItem(profile, e.id, e.enchant, e.slotPos);
     }
   };
-  setTimeout(() => { worker(); worker(); }, 150);
+  const done = () => dispatchEvent(new Event("a2t:items"));
+  setTimeout(() => { Promise.all([worker(), worker()]).then(done); }, 150);
 }
 
 export const setTooltipContext = profile => { ctx = profile; if (profile) prefetchItems(profile); };
