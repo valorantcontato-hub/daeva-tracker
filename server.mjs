@@ -192,7 +192,9 @@ function announceSelf(ev) {
 let lastPositions = null;
 function announcePositions(ev) {
   if (!Array.isArray(ev?.mobs)) return;
-  lastPositions = { type: 'positions', capturedAt: ev.capturedAt || new Date().toISOString(), selfId: ev.selfId ?? null, self: ev.self || null, entities: ev.entities || 0, mobs: ev.mobs.slice(0, 400) };
+  lastPositions = { type: 'positions', capturedAt: ev.capturedAt || new Date().toISOString(), selfId: ev.selfId ?? null,
+    selfVerified: ev.selfVerified === true, selfProfile: ev.selfProfile || null,
+    self: ev.self || null, entities: ev.entities || 0, mobs: ev.mobs.slice(0, 400) };
   const line = `data: ${JSON.stringify(lastPositions)}\n\n`;
   for (const client of live.clients) client.write(line);
 }

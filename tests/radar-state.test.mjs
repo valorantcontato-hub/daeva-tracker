@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { radarSelf } from '../js/radar-state.js';
+import { radarSelf, verifiedRadarOwner, readVerifiedRadar } from '../js/radar-state.js';
 import { matchesPetStatus, PET_FAMILIES } from '../js/pet-families.js';
 
 test('radar orienta nos quatro sentidos, mantém ao parar e ignora ruído e teleporte', () => {
@@ -26,4 +26,16 @@ test('filtros não tratam coleção desconhecida como faltando; favoritos indepe
   assert.equal(matchesPetStatus(unknown,true,'farming'),true);
   assert.equal(matchesPetStatus(complete,true,'farming'),true);
   assert.equal(new Set(Object.values(PET_FAMILIES).map(f=>f.color)).size,5);
+});
+
+test('posição de outra pessoa, servidor diferente ou captura antiga não vira sua posição', () => {
+  const me = { name: 'Maguinha', serverId: 2401 };
+  const snapshot = { selfVerified: true, selfProfile: me };
+  assert.equal(verifiedRadarOwner(snapshot, me),true);
+  assert.equal(verifiedRadarOwner({ ...snapshot, selfProfile: { ...me, name: 'Other' } }, me),false);
+  assert.equal(verifiedRadarOwner({ ...snapshot, selfProfile: { ...me, serverId: 2402 } }, me),false);
+  assert.equal(verifiedRadarOwner({ ...snapshot, selfVerified: false }, me),false);
+  assert.equal(verifiedRadarOwner({ selfId: 12817, self: { x: 1,y: 2 } },me),false);
+  assert.equal(readVerifiedRadar({ self:{x:1,y:2},mobs:[] }),null);
+  assert.ok(readVerifiedRadar({ verifiedSelf:true,self:{x:1,y:2},mobs:[] }));
 });

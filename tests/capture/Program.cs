@@ -50,3 +50,44 @@ Check(messages.Count==prior+1,"compressed login state before combat lock, across
 Segment(bundle,100,3002);Check(messages.Count==prior+1,"TCP retransmission must not apply twice");
 PacketParser.DaevaPacket-=Identity;
 Console.WriteLine("PASS: decode, truncated payload, soul thresholds, decoded frame hook, gains, flow isolation, character switch.");
+
+// Regressão da gravação de 29/10: o 2a38 abaixo era de outro jogador, não do personagem local.
+using var positions = new PositionTracker();
+Send(a,Convert.FromHexString("2F2A38916401116B12270000881300000000000000EA2F87A101000091640100A00E8CC778E48BC700040E46"),4000);
+Check(positions.Get(12817,10000) is not null,"mounted entity position decoded");
+Check(PositionTracker.VerifiedLocalId(null) is null,"mounted entity must not become self");
+Check(PositionTracker.VerifiedLocalId(new(12817,"Player_12817",JobClass.Unknown,null,2401)) is null,"placeholder must not become self");
+Check(PositionTracker.VerifiedLocalId(new(777,"Alpha",JobClass.Sorcerer,45,0)) is null,"serverless guess must not become verified self");
+Check(PositionTracker.VerifiedLocalId(new(777,"Alpha",JobClass.Sorcerer,45,2401)) == 777,"named local profile authorizes own entity");
+
+// O observador do cliente aceita apenas a tupla reversa da conexão travada e nunca passa os comandos ao parser.
+var clientStore = new CombatStore(GameData.Empty);
+var clientDispatcher = new CaptureDispatcher(clientStore,GameData.Empty,Opcodes.Default) { RequireGameProcess=false };
+var segments = new List<TcpPayload>();
+clientDispatcher.DaevaClientPacket += segments.Add;
+byte[] heartbeat = Convert.FromHexString("0E0036A2D52E87A1010000");
+for(int n=0;n<12;n++) clientDispatcher.Process(new TcpPayload { Device="test",IsLoopbackDevice=true,SrcIp="127.0.0.2",DstIp="127.0.0.1",SrcPort=7000,DstPort=8000,Sequence=(uint)(100+n*heartbeat.Length),Data=heartbeat,TimestampMs=5000+n*100 });
+Check(clientDispatcher.Status.State == CaptureState.Locked,"game connection locked for client recording test");
+TcpPayload Outgoing(string source="127.0.0.1",string device="test",byte[]? bytes=null) => new() { Device=device,IsLoopbackDevice=true,SrcIp=source,DstIp="127.0.0.2",SrcPort=8000,DstPort=7000,Sequence=900,Data=bytes ?? [1,2,3],TimestampMs=6500 };
+clientDispatcher.Process(Outgoing("127.0.0.3"));
+clientDispatcher.Process(Outgoing(device:"other"));
+Check(segments.Count==0,"other connection or device not observed");
+var recordingDir=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"lotus-capture-test-"+Guid.NewGuid().ToString("N"));
+string recordingFile;
+using(var packetRecorder = new DaevaCapture.PacketRecorder(clientDispatcher)) {
+  clientDispatcher.Process(Outgoing());
+  recordingFile=packetRecorder.Start(recordingDir,120);
+  clientDispatcher.Process(Outgoing(bytes:Enumerable.Repeat((byte)0xab,5000).ToArray()));
+  packetRecorder.Stop();
+  clientDispatcher.Process(Outgoing());
+}
+var recorded=File.ReadLines(recordingFile).Select(l=>JsonSerializer.Deserialize<JsonElement>(l)).ToList();
+var clientRows=recorded.Where(r=>r.TryGetProperty("type",out var t)&&t.GetString()=="client-segment").ToList();
+Check(clientRows.Count==1,"client segments recorded only while requested recording active");
+Check(clientRows[0].GetProperty("seq").GetUInt32()==900 && clientRows[0].GetProperty("len").GetInt32()==5000,"client TCP metadata retained");
+Check(clientRows[0].GetProperty("truncated").GetBoolean() && clientRows[0].GetProperty("hex").GetString()!.Length==8192,"bounded sample explicitly marks truncation");
+clientDispatcher.ResetLock();
+int observed=segments.Count;clientDispatcher.Process(Outgoing());
+Check(segments.Count==observed,"reset removes client connection observation");
+File.Delete(recordingFile);Directory.Delete(recordingDir);
+Console.WriteLine("PASS: another player's mounted position is not self; exact reverse game flow; recording lifecycle, sequence and truncation.");
