@@ -1,21 +1,23 @@
 // Widgets compactos (#/w/<id>) para usar como janelas de overlay sobre o jogo,
 // e a tela de gerenciamento (#/widgets).
 import { load, save, notifyChange } from '../store.js';
-import { readBestiary, writeBestiary } from '../bestiary-state.js';
+import { readBestiary } from '../bestiary-state.js';
+import { isBossEncounter } from '../combat-types.js';
 import { classInfo } from '../data/classes.js';
-import { MILESTONES } from '../data/monsters.js';
+import { getPetCatalog, readCollection } from '../collection.js';
+import { petProgress } from '../collection-state.js';
+import { mergeMonsterCatalog } from '../monster-catalog.js';
 import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { getMe, findSkill, findProfileByName } from '../profiles.js';
 import { onLive } from '../live.js';
 import { getEncounters, playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
-import { ROMAN, LAST, tierOf, isElite, clampKills } from './bestiary.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
-  farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Monstros marcados como “Farmando agora”, com +1 rápido e os marcos 5 / 25 / 75.' },
+  farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Favoritos do bestiário, com o progresso de almas lido do jogo.' },
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
@@ -24,7 +26,7 @@ export const bossOnly = () => load('wgBossOnly', true);
 /** Luta atual (ao vivo ou a última). Com "somente chefe", ignora pulls de mobs comuns. */
 function currentFight() {
   const list = getEncounters();
-  const enc = bossOnly() ? list.find(e => e.isBoss !== false) : list[0];
+  const enc = bossOnly() ? list.find(isBossEncounter) : list[0];
   if (!enc) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
@@ -82,30 +84,15 @@ const BODIES = {
   },
 
   farm() {
-    const monsters = load('monsters', []) || [];
-    const { kills, focus: savedFocus } = readBestiary();
-    const focus = new Set(savedFocus);
-    let list = monsters.filter(m => focus.has(m.id));
-    if (!list.length) list = monsters.filter(m => (kills[m.id] || 0) > 0 && (kills[m.id] || 0) < LAST).slice(0, 6);
-    if (!list.length) return '<div class="wg-empty">Marque monstros com ★ no Bestiário.</div>';
-    return list.map(m => {
-      const c = kills[m.id] || 0;
-      const next = MILESTONES.find(x => c < x);
-      let lo = 0;
-      const segs = MILESTONES.map(hi => {
-        const f = Math.max(0, Math.min(1, (c - lo) / (hi - lo)));
-        lo = hi;
-        return `<div class="seg"><div class="track"><i style="width:${f * 100}%"></i></div></div>`;
-      }).join('');
-      const t = tierOf(c);
-      return `
-        <div class="wfarm">
-          ${entityIcon(isElite(m) ? 'boss' : 'monster', m.name, { size: 26, icon: m.icon })}
-          <span style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</b>
-            <span class="muted">${int(c)}/${LAST} ${t ? `<span class="pip t${t}">${ROMAN[t]}</span>` : ''} ${next ? `· faltam ${next - c}` : '· completo'}</span></span>
-          <button class="btn primary" data-kill="${esc(m.id)}">+1</button>
-          <div class="segbar">${segs}</div>
-        </div>`;
+    const { kills, focus } = readBestiary(), collection = readCollection();
+    const pets = getPetCatalog().map(p=>({...p,id:'pet-'+p.id,petId:p.id}));
+    const all = [...pets, ...mergeMonsterCatalog(load('monsters', []))];
+    const list = all.filter(m=>focus.includes(m.id));
+    if(!list.length) return '<div class="wg-empty">Marque monstros com ★ no Bestiário.</div>';
+    return list.map(m=> {
+      const p = petProgress(collection,m.petId);
+      const label = m.petId ? !p.known ? 'Não sincronizado' : p.complete ? 'Completo · III' : 'Nv. '+p.level+' · '+p.points+'/'+p.goal+' almas' : int(kills[m.id]||0)+' abates no app';
+      return '<div class="wfarm">'+entityIcon('monster',m.name,{size:26,icon:m.icon})+'<span style="min-width:0"><b>'+esc(m.name)+'</b><small class="muted" style="display:block">'+esc(label)+'</small></span><div class="segbar"><div class="seg"><div class="track"><i style="width:'+p.percent+'%"></i></div></div></div></div>';
     }).join('');
   },
 };
@@ -150,14 +137,6 @@ export function renderWidget(root, [id]) {
   addEventListener('a2t:changed', onData);
 
   root.addEventListener('click', e => {
-    const kill = e.target.closest('[data-kill]');
-    if (kill) {
-      const state = readBestiary();
-      const kills = state.kills;
-      kills[kill.dataset.kill] = clampKills((kills[kill.dataset.kill] || 0) + 1);
-      writeBestiary(state);
-      return paint();
-    }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'close') overlay() ? overlay().closeSelf() : window.close();
     if (act === 'lock') overlay()?.set(id, { locked: true });

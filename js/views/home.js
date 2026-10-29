@@ -7,7 +7,6 @@ import { setTooltipContext } from '../tooltip.js';
 import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
-import { renderMacros } from './macros.js';
 import { esc, int } from '../util.js';
 
 const REFRESH_MS = 60e3;
@@ -21,7 +20,7 @@ const GEAR = [
 const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
 // Aparência: só o que o personagem está usando.
 const LOOK = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape', 'WingSkin', 'Wings', 'Pet'];
-const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion'], ['macros', 'Macros']];
+const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion']];
 const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
 /** Casa de item. Itens equipados (com slotPos numérico) mostram o detalhe real ao passar o mouse. */
@@ -88,7 +87,6 @@ export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = 
   const body = root.querySelector('.sub-body');
   if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
   else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
-  else if (tab === 'macros') renderMacros(body.appendChild(document.createElement('div')), [], me);
   else body.innerHTML = characterMain(me, { withParty });
 }
 
@@ -105,7 +103,10 @@ function partyCard(me) {
         <a href="#/conta/${encodeURIComponent(p.characterId)}" class="member-link">
           <span class="avatar" style="--s:30px;--c:${c.color}">${classIcon(p.class, 30)}${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
           <span class="member-txt"><b>${esc(p.name)}${isMe ? ' <span class="badge">Eu</span>' : ''}</b><span class="small" style="color:${c.color}">${esc(c.name)} · Nv. ${p.level ?? '—'}</span></span>
-          <span class="num small"><b>${int(p.combatPower || 0)}</b><br><span class="muted">CP</span></span>
+          <span class="party-power">
+            <span class="num small" title="Combat Power"><b>${p.combatPower != null ? int(p.combatPower) : '—'}</b><span class="muted">CP</span></span>
+            <span class="num small" title="Item Level"><b>${p.itemLevel != null ? int(p.itemLevel) : '—'}</b><span class="muted">GS</span></span>
+          </span>
         </a>
         ${isMe ? '' : `<button class="mini" data-act="party-remove" data-id="${esc(p.characterId)}" title="Remover da party" aria-label="Remover ${esc(p.name)}">✕</button>`}
       </div>`;

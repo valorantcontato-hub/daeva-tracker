@@ -1,4 +1,6 @@
 import { renderDps } from './views/dps.js';
+import { renderTraining } from './views/training.js';
+import { startTrainingRecorder } from './training.js';
 import { renderBestiary } from './views/bestiary.js';
 import { renderAccount } from './views/account.js';
 import { renderHome } from './views/home.js';
@@ -11,17 +13,19 @@ import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
 import { loadMonsterCatalog } from './monster-catalog.js';
 import { startLive } from './live.js';
+import { loadPetCatalog, startCollection } from './collection.js';
 import { initDesktopBanner } from './desktop.js';
 import { load, save, notifyChange } from './store.js';
 
 const view = document.getElementById('view');
-const routes = { inicio: renderHome, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
+const routes = { inicio: renderHome, boss: renderDps, treinamento: renderTraining, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
 
 function route() {
   hideTooltip();
   const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  if (name === 'dps') return void location.replace('#/boss' + (params.length ? '/' + params.map(encodeURIComponent).join('/') : ''));
   // Skills e Daevanion agora vivem dentro do Início (menu do personagem).
-  if (['skills', 'daevanion', 'macros'].includes(name)) return void location.replace('#/inicio/' + name);
+  if (['skills', 'daevanion'].includes(name)) return void location.replace('#/inicio/' + name);
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');
@@ -49,7 +53,8 @@ function refreshOnData(e) {
   if (e.type === 'storage' && !/^a2t:(kills|focus|monsters|encounters|me|party|bestiary:.*)$/.test(e.key || '')) return;
   // O bestiário atualiza os contadores preservando busca, filtros e página atual.
   if (view.firstElementChild?.classList.contains('bestiary-page')) return;
-  if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea') || document.querySelector('.macro-editor')) return;
+  if (view.firstElementChild?.classList.contains('training-page')) return;
+  if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea')) return;
   route();
 }
 addEventListener('storage', refreshOnData);
@@ -94,7 +99,10 @@ initTooltips();
 setTooltipContext(getMe()); // já começa a buscar os detalhes dos itens, para o tooltip abrir na hora
 await loadIconManifest();
 await loadMonsterCatalog();
+await loadPetCatalog();
+startCollection();
 startLive();
+startTrainingRecorder();
 route();
 initDesktopBanner();
 initI18n();

@@ -147,8 +147,8 @@ async function findMember(player, me) {
 export async function autoLinkFromFight(fight) {
   const self = fight.self;
   const current = getMe();
-  const wrong = !current || norm(current.name) !== norm(self?.name) || (self?.class && current.class && current.class !== self.class);
-  const myKey = 'me:' + norm(self?.name);
+  const wrong = !current || norm(current.name) !== norm(self?.name) || (self?.serverId && String(current.serverId) !== String(self.serverId)) || (self?.class && current.class && current.class !== self.class);
+  const myKey = 'me:' + (self?.serverId || '') + ':' + norm(self?.name);
   if (self?.name && wrong && !cooling(myKey)) {
     try {
       // Começa pela região salva da última busca manual, depois tenta as outras.

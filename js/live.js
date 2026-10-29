@@ -3,15 +3,16 @@
 // e os perfis reais (você e a party) são vinculados automaticamente.
 import { load, save, notifyChange } from './store.js';
 import { normalizeEncounter } from './encounter.js';
-import { MILESTONES } from './data/monsters.js';
 import { autoLinkFromFight } from './profiles.js';
 import { getMe } from './profiles.js';
 import { readBestiary, writeBestiary, imageUrl } from './bestiary-state.js';
 import { findCatalogMonster, monsterPicture } from './monster-catalog.js';
 import { toast } from './util.js';
+import { isTrainingDummy, isBossEncounter } from './combat-types.js';
 
 let current = null;
 const subs = new Set();
+const snapshotSubs = new Set();
 const handled = new Set();
 let linking = null;
 
@@ -22,11 +23,11 @@ const norm = s => String(s || '').trim().toLowerCase();
 function archive(snap) {
   const enc = normalizeEncounter(snap);
   // Histórico de DPS: chefes e lutas mais longas; pulls rápidos de mob só contam abates.
-  if (!snap.isDummy && (snap.isBoss !== false || enc.duration >= 20)) {
+  if (isBossEncounter(snap)) {
     const list = load('encounters', []);
     if (!list.some(e => e.id === enc.id)) save('encounters', [enc, ...list]);
   }
-  countKills(snap);
+  if (!isTrainingDummy(snap)) countKills(snap);
   notifyChange();
 }
 
@@ -50,8 +51,6 @@ function countKills(snap) {
     if (imageUrl(t.icon)) m.icon = imageUrl(t.icon);
     else if (!m.icon) m.icon = monsterPicture(t);
     kills[m.id] = before + 1;
-    const reached = MILESTONES.find(ms => before < ms && kills[m.id] >= ms);
-    if (reached) toast(`${m.name}: marco de ${reached} abates alcançado!`);
   }
   save('monsters', monsters);
   writeBestiary(state, me);
@@ -62,6 +61,7 @@ export function startLive() {
   const es = startLive.es = new EventSource('/api/live/stream');
   es.onmessage = e => {
     const snap = JSON.parse(e.data);
+    for (const fn of [...snapshotSubs]) fn(snap);
     if (snap && isPrimary()) {
       if (!snap.live && snap.players?.length && !handled.has(snap.id)) {
         handled.add(snap.id);
@@ -78,6 +78,10 @@ export function startLive() {
 }
 
 export const liveFight = () => current;
+export function onSnapshot(fn) {
+  snapshotSubs.add(fn);
+  return () => snapshotSubs.delete(fn);
+}
 export function onLive(fn) {
   subs.add(fn);
   return () => subs.delete(fn);

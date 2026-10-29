@@ -83,7 +83,13 @@ jobs:
           npm ci
           npm version ${{ steps.plan.outputs.version }} --no-git-tag-version --allow-same-version
           node tools/set-publish.mjs ${{ github.repository_owner }} ${{ github.event.repository.name }}
+          node --test tests/*.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run build:capture
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $engineDir = Join-Path $env:LOCALAPPDATA 'DaevaTracker\engine\Aion2DPSMeter'
+          dotnet run --project tests/capture/CaptureTests.csproj "-p:EngineDir=$engineDir"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Cria tag + release antes: o electron-builder só envia os arquivos (evita corrida ao criar a release).
           $tag = "v${{ steps.plan.outputs.version }}"
           gh release view $tag 2>$null | Out-Null

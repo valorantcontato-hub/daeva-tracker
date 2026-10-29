@@ -64,6 +64,8 @@ export function normalizeEncounter(raw) {
     duration: Number(raw.duration) || longest || 1,
     result: raw.result === 'wipe' ? 'wipe' : 'kill',
     isBoss: raw.isBoss !== false,
+    isDummy: raw.isDummy === true,
+    npcCode: Number(raw.npcCode) || 0,
     bossHp: raw.bossHp?.max ? { max: +raw.bossHp.max, current: +raw.bossHp.current || 0 } : null,
     targets: Array.isArray(raw.targets) ? raw.targets.map(t => ({
       npcCode: +t.npcCode || 0, name: String(t.name || ''), isBoss: !!t.isBoss, killed: !!t.killed, damage: +t.damage || 0,

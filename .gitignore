@@ -5,3 +5,5 @@ capture/bin/
 capture/obj/
 capture/dist/
 .claude/
+tests/capture/bin/
+tests/capture/obj/
