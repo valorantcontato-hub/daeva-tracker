@@ -21,17 +21,28 @@ import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOf
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'DPS, participação, dano total e crítico de cada habilidade ativa do seu personagem.' },
-  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
+  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes), sem os já completos: progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
 };
+
+// Quantas skills o widget de Skills mostra (0 = todas), escolhido na tela Widgets.
+const SKILL_LIMITS = [3, 5, 8, 10, 15, 0];
+export const skillLimit = () => { const n = Number(load('wgSkillLimit', 8)); return SKILL_LIMITS.includes(n) ? n : 8; };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
 /** Combate ao vivo. O painel de DPS da party ("party") só aparece em chefe de DG instanciada; o de skills também em mobs e bonecos. */
+const LINGER_MS = 15000; // painéis de combate ficam 15 s na tela depois que a luta (ou o dano) termina
+const lingering = {};
 function currentFight(id) {
   const enc = liveFight();
-  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) return null;
+  if (!enc?.live || (id === 'party' && !isInstancedBossFight(enc))) {
+    const last = lingering[id];
+    if (last && Date.now() - last.at < LINGER_MS) return { ...last.S, live: false, lingerLeft: LINGER_MS - (Date.now() - last.at) };
+    return null;
+  }
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
+  lingering[id] = { S, at: Date.now() };
   return S;
 }
 
@@ -55,7 +66,9 @@ function farmingEntries() {
   const out = [];
   for (const pet of getPetCatalog()) {
     if (!focus.includes('pet-' + pet.id)) continue;
-    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress: petProgress(collection, pet.id),
+    const progress = petProgress(collection, pet.id);
+    if (progress.known && progress.complete) continue; // mascote completo (MAX) não precisa mais ser farmado
+    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress,
       names: new Set([normName(pet.name), ...(pet.mobs || []).map(m => normName(m.name))]) });
   }
   for (const m of mergeMonsterCatalog(load('monsters', []))) {
@@ -247,12 +260,13 @@ const BODIES = {
     const c = classInfo(p.class);
     const rows = groupSkillVariants(activeSkills(p), skill => skillLabel(p, skill));
     const best = rows[0]?.damage || 1;
+    const limit = skillLimit(), shown = limit ? rows.slice(0, limit) : rows;
     return `
       <header class="combat-summary skills-summary" style="--c:${c.color}" title="${esc(S.boss)} · ${pct(p.critRate)} crítico">
         <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong><em class="dps-peak" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</em><em class="dps-active" title="DPS só no tempo em que você bateu">ativo ${compact(p.activeDps)}</em>${compact(p.dps)} <small>DPS</small></strong></div>
       </header>
       <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span><span>DMG</span><span>Crít.</span></div>
-      <div class="skill-meters">${rows.map(s => `
+      <div class="skill-meters">${shown.map(s => `
         <div class="skill-meter" style="--c:${c.color};--share:${(s.damage / best) * 100}%" title="${esc(skillLabel(p, s))} · ${int(s.hits)} hits · maior acerto ${int(s.max)}">
           <span class="skill-art">${skillIconHtml(p, s, 16)}</span>
           <div class="skill-meter-name"><b>${esc(skillLabel(p, s))}</b></div>
@@ -294,7 +308,7 @@ export function renderWidget(root, [id]) {
     let visible = true;
     if (id !== 'radar') {
       const fight = currentFight(id);
-      const remaining = activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
+      const remaining = fight?.lingerLeft ?? activity(fight, id === 'skills' ? myPlayer(fight || { players: [] })?.damage : fight?.total);
       visible = remaining > 0;
       wg.classList.toggle('combat-idle', !visible);
       if (visible) idleTimer = setTimeout(paint, remaining + 10);
@@ -343,6 +357,7 @@ export async function renderWidgetsPage(root) {
           ${ov ? `
             <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar <span class="muted small">(cliques passam para o jogo; oculta ao passar o mouse)</span></label>` : ''}
           ${ov && s.scale != null ? `<label class="opt widget-size"><span>Tamanho</span><input aria-label="Tamanho de ${esc(w.title)}" type="range" min="75" max="150" step="5" value="${Math.round(s.scale * 100)}" data-opt="size"><output>${Math.round(s.scale * 100)}%</output><button class="btn sm" data-act="size-default" type="button">Padrão</button></label>` : ''}
+          ${id === 'skills' ? `<label class="opt"><span>Skills mostradas</span><select aria-label="Quantas skills mostrar" data-opt="skillLimit">${SKILL_LIMITS.map(n => `<option value="${n}" ${n === skillLimit() ? 'selected' : ''}>${n || 'Todas'}</option>`).join('')}</select></label>` : ''}
           <label class="opt"><span>Opacidade</span><input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity"></label>
         </div>
       </section>`;
@@ -385,6 +400,7 @@ export async function renderWidgetsPage(root) {
   });
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
+    if (opt === 'skillLimit') { save('wgSkillLimit', Number(e.target.value)); notifyChange(); return; }
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
     if (!ov) return;

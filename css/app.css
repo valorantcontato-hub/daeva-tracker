@@ -1608,3 +1608,5 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .q-row.is-me { background: linear-gradient(90deg, #8a6d2c66, #8a6d2c26); box-shadow: inset 3px 0 #e6c04a; }
 .q-row.is-me::before { background: color-mix(in srgb, #e6c04a 30%, transparent); }
 @container (max-width: 270px) { .q-cols span:nth-child(4), .q-cols span:nth-child(5), .q-row > :nth-child(4), .q-row > :nth-child(5) { display: none; } .q-cols, .q-row { grid-template-columns: minmax(0, 1fr) 50px 62px; } }
+/* Dano total do jogador no painel do chefe: branco e maior para ler no meio da luta */
+.combat-dmg { min-width: 46px; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000a; }
