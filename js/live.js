@@ -5,6 +5,8 @@ import { load, save, notifyChange } from './store.js';
 import { normalizeEncounter } from './encounter.js';
 import { MILESTONES } from './data/monsters.js';
 import { autoLinkFromFight } from './profiles.js';
+import { getMe } from './profiles.js';
+import { readBestiary, writeBestiary, imageUrl } from './bestiary-state.js';
 import { toast } from './util.js';
 
 let current = null;
@@ -28,10 +30,14 @@ function archive(snap) {
 }
 
 function countKills(snap) {
+  const me = getMe();
+  // Um personagem recém-trocado ainda pode estar sendo vinculado: não grava no anterior.
+  if (me && snap.self?.name && norm(snap.self.name) !== norm(me.name)) return;
   const killed = (snap.targets || []).filter(t => t.killed && !t.isBoss && t.name);
   if (!killed.length) return;
   const monsters = load('monsters', []);
-  const kills = load('kills', {});
+  const state = readBestiary(me);
+  const kills = state.kills;
   for (const t of killed) {
     let m = monsters.find(x => (t.npcCode && x.npcCode === t.npcCode) || norm(x.name) === norm(t.name));
     if (!m) {
@@ -39,12 +45,13 @@ function countKills(snap) {
       monsters.push(m);
     }
     const before = kills[m.id] || 0;
+    if (imageUrl(t.icon)) m.icon = imageUrl(t.icon);
     kills[m.id] = before + 1;
     const reached = MILESTONES.find(ms => before < ms && kills[m.id] >= ms);
     if (reached) toast(`${m.name}: marco de ${reached} abates alcançado!`);
   }
   save('monsters', monsters);
-  save('kills', kills);
+  writeBestiary(state, me);
 }
 
 export function startLive() {

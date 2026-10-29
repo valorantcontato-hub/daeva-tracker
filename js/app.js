@@ -20,7 +20,7 @@ function route() {
   hideTooltip();
   const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   // Skills e Daevanion agora vivem dentro do Início (menu do personagem).
-  if (name === 'skills' || name === 'daevanion') return void location.replace('#/inicio/' + name);
+  if (['skills', 'daevanion', 'macros'].includes(name)) return void location.replace('#/inicio/' + name);
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');
@@ -45,8 +45,8 @@ addEventListener('hashchange', route);
 // Mudanças feitas em outra janela (ex.: +1 no widget de Farm) ou pela captura atualizam a tela.
 function refreshOnData(e) {
   if (document.documentElement.classList.contains('widget-mode')) return;
-  if (e.type === 'storage' && !/^a2t:(kills|focus|monsters|encounters|me|party)$/.test(e.key || '')) return;
-  if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select')) return;
+  if (e.type === 'storage' && !/^a2t:(kills|focus|monsters|encounters|me|party|bestiary:.*)$/.test(e.key || '')) return;
+  if (document.querySelector('dialog[open]') || document.activeElement?.matches('input, select, textarea') || document.querySelector('.macro-editor')) return;
   route();
 }
 addEventListener('storage', refreshOnData);

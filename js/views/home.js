@@ -2,11 +2,12 @@
 // (Personagem · Skills · Daevanion). Atualiza sozinho.
 import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
-import { getMe, refreshProfile } from '../profiles.js';
+import { getMe, getParty, refreshProfile, removePartyMember } from '../profiles.js';
 import { setTooltipContext } from '../tooltip.js';
 import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
+import { renderMacros } from './macros.js';
 import { esc, int } from '../util.js';
 
 const REFRESH_MS = 60e3;
@@ -18,9 +19,9 @@ const GEAR = [
   ['Bracelet1', 'Bracelet2'], ['Rune1', 'Rune2'],
 ];
 const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
-// Aparência: uma coluna, só o que o personagem está usando.
+// Aparência: só o que o personagem está usando.
 const LOOK = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape', 'WingSkin', 'Wings', 'Pet'];
-const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion']];
+const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion'], ['macros', 'Macros']];
 const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
 /** Casa de item. Itens equipados (com slotPos numérico) mostram o detalhe real ao passar o mouse. */
@@ -58,9 +59,11 @@ function heroHtml(me, extra = '', tabs = '') {
       </div>
       <div class="hero-info">
         <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
-        <h1 class="hero-name">${esc(me.name)}</h1>
+        <div class="hero-name-row">
+          <h1 class="hero-name">${esc(me.name)}</h1>
+          <div class="meta hero-class">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
+        </div>
         ${me.title ? `<div class="hero-title">${esc(me.title)}</div>` : ''}
-        <div class="meta">${classIcon(me.class, 22)}<b style="color:${c.color}">${esc(c.name)}</b><span>Nível ${me.level}</span></div>
         <div class="hero-stats">
           <div><span>Combat Power</span><b>${int(me.combatPower || 0)}</b></div>
           <div><span>Item Level</span><b>${me.itemLevel != null ? int(me.itemLevel) : '—'}</b></div>
@@ -75,7 +78,7 @@ function heroHtml(me, extra = '', tabs = '') {
  * Ficha completa do personagem: cabeçalho, menu (Personagem · Skills · Daevanion) e a aba escolhida.
  * base = início do link das abas (ex.: "#/inicio" ou "#/conta/<id>").
  */
-export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '' } = {}) {
+export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = '', withParty = false } = {}) {
   setTooltipContext(me);
   // O menu do personagem fica dentro do cabeçalho (mais compacto).
   const tabs = `<nav class="hero-tabs" aria-label="Menu do personagem">
@@ -85,45 +88,72 @@ export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = 
   const body = root.querySelector('.sub-body');
   if (tab === 'skills') renderSkills(body.appendChild(document.createElement('div')), [], me);
   else if (tab === 'daevanion') renderDaevanion(body.appendChild(document.createElement('div')), [], me);
-  else body.innerHTML = characterMain(me);
+  else if (tab === 'macros') renderMacros(body.appendChild(document.createElement('div')), [], me);
+  else body.innerHTML = characterMain(me, { withParty });
 }
 
-function characterMain(me) {
+/** Casas em grade que se esticam para preencher toda a largura do container. */
+const grid = (cols, items) => `<div class="tile-grid" style="--cols:${cols}">${items.join('')}</div>`;
+
+/** "Minha party": você e os membros já vinculados; clique abre a ficha, ✕ remove. */
+function partyCard(me) {
+  const members = [me, ...getParty().filter(m => m.characterId !== me.characterId)];
+  const row = (p, isMe) => {
+    const c = classInfo(p.class);
+    return `
+      <div class="member">
+        <a href="#/conta/${encodeURIComponent(p.characterId)}" class="member-link">
+          <span class="avatar" style="--s:30px;--c:${c.color}">${classIcon(p.class, 30)}${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
+          <span class="member-txt"><b>${esc(p.name)}${isMe ? ' <span class="badge">Eu</span>' : ''}</b><span class="small" style="color:${c.color}">${esc(c.name)} · Nv. ${p.level ?? '—'}</span></span>
+          <span class="num small"><b>${int(p.combatPower || 0)}</b><br><span class="muted">CP</span></span>
+        </a>
+        ${isMe ? '' : `<button class="mini" data-act="party-remove" data-id="${esc(p.characterId)}" title="Remover da party" aria-label="Remover ${esc(p.name)}">✕</button>`}
+      </div>`;
+  };
+  return `
+    <section class="card party-card">
+      <div class="card-head"><h2>Minha party</h2><span class="muted small">${members.length} membro(s)</span></div>
+      <div class="party-list">${members.map((m, i) => row(m, i === 0)).join('')}</div>
+      ${members.length < 2 ? '<p class="muted small" style="margin-top:6px">Os membros entram sozinhos nas lutas contra chefes, ou use a busca em Conta (+ Party).</p>' : ''}
+    </section>`;
+}
+
+function characterMain(me, { withParty = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
   const skins = Object.fromEntries((me.skins || []).map(e => [e.slot, e]));
   const extras = { Wings: me.wings, WingSkin: me.wingSkin, Pet: me.pet };
   const look = LOOK.map(s => skins[s] || extras[s]).filter(Boolean);
   const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
   const board = (me.stats || []).filter(s => !BASE_STATS.includes(s.type));
+  // Equipamentos em 4 colunas (dois pares por linha, como a janela do jogo).
+  const gear = [];
+  for (let i = 0; i < GEAR.length; i += 2) gear.push(...GEAR[i], ...(GEAR[i + 1] || []));
 
   return `
     <div class="home-main">
       <section class="card gear-card">
-          <div class="gear-top">
-            <div class="gear-col">
-              <div class="card-head"><h2>Equipamentos</h2></div>
-              <div class="gear">
-                ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
-              </div>
-            </div>
-            <div class="gear-col look-col">
-              <div class="card-head"><h2>Aparência</h2></div>
-              <div class="gear look">
-                ${look.map(i => `<div class="gear-row">${tile(i, { skin: true })}</div>`).join('') || '<p class="muted small">Sem itens de aparência.</p>'}
-              </div>
-            </div>
-          </div>
-          <div class="arcana-block">
-            <div class="card-head"><h3>Arcanas</h3></div>
-            <div class="gear-row">${ARCANA.map(s => tile(bySlot[s])).join('')}</div>
-          </div>
-        </section>
-
-      <section class="card stats-card">
-        <div class="card-head"><h2>Atributos</h2></div>
-        <div class="stat-grid">${base.map(statTile).join('')}</div>
-        ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+        <div class="gear-block">
+          <div class="card-head"><h2>Equipamentos</h2></div>
+          ${grid(4, gear.map(s => tile(bySlot[s])))}
+        </div>
+        <div class="gear-block">
+          <div class="card-head"><h2>Aparência</h2></div>
+          ${look.length ? grid(4, look.map(i => tile(i, { skin: true }))) : '<p class="muted small">Sem itens de aparência.</p>'}
+        </div>
+        <div class="gear-block">
+          <div class="card-head"><h3>Arcanas</h3></div>
+          ${grid(5, ARCANA.map(s => tile(bySlot[s])))}
+        </div>
       </section>
+
+      <div class="side-col">
+        <section class="card stats-card">
+          <div class="card-head"><h2>Atributos</h2></div>
+          <div class="stat-grid">${base.map(statTile).join('')}</div>
+          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+        </section>
+        ${withParty ? partyCard(me) : ''}
+      </div>
     </div>`;
 }
 
@@ -145,7 +175,7 @@ export function renderHome(root, [tab = ''] = []) {
   }
 
   function render() {
-    characterSheet(root, me, { tab, base: '#/inicio' });
+    characterSheet(root, me, { tab, base: '#/inicio', withParty: true });
   }
 
   // Atualiza em silêncio a cada minuto (troca de equipamento no jogo aparece sozinha). Nas abas de
@@ -158,6 +188,13 @@ export function renderHome(root, [tab = ''] = []) {
       if (tab === '') render();
     } catch { /* sem internet ou PlayNC fora do ar: mantém o que já está na tela */ }
   }
+
+  root.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act="party-remove"]');
+    if (!btn) return;
+    removePartyMember(btn.dataset.id);
+    render();
+  });
 
   const timer = setInterval(refresh, REFRESH_MS);
   render();

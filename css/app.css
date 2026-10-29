@@ -664,3 +664,93 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 .stat-ico svg, .stat-grid.compact .stat-ico svg { width: 13px; height: 13px; }
 .stat-name { font-size: 10.5px; letter-spacing: -.2px; }
 .stat-tile b, .stat-grid.compact b { font-size: 13.5px; }
+
+/* ---------- Daevanion: casas de atributo com o visual do jogo (moldura de bronze + runa) ---------- */
+.node.t-stat {
+  --rune: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5l3 11.5 4-8 4 8 3-11.5'/%3E%3Cpath d='M5.5 20.5a9.5 9.5 0 0 0 13 0'/%3E%3C/svg%3E");
+  background: linear-gradient(145deg, #a48d5f, #4e422b 52%, #8a7549);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 3px rgba(0, 0, 0, .6);
+  border-radius: 9px;
+}
+.node.t-stat::before {
+  content: ""; position: absolute; inset: 3px; border-radius: 6px;
+  background: radial-gradient(circle at 50% 30%, #2d323d, #14171d 78%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), inset 0 -6px 10px rgba(0, 0, 0, .35);
+}
+.node.t-stat::after {
+  content: ""; position: absolute; inset: 20%; font-size: 0;
+  background: #cdb68a; opacity: .9;
+  -webkit-mask: var(--rune) center / contain no-repeat; mask: var(--rune) center / contain no-repeat;
+}
+.node.t-stat.off { opacity: .95; filter: none; }
+.node.t-stat.on {
+  background: linear-gradient(145deg, #6fc0ff, #1d56a8 52%, #4b9cf0);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px #2f8dff, 0 0 11px 2px rgba(70, 160, 255, .75);
+}
+.node.t-stat.on::before { background: radial-gradient(circle at 50% 30%, #25405f, #0f1a2a 78%); }
+.node.t-stat.on::after { background: #e8f5ff; opacity: 1; filter: drop-shadow(0 0 3px rgba(120, 200, 255, .9)); }
+
+/* casas de skill e a inicial: moldura no mesmo estilo, sem dar brilho quando fechadas */
+.node.t-skilllevel.off { opacity: .55; filter: grayscale(.6); }
+
+/* ---------- Dano da party compacto: uma linha por jogador, barra de dano como fundo ---------- */
+.dps-page .card { padding: 10px 12px; }
+.dps-page .card-head { margin-bottom: 6px; }
+#party { display: flex; flex-direction: column; gap: 3px; }
+.prow {
+  position: relative; display: grid; align-items: center; gap: 8px; min-height: 32px; padding: 3px 8px; border-radius: 8px;
+  grid-template-columns: 18px minmax(0, 1fr) 62px 48px; grid-template-areas: "rank name dps share"; row-gap: 0;
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+.prow > :not(.pbar) { position: relative; z-index: 1; }
+.prow .pbar { position: absolute; inset: 0; height: auto; background: none; border-radius: 8px; overflow: hidden; z-index: 0; grid-area: auto; }
+.prow .pbar i { border-radius: 0; opacity: .24; }
+.prow .c-total, .prow .c-crit { display: none; }
+.prow .ico { --s: 22px !important; }
+.pname { gap: 7px; }
+.pname-txt { flex-direction: row; align-items: baseline; gap: 6px; min-width: 0; }
+.pname-txt b { font-size: 13px; }
+.pname-txt .cls { font-size: 11px; white-space: nowrap; }
+.prow .rank { font-size: 12px; }
+.prow.active { box-shadow: inset 3px 0 0 var(--c); }
+
+/* ---------- Equipamentos / aparência / arcanas: um container que se preenche até as bordas ---------- */
+.gear-card { --gw: 236px; width: calc(var(--gw) + 24px); min-width: 0; max-width: none; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.gear-block .card-head { margin-bottom: 6px; }
+.gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
+.tile-grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 5px; }
+.tile-grid .slot { width: 100%; height: auto; aspect-ratio: 1; }
+.tile-grid .slot img { padding: 1px; }
+.side-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.party-card { padding: 10px; }
+.party-card .card-head { margin-bottom: 6px; }
+.party-card h2 { font-size: 14px; }
+.party-card .party-list { margin-top: 0; gap: 2px; max-height: none; }
+.party-card .member { padding: 4px 6px; gap: 6px; }
+.party-card .member-txt b { font-size: 13px; }
+
+/* Nome, classe e nível na mesma linha, sem truncar a identidade do personagem. */
+.hero-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.hero-name-row .hero-name { overflow-wrap: anywhere; }
+.hero-name-row .hero-class { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 0; font-size: 11px; }
+.hero-class .ico { --s: 18px !important; }
+.monster-photo { width: 56px; height: 56px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); }
+.monster-photo img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.monster-photo span { font-size: 10px; line-height: 1.2; text-align: center; color: var(--muted); padding: 3px; }
+.macro-layout { display: grid; grid-template-columns: minmax(100px, .6fr) minmax(0, 2fr); gap: 12px; margin-top: 12px; }
+.macro-list, .macro-editor { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.macro-list .btn { text-align: left; overflow-wrap: anywhere; height: auto; min-height: 32px; }
+.macro-editor label { display: flex; flex-direction: column; gap: 5px; }
+.macro-editor textarea { width: 100%; min-height: 180px; resize: vertical; padding: 10px; font: 12px/1.6 monospace; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; }
+@media (max-width: 420px) { .macro-layout { grid-template-columns: minmax(0, 1fr); } .macro-list { flex-direction: row; flex-wrap: wrap; } }
+.party-card .num b { font-size: 12px; }
+@media (max-width: 520px) { .gear-card { width: 100%; --gw: 100%; } }
+
+/* ---------- Conta: busca compacta numa linha, ficha embaixo ---------- */
+.account-page .account-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.account-page .account-side { position: static; order: -1; }
+.account-page .search-form { grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
+.account-page .search-form input { grid-column: auto; }
+.account-page .results { margin-top: 8px; max-height: 220px; }
+.account-page .account-side .card { padding: 10px; }
+.account-page .account-side .card-head { margin-bottom: 6px; }

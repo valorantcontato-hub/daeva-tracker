@@ -14,7 +14,6 @@ const RACE = { 1: 'Elyos', 2: 'Asmodian' };
 export function renderAccount(root, [id, tab = ''] = []) {
   root.className = 'page account-page';
   const me = getMe();
-  const party = getParty();
   let viewing = id ? findProfileById(id) : me;
 
   root.innerHTML = `
@@ -30,34 +29,11 @@ export function renderAccount(root, [id, tab = ''] = []) {
           </form>
           <div id="results" class="results"></div>
         </div>
-        <div class="card">
-          <div class="card-head"><h2>Minha party</h2><span class="muted small">${party.length} membro(s)</span></div>
-          <div class="party-list">
-            ${me ? memberRow(me, true) : ''}
-            ${party.map(p => memberRow(p, false)).join('')}
-            ${!me && !party.length ? '<p class="muted small">Busque seu personagem e marque “Sou eu”. Depois adicione os membros da party: nomes, classes e ícones de skills no medidor de DPS vêm daqui.</p>' : ''}
-          </div>
-        </div>
       </aside>
     </div>`;
 
   const profileEl = root.querySelector('#profile');
   const resultsEl = root.querySelector('#results');
-
-  function memberRow(p, isMe) {
-    const c = classInfo(p.class);
-    const active = (viewing?.characterId || me?.characterId) === p.characterId;
-    return `
-      <div class="member ${active ? 'active' : ''}">
-        <a href="#/conta/${encodeURIComponent(p.characterId)}" class="member-link">
-          ${avatar(p, 36)}
-          <span class="member-txt"><b>${esc(p.name)}${isMe ? ' <span class="badge">Eu</span>' : ''}</b>
-          <span class="small" style="color:${c.color}">${esc(c.name)} · Nv. ${p.level ?? '—'}</span></span>
-          <span class="num small"><b>${int(p.combatPower || 0)}</b><br><span class="muted">CP</span></span>
-        </a>
-        ${isMe ? '' : `<button class="mini" data-act="remove" data-id="${esc(p.characterId)}" title="Remover da party" aria-label="Remover ${esc(p.name)}">✕</button>`}
-      </div>`;
-  }
 
   function avatar(p, size) {
     return `<span class="avatar" style="--s:${size}px;--c:${classInfo(p.class).color}">${classIcon(p.class, size)}${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>`;
@@ -128,10 +104,9 @@ export function renderAccount(root, [id, tab = ''] = []) {
     const act = btn.dataset.act;
     if (act === 'me') return addFromResult(+btn.dataset.i, true);
     if (act === 'party') return addFromResult(+btn.dataset.i, false);
-    if (act === 'remove' || act === 'remove-viewing') {
-      removePartyMember(act === 'remove' ? btn.dataset.id : viewing.characterId);
-      if (act === 'remove-viewing' || id === btn.dataset.id) location.hash = '#/conta';
-      else dispatchEvent(new HashChangeEvent('hashchange'));
+    if (act === 'remove-viewing') {
+      removePartyMember(viewing.characterId);
+      location.hash = '#/inicio';
       return;
     }
     if (act === 'refresh' && viewing) {
