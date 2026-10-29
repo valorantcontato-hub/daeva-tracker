@@ -1084,3 +1084,33 @@ html.home-fit .combat-source { margin-top: 10px; font-size: 10.5px; }
 .account-page .equipment-and-look .gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
 .hero-stats > .head-actions { border: 0; background: none; padding: 0; min-width: 0; border-radius: 0; }
 .account-page .hero-stats .btn { height: 28px; }
+
+/* ======= Traçado dos containers: idêntico ao dos cards "Animes do ano" do Funima ======= */
+/*   .card { border: 2px solid rgba(255,255,255,.08); border-radius: 14px; transition: border-color .25s }
+     .card:hover, .card:focus-within { border-color: rgba(255,255,255,.22) }                              */
+.card, .home-main > .gear-card, .home-main .stats-card {
+  border: 2px solid rgba(255, 255, 255, .08);
+  border-radius: 14px;
+  transition: border-color .25s;
+}
+.card:hover, .card:focus-within,
+.home-main > .gear-card:hover, .home-main > .gear-card:focus-within,
+.home-main .stats-card:hover, .home-main .stats-card:focus-within { border-color: rgba(255, 255, 255, .22); }
+/* barras do topo e de baixo com o mesmo traço */
+.topbar { border-bottom: 2px solid rgba(255, 255, 255, .08); }
+@media (max-width: 640px) { .tabs { border-top: 2px solid rgba(255, 255, 255, .08); } }
+
+/* Início: o container de cima não encosta mais na barra de título */
+html.home-fit #view { padding-top: 12px; }
+
+/* Início: itens mais próximos e títulos em negrito, sem a barra lateral */
+.home-main .card-head h2, .home-main .card-head h3 { font-size: 14px; font-weight: 700; color: #fff; }
+.home-main .card-head h2::before, .home-main .card-head h3::before { content: none; }
+html.home-fit .home-main { gap: 6px; }
+html.home-fit .equipment-and-look { gap: 6px; }
+html.home-fit .gear-card, html.home-fit .stats-card { padding: 8px; gap: 4px; }
+html.home-fit .tile-grid { gap: 2px; }
+html.home-fit .tile-grid .slot { height: min(100%, calc((100cqw - (var(--cols) - 1)*2px)/var(--cols))); }
+html.home-fit .stat-grid { gap: 3px; }
+html .hero, html .card.hero { border: 2px solid rgba(255, 255, 255, .08); border-radius: 14px; }
+html .hero:hover { border-color: rgba(255, 255, 255, .22); }
