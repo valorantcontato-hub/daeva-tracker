@@ -142,8 +142,8 @@ export function favoritesHtml() {
     <div class="fav-list">${list.length ? list.map(p => {
       const c = classInfo(p.class);
       return `<a class="fav-row" href="#/favoritos/${encodeURIComponent(p.characterId)}" data-tip="${esc(p.name)} · ${esc(p.serverName)}">
-        <span class="fav-avatar">${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : ''}</span>
-        <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i style="color:${c.color};font-style:normal">${esc(c.name)}</i> · Nv. ${p.level}</span></span>
+        <span class="fav-avatar">${p.image ? `<img src="${esc(p.image)}" alt="" draggable="false" onerror="this.remove()">` : classIcon(p.class, 56)}</span>
+        <span class="fav-txt"><b>${esc(p.name)}</b><span class="muted"><i class="fav-class" style="color:${c.color};font-style:normal">${classIcon(p.class, 16)}${esc(c.name)}</i><span>· Nv. ${p.level}</span></span></span>
         <span class="fav-stats"><b>CP ${int(p.combatPower || 0)}</b><span>GS ${p.itemLevel != null ? int(p.itemLevel) : '—'}</span></span>
         <button class="fav-x" data-fav="remove" data-id="${esc(p.characterId)}" aria-label="Remover dos favoritos" title="Remover">×</button>
       </a>`; }).join('') : (fav.open ? '' : '<p class="muted small">Busque e favorite contas para acompanhá-las aqui, como uma party.</p>')}</div>`;
