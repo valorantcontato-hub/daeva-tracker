@@ -20,10 +20,10 @@
 }
 
 * { box-sizing: border-box; }
-:root { --app-cursor: url('../icons/cursor-lotus.svg') 3 2, auto; --app-cursor-hover: url('../icons/cursor-lotus-hover.svg') 3 2, auto; }
+:root { --app-cursor: url('../icons/cursor-lotus.svg') 3 2, auto; --app-cursor-hover: url('../icons/cursor-lotus-hover.svg') 3 2, url('../icons/cursor-lotus.svg') 3 2, auto; }
 html:not(.widget-mode), html:not(.widget-mode) body,
 html:not(.widget-mode) body :is(a, button, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"]) { cursor: var(--app-cursor); }
-html:not(.widget-mode) body :is(a, button, summary, [role="button"], .slot, [data-tip]):not(:disabled):hover { cursor: var(--app-cursor-hover); }
+html:not(.widget-mode) body :is(a, button, summary, [role="button"], .slot, [data-tip], [data-item]):not(:disabled):hover { cursor: var(--app-cursor-hover); }
 html:not(.widget-mode) body :is(button, input):disabled { cursor: not-allowed; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
