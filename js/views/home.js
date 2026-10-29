@@ -4,7 +4,7 @@ import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import { getMe, getParty, refreshProfile, removePartyMember } from '../profiles.js';
 import { setTooltipContext, cachedItems } from '../tooltip.js';
-import { gearTotals } from '../gear-totals.js';
+import { gearTotals, daevanionBonus, daevanionLines, prefetchDaevanion } from '../gear-totals.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
 import { esc, int } from '../util.js';
@@ -111,8 +111,9 @@ function partyCard(me) {
 function characterMain(me, { withParty = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
   const look = appearanceItems(me);
+  prefetchDaevanion(me);
   const items = cachedItems(me);
-  const totals = combatStats(items.length ? { ...me, combatStats: { ...gearTotals(me, items), ...me.combatStats } } : me);
+  const totals = combatStats(items.length ? { ...me, combatStats: { ...gearTotals(me, items, daevanionBonus(daevanionLines(me))), ...me.combatStats } } : me);
   // Equipamentos em 4 colunas (dois pares por linha, como a janela do jogo).
   const gear = [];
   for (let i = 0; i < GEAR.length; i += 2) gear.push(...GEAR[i], ...(GEAR[i + 1] || []));
@@ -140,7 +141,7 @@ function characterMain(me, { withParty = false } = {}) {
         <section class="card stats-card combat-card">
           <div class="card-head"><h2>Atributos</h2></div>
           <div class="combat-totals">${totals.map(s=>`<div class="combat-stat" data-tip="${esc(s.label)}${s.value===null?' · Aguardando dados do jogo':''}"><span>${esc(s.label)}</span><b>${s.value===null?'—':s.percent?s.value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':int(s.value)}</b></div>`).join('')}</div>
-          ${totals.some(s=>s.value===null)||items.length?'<p class="combat-source muted">Soma dos itens equipados e dos bônus dos atributos. Não inclui o valor base da classe, que o perfil público não informa.</p>':''}
+          ${totals.some(s=>s.value===null)||items.length?'<p class="combat-source muted">Soma dos itens equipados, dos tabuleiros de Daevanion e dos bônus dos atributos. Montarias não entram: o perfil público não informa os status delas. Não inclui o valor base da classe, que o perfil público não informa.</p>':''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>

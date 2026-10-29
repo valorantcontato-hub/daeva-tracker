@@ -21,9 +21,22 @@ const EFFECT_RULES = [
 
 const num = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.,-]/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 
-/** @param details lista de detalhes de itens (resposta de /api/plaync/item) */
-export function gearTotals(profile, details) {
+/** Bônus fixos/percentuais dos tabuleiros de Daevanion abertos ("PV +500", "Velocidade de Combate +3%"). */
+export function daevanionBonus(lines) {
   const flat = {}, pct = {};
+  for (const text of lines) {
+    const m = /\+\s*([\d.,]+)\s*(%?)/.exec(text);
+    if (!m || /(recarga|cooldown|consumo|consumption)/i.test(text)) continue;
+    const rule = EFFECT_RULES.find(([, re]) => re.test(text));
+    if (!rule) continue;
+    (m[2] ? pct : flat)[rule[0]] = ((m[2] ? pct : flat)[rule[0]] || 0) + num(m[1]);
+  }
+  return { flat, pct };
+}
+
+/** @param details lista de detalhes de itens (resposta de /api/plaync/item); @param extra bônus de Daevanion */
+export function gearTotals(profile, details, extra = { flat: {}, pct: {} }) {
+  const flat = { ...extra.flat }, pct = { ...extra.pct };
   const add = (id, value) => { const k = KEY_BY_ID[id]; if (k) flat[k] = (flat[k] || 0) + num(value); };
   for (const d of details) {
     for (const s of d.mainStats || []) add(s.id, s.value);
@@ -41,4 +54,33 @@ export function gearTotals(profile, details) {
   out.combatSpeed = pct.combatSpeed || 0;
   out.moveSpeed = pct.moveSpeed || 0;
   return out;
+}
+
+// ---------- Tabuleiros de Daevanion (buscados em segundo plano, guardados por personagem) ----------
+const KEY = 'daevstats';
+const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+const inflight = new Set();
+
+export function daevanionLines(profile) {
+  const hit = read()[profile?.characterId];
+  return hit ? hit.lines : [];
+}
+
+export async function prefetchDaevanion(profile) {
+  const id = profile?.characterId, boards = (profile?.daevanion || []).filter(b => b.open > 0);
+  if (!id || !boards.length || inflight.has(id)) return;
+  const sig = boards.map(b => b.id + ':' + b.open).join(',');
+  const hit = read()[id];
+  if (hit && hit.sig === sig) return;
+  inflight.add(id);
+  try {
+    const lines = [];
+    for (const b of boards) {
+      const q = new URLSearchParams({ region: profile.region, serverId: profile.serverId, characterId: id, boardId: b.id });
+      const res = await fetch('/api/plaync/daevanion?' + q);
+      if (res.ok) lines.push(...((await res.json()).statEffects || []));
+    }
+    try { localStorage.setItem(KEY, JSON.stringify({ ...read(), [id]: { sig, lines } })); } catch { /* sem armazenamento */ }
+    dispatchEvent(new Event('a2t:items'));
+  } catch { /* PlayNC fora do ar: mantém o último valor */ } finally { inflight.delete(id); }
 }
