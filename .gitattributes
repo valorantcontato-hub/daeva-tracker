@@ -1,0 +1,5 @@
+# LF em todo checkout (inclusive no runner Windows): o app compara os arquivos do pacote
+# com os do GitHub pelo SHA do git para a atualização ao vivo da interface.
+* text=auto eol=lf
+*.png binary
+*.ico binary

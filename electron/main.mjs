@@ -3,11 +3,12 @@
 // Também inicia a captura (daeva-capture.exe) e se atualiza sozinho pelo GitHub Releases.
 import { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } from 'electron';
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import updaterPkg from 'electron-updater';
-import { start } from '../server.mjs';
+import { start, notifyReload } from '../server.mjs';
+import { setupLiveUi } from './live-ui.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -22,7 +23,9 @@ const WIDGETS = {
   farm: { width: 300, height: 300 },
 };
 const MARGIN = 16;
-const UPDATE_CHECK_MS = 4 * 60 * 60e3;
+const UPDATE_CHECK_MS = 15 * 60e3;
+// npm run dev: recarrega ao salvar a interface e reinicia ao salvar o código do app.
+const DEV = !app.isPackaged;
 
 let mainWin = null;
 const wins = new Map();
@@ -212,9 +215,45 @@ app.on('second-instance', () => {
   mainWin.focus();
 });
 
+/** Dev: código do Electron/servidor mudou — reinicia o app inteiro (a interface só recarrega). */
+function watchAppCode() {
+  let timer;
+  const restart = name => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      console.log(`[dev] ${name} mudou — reiniciando o app`);
+      app.isQuitting = true;
+      captureProc?.kill();
+      app.relaunch();
+      app.exit(0);
+    }, 300);
+  };
+  watch(join(ROOT, 'electron'), (_e, name) => name && restart('electron/' + name));
+  for (const f of ['server.mjs', 'js/encounter.js', 'js/util.js']) watch(join(ROOT, f), () => restart(f));
+}
+
+/** App instalado: interface nova no GitHub chega sozinha (veja live-ui.mjs). */
+async function liveUiOverlay() {
+  if (DEV) return '';
+  try {
+    const pkg = JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'));
+    const { owner, repo } = pkg.build?.publish?.[0] || {};
+    if (!owner || owner === 'SEU_USUARIO_GITHUB') return '';
+    return await setupLiveUi({
+      owner, repo, branch: 'main',
+      appDir: app.getAppPath(), dataDir: app.getPath('userData'), appVersion: app.getVersion(),
+      onUpdate: sha => { setStatus({ liveUi: sha }); notifyReload(); },
+    });
+  } catch (e) {
+    console.warn('[live-ui]', e.message);
+    return '';
+  }
+}
+
 app.whenReady().then(async () => {
   try {
-    await start(PORT);
+    await start(PORT, { overlay: await liveUiOverlay(), dev: DEV });
+    if (DEV) watchAppCode();
   } catch (e) {
     // Outra instância já está servindo nesta porta: reaproveita.
     if (e.code !== 'EADDRINUSE') throw e;

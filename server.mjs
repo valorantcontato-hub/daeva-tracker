@@ -2,6 +2,7 @@
 //   node server.mjs            -> http://localhost:4173
 // Também é usado pelo app desktop (electron/main.mjs) via start().
 import { createServer } from 'node:http';
+import { watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -212,6 +213,13 @@ async function handle(req, res) {
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
+    if (path === '/api/reload/stream') {
+      res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
+      res.write(': ok\n\n');
+      reloadClients.add(res);
+      req.on('close', () => reloadClients.delete(res));
+      return;
+    }
     if (path === '/api/live/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(`data: ${JSON.stringify(snapshot())}\n\n`);
@@ -223,19 +231,50 @@ async function handle(req, res) {
     return sendJson(res, e.status || 500, { error: e.message });
   }
 
-  let file = path.endsWith('/') ? path + 'index.html' : path;
-  file = normalize(join(ROOT, file));
-  if (!file.startsWith(ROOT.endsWith(sep) ? ROOT : ROOT + sep)) return res.writeHead(403).end();
-  try {
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' });
-    res.end(body);
-  } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' }).end('404');
+  const rel = path.endsWith('/') ? path + 'index.html' : path;
+  // Arquivos de interface atualizados ao vivo (electron/live-ui.mjs) têm prioridade sobre os do pacote.
+  for (const base of [overlayDir, ROOT]) {
+    if (!base) continue;
+    const file = normalize(join(base, rel));
+    if (!file.startsWith(base.endsWith(sep) ? base : base + sep)) return res.writeHead(403).end();
+    try {
+      const body = await readFile(file);
+      res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' });
+      return res.end(body);
+    } catch { /* tenta a próxima base */ }
   }
+  res.writeHead(404, { 'content-type': 'text/plain' }).end('404');
 }
 
-export function start(port = Number(process.env.PORT) || 4173) {
+// ---------- Recarregar janelas ----------
+// Todas as páginas (app e widgets) ouvem /api/reload/stream e recarregam quando a interface muda.
+const reloadClients = new Set();
+let overlayDir = '';
+
+export function notifyReload() {
+  for (const res of reloadClients) res.write('data: reload\n\n');
+}
+
+/** Modo dev: salvou um arquivo de interface, todas as janelas recarregam na hora. */
+function watchForDev() {
+  let timer;
+  watch(ROOT, { recursive: true }, (_event, name) => {
+    if (!name || !/^(index\.html|css[\\/]|js[\\/]|icons[\\/])/.test(name)) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      console.log(`[dev] ${name} mudou — recarregando`);
+      notifyReload();
+    }, 120);
+  });
+}
+
+/**
+ * opts.overlay: pasta com arquivos de interface mais novos que os do pacote.
+ * opts.dev: observa os arquivos do projeto e recarrega as janelas ao salvar.
+ */
+export function start(port = Number(process.env.PORT) || 4173, opts = {}) {
+  overlayDir = opts.overlay || '';
+  if (opts.dev) watchForDev();
   return new Promise((resolve, reject) => {
     const server = createServer(handle);
     server.once('error', reject);
@@ -245,5 +284,6 @@ export function start(port = Number(process.env.PORT) || 4173) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
-  start().then(s => console.log(`Daeva Tracker em http://localhost:${s.address().port}`));
+  const dev = process.argv.includes('--dev') || process.env.DAEVA_DEV === '1';
+  start(undefined, { dev }).then(s => console.log(`Daeva Tracker em http://localhost:${s.address().port}${dev ? ' (dev: recarrega ao salvar)' : ''}`));
 }

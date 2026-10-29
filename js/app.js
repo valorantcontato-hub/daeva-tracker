@@ -50,6 +50,11 @@ if (!load('realDataOnly', false)) {
   save('monsters', load('monsters', []).filter(m => !/^(bs|pr|pe|ra)-\d\d$/.test(m.id) || kills[m.id]));
   save('realDataOnly', true);
 }
+// Interface atualizada (dev ao salvar, ou atualização ao vivo do app instalado): recarrega a janela.
+if (typeof EventSource !== 'undefined') {
+  new EventSource('/api/reload/stream').onmessage = () => location.reload();
+}
+
 await loadIconManifest();
 startLive();
 route();

@@ -12,7 +12,8 @@
     "replay": "node tools/replay.mjs",
     "build:capture": "powershell -NoProfile -ExecutionPolicy Bypass -File capture/setup.ps1 -Out capture/dist -SelfContained",
     "dist": "npm run build:capture && electron-builder --win --publish never",
-    "release": "electron-builder --win --publish always"
+    "release": "electron-builder --win --publish always",
+    "dev": "electron ."
   },
   "build": {
     "appId": "app.daevatracker",
