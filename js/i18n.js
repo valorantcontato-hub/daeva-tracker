@@ -106,13 +106,13 @@ const EXACT = {
   // DPS
   'Encontros': 'Encounters', 'Importar': 'Import', 'Importar log': 'Import log', 'Exportar': 'Export', 'Excluir': 'Delete',
   'Vitória': 'Victory', 'Ao vivo': 'Live', 'Exemplo': 'Sample', 'DPS da party': 'Party DPS', 'Dano total': 'Total damage',
-  'Duração': 'Duration', 'Maior DPS': 'Top DPS', 'HP do chefe': 'Boss HP', 'Tempo do boss': 'Boss time', 'Dano da party': 'Party damage',
+  'Duração': 'Duration', 'Maior DPS': 'Top DPS', 'HP do chefe': 'Boss HP', 'Tempo do boss': 'Boss time', 'Tempo boss': 'Boss time', 'Dano da party': 'Party damage',
   'Toque num jogador para ver as skills': "Tap a player to see their skills", 'Jogador': 'Player', 'Dano': 'Damage', 'Média': 'Avg', 'Máx': 'Max',
   'DPS ao longo do tempo': 'DPS over time', 'média móvel de 5s': '5s moving average', 'Escolher encontro': 'Choose encounter',
   'Nenhuma luta ainda': 'No fights yet', 'Ver demonstração': 'See demo', 'Nenhum encontro salvo': 'No saved encounters',
   'DPS ao vivo': 'Live DPS', 'Jogadores': 'Players',
   // Bestiário
-  'Todos': 'All', '★ Farmando': '★ Farming', 'Em progresso': 'In progress', 'Não iniciado': 'Not started', 'Completo': 'Complete',
+  'Todos': 'All', 'MÁX.': 'MAX', 'Farmando': 'Farming', 'Sem foto': 'No photo', '★ Farmando': '★ Farming', 'Em progresso': 'In progress', 'Não iniciado': 'Not started', 'Completo': 'Complete',
   '+ Monstro': '+ Monster', 'Novo monstro': 'New monster', 'Editar monstro': 'Edit monster', 'Nome': 'Name', 'Nível': 'Level', 'Abates': 'Kills',
   'Salvar': 'Save', 'Cancelar': 'Cancel', 'Todas as regiões': 'All regions', 'Progresso geral': 'Overall progress',
   'Buscar monstro, região ou nota…': 'Search monster, region or note…', 'Buscar': 'Search', 'Farmando agora': 'Farming now',

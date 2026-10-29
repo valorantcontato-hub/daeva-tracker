@@ -24,7 +24,7 @@ let bossHp = bossMax;
 
 function dto(type, t) {
   return {
-    type, id, boss: 'Kromede', npcCode: 2100100, isBoss: true, dungeon: 'Fire Temple', dungeonId: 600021,
+    type, id, boss: arg('boss', 'Kromede'), npcCode: Number(arg('npc', 2100100)), isBoss: true, dungeon: arg('dungeon', 'Fire Temple'), dungeonId: 600021,
     startedAt, duration: t, result: type === 'end' ? 'kill' : 'wipe',
     bossHp: { max: bossMax, current: bossHp },
     self: { name: self, serverId, class: cls, level: 45 },
