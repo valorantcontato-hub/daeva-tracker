@@ -61,6 +61,13 @@ export function startLive() {
   const es = startLive.es = new EventSource('/api/live/stream');
   es.onmessage = e => {
     const snap = JSON.parse(e.data);
+    // Identidade (teleporte/relogin): vincula o personagem sem esperar uma luta.
+    if (snap?.type === 'identity') {
+      if (isPrimary() && snap.self?.name && !linking) {
+        linking = autoLinkFromFight({ self: snap.self, players: [] }).then(notifyChange, () => {}).finally(() => { linking = null; });
+      }
+      return;
+    }
     for (const fn of [...snapshotSubs]) fn(snap);
     if (snap && isPrimary()) {
       if (!snap.live && snap.players?.length && !handled.has(snap.id)) {

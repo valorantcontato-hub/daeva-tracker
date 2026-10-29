@@ -180,6 +180,14 @@ function ingestSnapshot(ev) {
   }
 }
 
+// Identidade do personagem local (teleporte/relogin), fora de qualquer luta.
+let lastSelf = null;
+function announceSelf(ev) {
+  if (!ev?.self?.name) return;
+  lastSelf = { type: 'identity', self: ev.self, capturedAt: ev.capturedAt || new Date().toISOString() };
+  for (const client of live.clients) client.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
+}
+
 function snapshot() {
   const f = live.fight;
   if (!f) return null;
@@ -274,7 +282,7 @@ async function handle(req, res) {
     }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
-      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : ingest(message));
+      (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : message?.type === 'identity' ? announceSelf(message) : ingest(message));
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/live' && req.method === 'GET') return sendJson(res, 200, snapshot());
@@ -289,6 +297,7 @@ async function handle(req, res) {
     if (path === '/api/live/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });
       res.write(`data: ${JSON.stringify(snapshot())}\n\n`);
+      if (lastSelf) res.write(`data: ${JSON.stringify(lastSelf)}\n\n`);
       live.clients.add(res);
       req.on('close', () => live.clients.delete(res));
       return;
