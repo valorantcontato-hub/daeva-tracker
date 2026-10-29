@@ -62,11 +62,11 @@ function updateGameFocus(message) {
   allowGameOverlays(gameFocusAllows(message, handles, gameAllowed));
 }
 // Marcadores sobre a loja do jogo (Black Cloud Merchant): uma janela transparente, sem foco e que deixa o mouse passar,
-// do tamanho da janela do jogo. Só existe enquanto a loja foi lida há pouco e o jogo está em primeiro plano; opcional (desligada por padrão).
+// do tamanho da janela do jogo. Automático: só existe enquanto a loja foi lida há pouco e o jogo está em primeiro plano.
 const SHOP_MARKS_MS = 90e3;
 const shopMarks = { win: null, lastAt: 0, bounds: null };
 function syncShopMarks() {
-  const want = cfg.shopMarks === true && gameAllowed && !widgetsHidden && shopMarks.bounds && Date.now() - shopMarks.lastAt < SHOP_MARKS_MS;
+  const want = gameAllowed && !widgetsHidden && shopMarks.bounds && Date.now() - shopMarks.lastAt < SHOP_MARKS_MS;
   if (!want) {
     if (shopMarks.win && !shopMarks.win.isDestroyed()) shopMarks.win.destroy();
     shopMarks.win = null;
@@ -323,8 +323,6 @@ function setPositioning(on) {
 }
 ipcMain.handle('widget:positioning', (_e, on) => setPositioning(on));
 ipcMain.handle('widget:positioning-state', () => positioning);
-ipcMain.handle('shopmarks:get', () => cfg.shopMarks === true);
-ipcMain.handle('shopmarks:set', (_e, on) => { cfg.shopMarks = !!on; saveCfg(); syncShopMarks(); return cfg.shopMarks; });
 ipcMain.handle('widget:reset-positions', () => {
   for (const id of Object.keys(WIDGETS)) {
     if (!cfg[id]) continue;
