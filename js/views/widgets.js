@@ -245,7 +245,7 @@ export async function renderWidgetsPage(root) {
       ${card('farm', WIDGETS.farm)}
       ${card('radar', WIDGETS.radar)}
     </div>
-    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 5 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 5 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
+    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 2 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
 
   const recStatus = root.querySelector('#rec-status');
@@ -267,7 +267,7 @@ export async function renderWidgetsPage(root) {
     if (e.target.closest('[data-act="record"]')) {
       recStatus.textContent = 'Pedindo à captura…';
       try {
-        await fetch('/api/capture/record?seconds=300', { method: 'POST' });
+        await fetch('/api/capture/record?seconds=120', { method: 'POST' });
         recStatus.textContent = 'Aguardando a captura iniciar (precisa estar ligada e com o jogo aberto)…';
         setTimeout(pollRecording, 2500);
       } catch { recStatus.textContent = 'Não consegui falar com a captura.'; }
