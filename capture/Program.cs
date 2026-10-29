@@ -156,7 +156,8 @@ void SendPositions()
     if (now - lastPositions < 1000) return;
     lastPositions = now;
     var seen = tracker.Snapshot(8000);
-    int? meId = engine.Store.GetLocalProfile()?.EntityId;
+    // Sem o registro do personagem (captura iniciada com o jogo já aberto), o id dos pacotes de movimento montado identifica você.
+    int? meId = engine.Store.GetLocalProfile()?.EntityId ?? (tracker.MountSelfId > 0 ? tracker.MountSelfId : null);
     object? self = null;
     // O jogo só devolve a SUA posição enquanto você está montado: usa a última leitura (até 5 min) e informa a idade.
     if (meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
