@@ -17,8 +17,7 @@ import { esc, compact, int, pct, duration } from '../util.js';
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'Dano de cada skill do seu personagem. Mostra só as skills ativas — sem stigmas e passivas.' },
-  farm: { title: 'Farm', icon: '🐾', width: 300, height: 300, desc: 'Favoritos do bestiário, com o progresso de almas lido do jogo.' },
-  radar: { title: 'Mini mapa', icon: '◎', width: 280, height: 380, desc: 'Radar ao seu redor: mostra onde estão os monstros que você está farmando (os marcados com ★ nos Mascotes).' },
+  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. O jogo só informa a sua posição montado.' },
 };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
@@ -40,55 +39,120 @@ function myPlayer(S) {
   return S.players.find(p => p.isLocal) || S.players.find(p => me && p.name.toLowerCase() === me.name?.toLowerCase()) || null;
 }
 
-// ---------- Mini mapa ----------
+// ---------- Mini mapa (radar + mascotes que você está farmando) ----------
 // Posições vêm dos pacotes de movimento do jogo (captura). Unidade assumida: 1 unidade = 1 cm; ajuste
-// RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo.
+// RADAR_UNIT_M se, em campo, as distâncias não baterem com o jogo. A SUA posição só chega montado.
 const RADAR_UNIT_M = 0.01;
 const RADAR_RANGES = [50, 100, 200, 400];
 const normName = s => String(s || '').normalize('NFKC').trim().toLowerCase();
+const PET_TYPES = {
+  Cogni: { label: 'Intelectual', color: '#5aa5f0', stone: 'icons/pets/cogni.png' },
+  Fera: { label: 'Feral', color: '#f0605a', stone: 'icons/pets/fera.png' },
+  Natura: { label: 'Natural', color: '#4fd17a', stone: 'icons/pets/natura.png' },
+  Varian: { label: 'Variante', color: '#4fd1d9', stone: 'icons/pets/varian.png' },
+  Special: { label: 'Especial', color: '#e9b949', stone: 'icons/pets/special.png' },
+};
+const ARROWS = 'M12 4v14M6 12l6 6 6-6';
 
-/** Nomes (normalizados) dos monstros marcados com ★: pets do catálogo e monstros do catálogo geral. */
-function farmingNames() {
-  const { focus } = readBestiary();
-  const names = new Set();
-  for (const pet of getPetCatalog()) if (focus.includes('pet-' + pet.id)) for (const m of pet.mobs || []) names.add(normName(m.name));
-  for (const m of mergeMonsterCatalog(load('monsters', []))) if (focus.includes(m.id)) names.add(normName(m.name));
-  return names;
+/** O que você está farmando (★ nos Mascotes): pets do catálogo e monstros do catálogo geral. */
+function farmingEntries() {
+  const { focus, kills } = readBestiary();
+  const collection = readCollection();
+  const out = [];
+  for (const pet of getPetCatalog()) {
+    if (!focus.includes('pet-' + pet.id)) continue;
+    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress: petProgress(collection, pet.id),
+      names: new Set([normName(pet.name), ...(pet.mobs || []).map(m => normName(m.name))]) });
+  }
+  for (const m of mergeMonsterCatalog(load('monsters', []))) {
+    if (focus.includes(m.id)) out.push({ kind: 'monster', name: m.name, icon: m.icon, kills: kills[m.id] || 0, names: new Set([normName(m.name)]) });
+  }
+  return out;
 }
+
+const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(d) + ' m';
+
+function radarSvg(P, mobs, range) {
+  const R = 92, k = R / range;
+  const dots = mobs.slice(0, 150).map(m => {
+    const f = m.d > range ? range / m.d : 1;
+    const color = PET_TYPES[m.type]?.color || '#e9b949';
+    return '<circle cx="' + (100 + m.dx * f * k).toFixed(1) + '" cy="' + (100 - m.dy * f * k).toFixed(1) + '" r="' + (m.d > range ? 2 : 3.4)
+      + '" style="fill:' + color + '" class="rd-dot' + (m.d > range ? ' far' : '') + '"><title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title></circle>';
+  }).join('');
+  const rings = [R, R * 2 / 3, R / 3].map(r => '<circle cx="100" cy="100" r="' + r.toFixed(1) + '" class="rd-ring"/>').join('');
+  return '<svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">'
+    + '<defs><radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
+    + '<circle cx="100" cy="100" r="' + (R + 4) + '" fill="url(#rdbg)" class="rd-disc"/>' + rings
+    + '<path d="M100 8v184M8 100h184" class="rd-axis"/>'
+    + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
+    + dots
+    + '<path d="M100 91l6 13-6-3-6 3z" class="rd-me"/>'
+    + '</svg>';
+}
+
+function farmRow(e, near) {
+  const type = PET_TYPES[e.type];
+  const color = type?.color || 'var(--accent)';
+  const icon = entityIcon('monster', e.name, { size: 38, icon: e.icon });
+  let sub;
+  if (e.kind === 'pet') {
+    const p = e.progress;
+    const lv = p.known ? p.level : 0;
+    const diamonds = [0, 1, 2].map(i => '<i class="mm-dia' + (i < lv ? ' on' : '') + '"></i>').join('');
+    const txt = !p.known ? 'Sem dados' : p.complete ? 'MAX' : p.points + '/' + p.goal;
+    sub = (type ? '<img class="mm-stone" src="' + type.stone + '" alt="" draggable="false" title="' + type.label + '">' : '') + diamonds + '<span>' + txt + '</span>';
+  } else sub = '<span>' + int(e.kills) + ' abates</span>';
+  let dist = '<span class="mm-dist off" title="Fora do alcance do jogo ou sem a sua posição">—</span>';
+  if (near) {
+    const deg = Math.round(Math.atan2(near.dx, near.dy) * 180 / Math.PI);
+    dist = '<span class="mm-dist"><svg viewBox="0 0 24 24" style="transform:rotate(' + (deg + 180) + 'deg)"><path d="' + ARROWS + '"/></svg>' + fmtDist(near.d) + '</span>';
+  }
+  return '<div class="mm-row" style="--c:' + color + '"><span class="mm-ico">' + icon + '</span><div class="mm-txt"><b>' + esc(e.name) + '</b><div class="mm-sub">' + sub + '</div></div>' + dist + '</div>';
+}
+
+// Última leitura boa (sua posição + monstros): o widget continua mostrando isso enquanto não chegam dados novos.
+let lastRadar = load('radarLast', null);
+let lastRadarSaved = 0;
 
 function radarBody() {
   const P = lastPositions();
-  if (!P || Date.now() - Date.parse(P.capturedAt) > 10000) return '<div class="wg-empty">Sem posições do jogo. Com a captura ligada, entre no jogo e ande um pouco.</div>';
-  if (!P.self) return `<div class="wg-empty">Lendo ${P.entities} entidades. O jogo só informa a <b>sua</b> posição enquanto você está montado: monte para ver o radar.</div>`;
-  if (P.self.ageMs > 15000 + (Date.now() - Date.parse(P.capturedAt))) return `<div class="wg-empty">Sua última posição tem ${Math.round(P.self.ageMs / 1000)} s. O jogo só a informa montado: monte e ande para atualizar.</div>`;
+  const fresh = P && Date.now() - Date.parse(P.capturedAt) <= 10000;
+  const selfOk = fresh && P.self && P.self.ageMs <= 15000 + (Date.now() - Date.parse(P.capturedAt));
   const range = RADAR_RANGES.includes(load('radarRange', 100)) ? load('radarRange', 100) : 100;
-  const farming = farmingNames();
-  const showAll = load('radarAll', false) || !farming.size;
-  const mobs = P.mobs
-    .filter(m => showAll || farming.has(normName(m.name)))
-    .map(m => ({ ...m, dx: (m.x - P.self.x) * RADAR_UNIT_M, dy: (m.y - P.self.y) * RADAR_UNIT_M }))
-    .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
-    .sort((a, b) => a.d - b.d);
-  const R = 92, k = R / range;
-  const dots = mobs.slice(0, 120).map(m => {
-    const f = m.d > range ? range / m.d : 1;
-    return `<circle cx="${100 + m.dx * f * k}" cy="${100 - m.dy * f * k}" r="${m.d > range ? 2 : 3.2}" class="rd-dot ${m.d > range ? 'far' : ''}"><title>${esc(m.name)} · ${Math.round(m.d)} m</title></circle>`;
-  }).join('');
-  const rows = mobs.slice(0, 6).map(m => `<div class="rd-row"><span class="rd-dot-i"></span><b>${esc(m.name || 'Monstro')}</b><span class="muted">${m.d >= 1000 ? (m.d / 1000).toFixed(1) + ' km' : Math.round(m.d) + ' m'}</span></div>`).join('');
-  return `
-    <svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">
-      <circle cx="100" cy="100" r="${R}" class="rd-ring"/><circle cx="100" cy="100" r="${R / 2}" class="rd-ring"/>
-      <path d="M100 8v184M8 100h184" class="rd-axis"/>
-      ${dots}
-      <path d="M100 93l5 11h-10z" class="rd-me"/>
-      <text x="196" y="196" class="rd-lbl" text-anchor="end">${range} m</text>
-    </svg>
-    <div class="rd-bar">
-      <button class="mini" data-act="range" title="Alcance do radar">Alcance: ${range} m</button>
-      <button class="mini ${showAll ? 'on' : ''}" data-act="all" title="Mostrar todos os monstros, não só os marcados com ★">${showAll ? 'Todos' : '★ Farmando'}</button>
-    </div>
-    ${rows || '<div class="wg-empty">Nenhum monstro desses por perto.</div>'}
-    ${!farming.size ? '<div class="muted small" style="padding:4px 2px">Marque monstros com ★ nos Mascotes para filtrar.</div>' : ''}`;
+  const entries = farmingEntries();
+  const showAll = load('radarAll', false) || !entries.length;
+
+  // Atualiza a última leitura boa só quando o jogo está mandando a sua posição (montado).
+  if (selfOk) {
+    lastRadar = { self: { x: P.self.x, y: P.self.y }, mobs: P.mobs.slice(0, 200).map(m => ({ name: m.name, x: m.x, y: m.y })) };
+    if (Date.now() - lastRadarSaved > 5000) { lastRadarSaved = Date.now(); save('radarLast', lastRadar); }
+  }
+
+  // Monstros com distância em metros e o tipo do mascote a que pertencem (a partir da última leitura boa).
+  const typeOf = new Map();
+  for (const e of entries) for (const n of e.names) if (!typeOf.has(n)) typeOf.set(n, e);
+  let mobs = [];
+  if (lastRadar) {
+    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type }))
+      .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
+      .filter(m => showAll || typeOf.has(normName(m.name)))
+      .sort((a, b) => a.d - b.d);
+  }
+  const nearestOf = e => mobs.find(m => e.names.has(normName(m.name)));
+
+  // Sempre o mesmo visual: sem posição nova, nada muda; ele atualiza sozinho quando os dados voltam.
+  const top = radarSvg(P, mobs, range);
+
+  const rows = entries.map(e => ({ e, near: nearestOf(e) }))
+    .sort((a, b) => (a.near ? a.near.d : 1e12) - (b.near ? b.near.d : 1e12) || a.e.name.localeCompare(b.e.name))
+    .map(x => farmRow(x.e, x.near)).join('');
+
+  return top
+    + '<div class="rd-bar">'
+    + '<button class="mini' + (showAll ? ' on' : '') + '" data-act="all" title="Mostrar no radar todos os monstros, não só os marcados com ★">' + (showAll ? 'Todos' : '★ Farmando') + '</button>'
+    + '</div>'
+    + (rows || '<div class="wg-empty">Marque mascotes com ★ em Mascotes para acompanhá-los aqui.</div>');
 }
 
 // ---------- Corpo de cada widget ----------
@@ -134,19 +198,6 @@ const BODIES = {
           <span class="num muted">${pct(p.damage ? s.damage / p.damage : 0, 0)}</span>
           <span class="num muted">${s.hits ? pct(s.crits / s.hits, 0) : '—'}</span>
         </div>`).join('') || '<div class="wg-empty">Nenhuma skill ativa usada ainda.</div>'}`;
-  },
-
-  farm() {
-    const { kills, focus } = readBestiary(), collection = readCollection();
-    const pets = getPetCatalog().map(p=>({...p,id:'pet-'+p.id,petId:p.id}));
-    const all = [...pets, ...mergeMonsterCatalog(load('monsters', []))];
-    const list = all.filter(m=>focus.includes(m.id));
-    if(!list.length) return '<div class="wg-empty">Marque monstros com ★ no Bestiário.</div>';
-    return list.map(m=> {
-      const p = petProgress(collection,m.petId);
-      const label = m.petId ? !p.known ? 'Não sincronizado' : p.complete ? 'Completo · III' : 'Nv. '+p.level+' · '+p.points+'/'+p.goal+' almas' : int(kills[m.id]||0)+' abates no app';
-      return '<div class="wfarm">'+entityIcon('monster',m.name,{size:26,icon:m.icon})+'<span style="min-width:0"><b>'+esc(m.name)+'</b><small class="muted" style="display:block">'+esc(label)+'</small></span><div class="segbar"><div class="seg"><div class="track"><i style="width:'+p.percent+'%"></i></div></div></div></div>';
-    }).join('');
   },
 };
 
@@ -243,7 +294,6 @@ export async function renderWidgetsPage(root) {
     <div class="widget-list">
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
-      ${card('farm', WIDGETS.farm)}
       ${card('radar', WIDGETS.radar)}
     </div>
     ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 2 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 2 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
