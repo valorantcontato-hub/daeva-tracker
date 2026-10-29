@@ -1084,3 +1084,15 @@ html.home-fit .combat-source { margin-top: 10px; font-size: 10.5px; }
 .account-page .equipment-and-look .gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
 .hero-stats > .head-actions { border: 0; background: none; padding: 0; min-width: 0; border-radius: 0; }
 .account-page .hero-stats .btn { height: 28px; }
+
+/* Atributos e Daevanion: cartões coloridos, 2 por linha, com ícone (como no print) */
+.home-main .stat-tile {
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: 11px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 20%, var(--surface)), color-mix(in srgb, var(--c) 6%, var(--surface)));
+  padding: 4px 8px 4px 5px; gap: 7px;
+}
+.home-main .stat-tile:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--c) 28%, var(--surface)), color-mix(in srgb, var(--c) 10%, var(--surface))); border-color: var(--c); }
+.home-main .stat-ico, html.home-fit .stat-ico { display: grid; background: color-mix(in srgb, var(--c) 22%, transparent); border-radius: 8px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+.home-main .stat-name { color: #e4e6eb; font-weight: 500; }
+.home-main .stat-tile b { font-weight: 700; color: #fff; }
+html.home-fit .stat-grid { gap: 5px; }
