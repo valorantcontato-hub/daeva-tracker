@@ -690,13 +690,14 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 #party { display: flex; flex-direction: column; gap: 3px; }
 .prow {
   position: relative; display: grid; align-items: center; gap: 8px; min-height: 32px; padding: 3px 8px; border-radius: 8px;
-  grid-template-columns: 18px minmax(0, 1fr) 62px 48px; grid-template-areas: "rank name dps share"; row-gap: 0;
+  grid-template-columns: 18px minmax(0, 1fr) 80px 62px 48px; grid-template-areas: "rank name total dps share"; row-gap: 0;
   background: color-mix(in srgb, var(--surface-2) 70%, transparent);
 }
 .prow > :not(.pbar) { position: relative; z-index: 1; }
 .prow .pbar { position: absolute; inset: 0; height: auto; background: none; border-radius: 8px; overflow: hidden; z-index: 0; grid-area: auto; }
 .prow .pbar i { border-radius: 0; opacity: .24; }
-.prow .c-total, .prow .c-crit { display: none; }
+.prow .c-total { display: block; font-size: 12px; font-weight: 600; }
+.prow .c-crit { display: none; }
 .prow .ico { --s: 22px !important; }
 .pname { gap: 7px; }
 .pname-txt { flex-direction: row; align-items: baseline; gap: 6px; min-width: 0; }

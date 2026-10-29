@@ -118,7 +118,7 @@ export function renderDps(root, [id]) {
       </div>
 
       <div class="card">
-        <div class="card-head"><h2>Dano da party</h2><span class="muted small">DPS · %</span></div>
+        <div class="card-head"><h2>Dano da party</h2><span class="muted small">Dano total · DPS · %</span></div>
         <div id="party">
           ${S.players.map((p, i) => {
             const c = classInfo(p.class);
@@ -127,8 +127,8 @@ export function renderDps(root, [id]) {
               <span class="rank">${i + 1}</span>
               <span class="pname">${classIcon(p.class, 22)}<span class="pname-txt"><b>${esc(p.name)}</b><span class="cls">${esc(c.name)}</span></span></span>
               <span class="pbar"><i style="width:${(p.share / maxShare) * 100}%"></i></span>
+              <span class="num c-total" data-tip="Dano total\n${int(p.damage)}">${compact(p.damage)}</span>
               <span class="num c-dps">${compact(p.dps)}</span>
-              <span class="num c-total hide-sm">${compact(p.damage)}</span>
               <span class="num c-crit hide-sm">${pct(p.critRate, 0)}</span>
               <span class="num c-share">${pct(p.share)}</span>
             </button>`;

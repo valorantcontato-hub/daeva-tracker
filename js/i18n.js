@@ -6,6 +6,7 @@ import { getLang } from './lang.js';
 
 // Texto completo em português -> inglês.
 const EXACT = {
+  "Dano total · DPS · %": "Total damage · DPS · %",
   "Nenhuma luta registrada.": "No fights recorded.",
   "Boneco de Treinamento": "Training Dummy",
   "Coleção do jogo": "In-game collection",
