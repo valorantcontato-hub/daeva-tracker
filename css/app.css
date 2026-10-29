@@ -1021,3 +1021,66 @@ html.home-fit, .home-fit body { height: 100%; overflow: hidden; }
 .pet-initials { display: none; }
 .pet-card.nophoto .pet-initials { display: grid; }
 .pet-card.nophoto .pet-name { opacity: 1; top: auto; bottom: 34px; text-align: center; }
+
+/* ======================= Ajuste visual (Início e geral) ======================= */
+/* Ficha do personagem maior */
+html.home-fit .home-page { grid-template-rows: clamp(152px, 21dvh, 188px) minmax(0, 1fr); gap: 10px; }
+html.home-fit .hero { grid-template-columns: 128px minmax(0, 1fr) auto; gap: 16px; padding: 14px 18px; align-items: center; }
+html.home-fit .hero .portrait { width: 128px; height: 128px; border-radius: 10px; }
+html.home-fit .hero-name { font-size: 28px; }
+html.home-fit .hero-info .eyebrow { font-size: 12px; letter-spacing: .06em; }
+html.home-fit .hero-info .meta, html.home-fit .hero-name-row .hero-class { font-size: 13px; }
+html.home-fit .hero-title { font-size: 12px; }
+html.home-fit .hero-stats { gap: 0; margin-top: 8px; }
+html.home-fit .hero-stats > div:not(.head-actions) span { font-size: 11px; }
+html.home-fit .hero-stats > div:not(.head-actions) b { font-size: 22px; line-height: 1.2; }
+html.home-fit .hero-stats > div + div:not(.head-actions) { padding-left: 20px; }
+html.home-fit .hero-tabs { gap: 6px; align-self: center; }
+html.home-fit .hero-tabs a { font-size: 13px; padding: 8px 16px; border-radius: 8px; text-align: center; }
+html.home-fit .hero-tabs a:not(.active) { background: color-mix(in srgb, var(--surface-2) 70%, transparent); border: 1px solid var(--border); }
+
+/* Equipamentos um pouco menores: coluna mais estreita, casas menores */
+html.home-fit .home-main { grid-template-columns: minmax(0, .86fr) minmax(0, 1fr); gap: 10px; }
+html.home-fit .gear-card { padding: 12px; }
+html.home-fit .equipment-and-look { gap: 10px; }
+
+/* Atributos: lista de uma coluna que ocupa toda a altura, sem vazio embaixo */
+html.home-fit .stats-card.combat-card { flex: 1; display: flex; flex-direction: column; height: 100%; padding: 12px 14px; }
+html.home-fit .combat-totals { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); gap: 0; }
+html.home-fit .combat-stat { padding: 0 2px; font-size: 13px; align-items: center; }
+html.home-fit .combat-stat span { color: #c4c7cf; }
+html.home-fit .combat-stat b { font-size: 15px; color: #8d8996; }
+html.home-fit .combat-source { margin-top: 10px; font-size: 10.5px; }
+
+/* Acabamento geral */
+.card { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 90%, #fff), var(--surface) 60%); border-color: color-mix(in srgb, var(--border) 82%, var(--accent)); }
+.card-head h2, .card-head h3 { display: flex; align-items: center; gap: 7px; }
+.home-main .card-head h2::before, .home-main .card-head h3::before { content: ""; width: 3px; height: 12px; border-radius: 2px; background: var(--accent); opacity: .85; }
+.slot { transition: transform .12s ease, box-shadow .12s ease; }
+.tile-grid .slot:hover { transform: translateY(-1px) scale(1.05); box-shadow: 0 0 0 1px var(--accent), 0 4px 10px rgba(0, 0, 0, .45); z-index: 2; }
+.tabs a { transition: background .12s, color .12s; }
+.tabs a.active { box-shadow: inset 0 2px 0 var(--accent); }
+.tabs a .tab-ico { width: 20px; height: 20px; }
+.btn, .chip, .hero-tabs a { transition: background .12s, border-color .12s, color .12s; }
+
+/* Conta: mesma ficha do Início (cabeçalho maior, botão Atualizar na linha dos números) */
+.account-page .hero { grid-template-columns: 128px minmax(0, 1fr) auto; gap: 16px; padding: 14px 18px; align-items: center; }
+.account-page .hero .portrait { width: 128px; height: 128px; border-radius: 10px; }
+.account-page .hero-name { font-size: 28px; }
+.account-page .hero-info .eyebrow { font-size: 12px; letter-spacing: .06em; }
+.account-page .hero-info .meta, .account-page .hero-name-row .hero-class { font-size: 13px; }
+.account-page .hero-stats { gap: 6px 0; margin-top: 8px; flex-wrap: wrap; }
+.account-page .hero-stats > div:not(.head-actions) span { font-size: 11px; }
+.account-page .hero-stats > div:not(.head-actions) b { font-size: 22px; line-height: 1.2; }
+.account-page .hero-stats > div + div:not(.head-actions) { padding-left: 20px; }
+.account-page .hero-stats .head-actions { flex-basis: 100%; margin-left: 0; padding-left: 0; }
+.account-page .hero-stats > div:not(.head-actions) span { white-space: nowrap; }
+.account-page .hero-tabs { gap: 6px; align-self: center; }
+.account-page .hero-tabs a { font-size: 13px; padding: 8px 16px; border-radius: 8px; text-align: center; }
+.account-page .hero-tabs a:not(.active) { background: color-mix(in srgb, var(--surface-2) 70%, transparent); border: 1px solid var(--border); }
+.account-page .home-main { grid-template-columns: minmax(0, .86fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+.account-page .equipment-and-look { grid-template-columns: minmax(0, 1fr); max-width: none; gap: 10px; }
+.account-page .equipment-and-look .gear-block:first-child .tile-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.account-page .equipment-and-look .gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
+.hero-stats > .head-actions { border: 0; background: none; padding: 0; min-width: 0; border-radius: 0; }
+.account-page .hero-stats .btn { height: 28px; }
