@@ -27,22 +27,25 @@ PlayNC (perfis oficiais) <──proxy── server.mjs <─────┘
 3. Abra o app: ele inicia a captura sozinho. Jogue em **Janela** ou **Tela cheia sem bordas**.
 4. Em **Widgets**, ligue os que quiser e posicione nos cantos. `Ctrl+Shift+L` trava (clique atravessa), `Ctrl+Shift+H` mostra/oculta.
 
-### Atualização automática
+### Atualização automática (nunca baixe outro instalador)
 
-O app procura versões novas no GitHub Releases ao abrir e a cada 4 horas, baixa em segundo plano e instala ao reiniciar (aparece uma faixa “Reiniciar e atualizar”). Nunca é preciso baixar um instalador novo.
+| O que mudou | Como chega no app instalado | Tempo |
+|---|---|---|
+| Interface (`index.html`, `css/`, `js/`, `icons/`) | O app baixa só os arquivos alterados do `main` e recarrega as janelas, sem reiniciar | ~1 min após o push |
+| Código do app (`electron/`, `server.mjs`, `capture/`, dependências) | O workflow publica uma versão nova; o app baixa e mostra “Reiniciar e atualizar” | build (~10 min) + até 15 min |
+| Motor de captura (patch do jogo) | O workflow confere a cada 6 h e publica uma versão nova sozinho | até 6 h |
 
-O workflow `.github/workflows/release.yml` publica as versões:
-- **a cada 6 horas** confere o motor de captura; se ele mudou (ex.: opcodes corrigidos após um patch do jogo), gera e publica uma versão nova sozinho;
-- **tag `v*`** (`git tag v0.2.0 && git push --tags`) publica uma versão manual.
-
-Para ligar: crie um repositório **público** no GitHub, rode `node tools/set-publish.mjs <seu-usuario> <repositorio>` e faça push. O primeiro instalador sai da primeira execução do workflow (Actions > Release > Run workflow).
+O workflow `.github/workflows/release.yml` também aceita versão manual por tag (`git tag v0.2.0 && git push --tags`) ou por Actions > Release > Run workflow.
 
 ## Desenvolvimento
 
 1. `npm install`, [.NET 10 SDK](https://dotnet.microsoft.com/download) e Npcap.
 2. Compile a captura: `powershell -ExecutionPolicy Bypass -File capture\setup.ps1` (o motor fica em `%LOCALAPPDATA%\DaevaTracker\engine`).
-3. `npm start` abre o app e inicia `capture\bin\daeva-capture.exe` sozinho.
-4. `npm run dist` gera o instalador em `dist\` (captura com o runtime .NET embutido).
+3. `npm run dev` abre o app, inicia a captura e entra em modo de teste em tempo real:
+   - salvou um arquivo de interface → todas as janelas (app e widgets) recarregam na hora;
+   - salvou `electron/`, `server.mjs`, `js/encounter.js` ou `js/util.js` → o app reinicia sozinho.
+4. Gostou? `git push` — o app instalado recebe a mudança sozinho (tabela acima).
+5. `npm run dist` gera um instalador local em `dist\` (precisa de um caminho de pasta curto; o GitHub Actions já faz isso).
 
 Opções da captura: `--url http://localhost:4173` (app no navegador com `npm run web`), `--boss-only` (só dano em chefes), `--replay arquivo.pcap`.
 Se um patch do jogo mudar os opcodes, coloque um `opcodes.json` atualizado (formato do Aion2DpsMeter) em `%APPDATA%\DaevaTracker\`.

@@ -48,7 +48,9 @@ jobs:
         run: |
           $engine = (git ls-remote https://github.com/domel1998/Aion2DPSMeter.git HEAD).Split("`t")[0].Substring(0, 7)
           $latest = $null
-          try { $latest = gh release view --json tagName,body | ConvertFrom-Json } catch { }
+          try { $latest = gh release view --json tagName,body 2>$null | ConvertFrom-Json } catch { }
+          # Sem release ainda (primeira vez), o gh sai com 1; não deixa isso falhar o passo.
+          $global:LASTEXITCODE = 0
           $tag = $latest.tagName
           if ($env:REF_TYPE -eq 'tag') {
             $version = $env:REF_NAME.TrimStart('v')
