@@ -39,6 +39,7 @@ var outbox = new ConcurrentQueue<object>();
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder();
+string lastIdentity = "";
 var recordDir = Path.Combine(configDir, "recordings");
 var recordTrigger = Path.Combine(configDir, "record.start");
 var recordStatus = Path.Combine(configDir, "record.status");
@@ -79,14 +80,6 @@ engine.Store.LocalIdentityChanged += (id, name, source) =>
     if (!string.IsNullOrWhiteSpace(name) && !name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase))
     {
         try { File.WriteAllText(nameFile, name); } catch { }
-        // Avisa o app já ao teleportar/relogar, sem precisar de uma luta: ele vincula o personagem sozinho.
-        var prof = engine.Store.GetLocalProfile();
-        outbox.Enqueue(new
-        {
-            type = "identity",
-            capturedAt = DateTime.UtcNow.ToString("o"),
-            self = new { name, serverId = (int)(prof?.ServerId ?? 0), @class = prof is { Job: not JobClass.Unknown } ? ClassKey(prof.Job) : "", level = prof?.Level },
-        });
     }
 };
 engine.Error += ex => Console.Error.WriteLine("Erro no parser: " + ex.Message);
@@ -115,6 +108,7 @@ while (!cts.IsCancellationRequested)
 {
     engine.Tick();
     PollRecording();
+    AnnounceIdentity();
     var r = engine.Store.GetDisplayRecord();
     if (r is { InProgress: true } && (r.Id != lastId || r.TotalDamage != lastDamage))
     {
@@ -126,6 +120,20 @@ while (!cts.IsCancellationRequested)
     try { await Task.Delay(500, cts.Token); } catch (TaskCanceledException) { }
 }
 return 0;
+
+// Avisa o app quando o jogo informa o personagem (teleporte/relogin), já com servidor, classe e nível:
+// sem o servidor o nome é ambíguo (existe em vários servidores) e o app não consegue vincular.
+void AnnounceIdentity()
+{
+    var prof = engine.Store.GetLocalProfile();
+    var name = prof?.Name;
+    if (prof is not { ServerId: > 0 } || string.IsNullOrWhiteSpace(name) || name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase)) return;
+    var cls = prof.Job != JobClass.Unknown ? ClassKey(prof.Job) : "";
+    var key = $"{prof.ServerId}|{name}|{cls}|{prof.Level}";
+    if (key == lastIdentity) return;
+    lastIdentity = key;
+    outbox.Enqueue(new { type = "identity", capturedAt = DateTime.UtcNow.ToString("o"), self = new { name, serverId = (int)prof.ServerId, @class = cls, level = prof.Level } });
+}
 
 async Task Flush()
 {
