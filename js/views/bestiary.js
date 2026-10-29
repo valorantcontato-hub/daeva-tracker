@@ -38,6 +38,8 @@ export function renderBestiary(root) {
 
   const initials = name => String(name).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
+  const typeBadge = key => { const f = FAMILIES.find(x => x[0] === key); return f ? `<span class="pet2-type t-${key.toLowerCase()}" title="${f[1]}">${f[2]}${f[1]}</span>` : ''; };
+
   function card(m) {
     const p = petProgress(collection, m.petId);
     const focused = state.focus.includes(m.id);
@@ -53,7 +55,7 @@ export function renderBestiary(root) {
       <button class="pet2 ${p.complete ? 'maxed' : ''} ${focused ? 'focused' : ''}" data-favorite="${esc(m.id)}" aria-pressed="${focused}" data-tip="${esc(tip)}">
         <span class="pet2-ico">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" draggable="false" onerror="this.remove()">` : `<b>${esc(initials(m.name))}</b>`}</span>
         <span class="pet2-body">
-          <b class="pet2-name">${esc(m.name)}</b>
+          <span class="pet2-title"><b class="pet2-name">${esc(m.name)}</b>${typeBadge(m.region)}</span>
           <span class="pet2-bar"><i style="width:${pct}%"></i></span>
           <span class="pet2-info">${badge}<span class="pet2-count">${detail}</span></span>
         </span>

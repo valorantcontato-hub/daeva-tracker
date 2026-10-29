@@ -1391,3 +1391,11 @@ html.home-fit .sub-body .card { padding: 12px; }
 /* Filtro por tipo de mascote, com ícone */
 .fam-chip { display: inline-flex; align-items: center; gap: 6px; }
 .fam-chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Tipo do mascote ao lado do nome */
+.pet2-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pet2-title .pet2-name { flex: 0 1 auto; min-width: 0; }
+.pet2-type { --c: #8c95a5; flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 5px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+  color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent); }
+.pet2-type svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.t-fera { --c: #f0605a; } .t-natura { --c: #4fd17a; } .t-cogni { --c: #5aa5f0; } .t-varian { --c: #b98cf0; } .t-special { --c: #e9b949; }
