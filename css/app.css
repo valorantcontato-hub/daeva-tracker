@@ -1128,8 +1128,9 @@ html.home-fit .stat-grid { gap: 5px; }
 
 /* Cantos arredondados. A janela só é recortada quando o Electron a criou transparente (html.round-window);
    num app antigo, de janela opaca, o recorte deixaria os cantos pretos e quadrados. */
-html.round-window { background: transparent; }
-html.round-window body { background: var(--bg); clip-path: inset(0 round 22px); min-height: 100vh; }
+/* O fundo do <html> precisa ser (quase) invisível mas não "transparent": senão o do <body> sobe para a tela toda e vira o quadrado atrás dos cantos. */
+html.round-window { background: rgba(0, 0, 0, .01); }
+html.round-window body { background: var(--bg); border: 0; clip-path: inset(0 round 22px); min-height: 100vh; }
 html.round-window .topbar { border-radius: 22px 22px 0 0; }
 html.round-window .tabs { border-radius: 0 0 22px 22px; }
 .card, .home-main > .gear-card, .home-main .stats-card, html .hero, html .card.hero { border-radius: 18px; }
