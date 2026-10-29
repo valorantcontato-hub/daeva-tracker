@@ -98,13 +98,29 @@ export function activeSeconds(timeline, fallback) {
   return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, seconds));
 }
 
+/** Pico: o melhor momento de 'window' segundos seguidos (DPS médio dessa janela). */
+export function peakDps(timeline, window = 10) {
+  const t = timeline || [];
+  if (!t.length) return 0;
+  const w = Math.min(window, t.length);
+  let sum = 0, best = 0;
+  for (let i = 0; i < t.length; i++) {
+    sum += t[i] || 0;
+    if (i >= w) sum -= t[i - w] || 0;
+    if (i >= w - 1) best = Math.max(best, sum);
+  }
+  return best / w;
+}
+
 /** Totais derivados: dano, DPS, crit e participação por jogador (ordenado por dano). */
 export function summarize(enc) {
   const dur = Math.max(1, enc.duration);
   const players = enc.players.map(p => {
     let damage = 0, hits = 0, crits = 0;
     for (const s of p.skills) { damage += s.damage; hits += s.hits; crits += s.crits; }
-    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps: damage / activeSeconds(p.timeline, dur) };
+    const dps = damage / activeSeconds(p.timeline, dur);
+    // O pico nunca fica abaixo do DPS contínuo (em lutas curtas a janela de 10 s ainda não encheu).
+    return { ...p, damage, hits, crits, critRate: hits ? crits / hits : 0, dps, peak: Math.max(peakDps(p.timeline), dps) };
   }).sort((a, b) => b.damage - a.damage);
   const total = players.reduce((a, p) => a + p.damage, 0);
   for (const p of players) p.share = total ? p.damage / total : 0;

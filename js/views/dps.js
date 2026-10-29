@@ -114,7 +114,7 @@ export function renderDps(root, [id]) {
         <div class="kpi"><div class="l">DPS da party</div><div class="v">${compact(S.dps)}</div></div>
         <div class="kpi"><div class="l">Dano total</div><div class="v">${compact(S.total)}</div></div>
         <div class="kpi"><div class="l">${S.isBoss === false ? 'Duração' : 'Tempo boss'}</div><div class="v">${duration(S.duration)}</div></div>
-        <div class="kpi"><div class="l">Maior DPS</div><div class="v top" style="color:${classInfo(top.class).color}"><span>${esc(top.name)}</span><small>${compact(top.dps)}</small></div></div>
+        <div class="kpi"><div class="l">Maior DPS</div><div class="v top" style="color:${classInfo(top.class).color}"><span>${esc(top.name)}</span><small>${compact(top.dps)} · pico ${compact(top.peak)}</small></div></div>
       </div>
 
       <div class="card">
@@ -127,7 +127,7 @@ export function renderDps(root, [id]) {
               <span class="rank">${i + 1}</span>
               <span class="pname">${classIcon(p.class, 22)}<span class="pname-txt"><b>${esc(p.name)}</b><span class="cls">${esc(c.name)}</span></span></span>
               <span class="pbar"><i style="width:${(p.share / maxShare) * 100}%"></i></span>
-              <span class="num c-dps">${compact(p.dps)}</span>
+              <span class="num c-dps">${compact(p.dps)}<small class="pk" title="Pico: melhor momento de 10 s">pico ${compact(p.peak)}</small></span>
               <span class="num c-total hide-sm">${compact(p.damage)}</span>
               <span class="num c-crit hide-sm">${pct(p.critRate, 0)}</span>
               <span class="num c-share">${pct(p.share)}</span>
@@ -178,7 +178,7 @@ export function renderDps(root, [id]) {
       <div class="card-head">
         <h2>Skills de <span style="color:${c.color}">${esc(p.name)}</span> <span class="muted small">${esc(c.name)}</span></h2>
         <div class="pstats">
-          <span>DPS <b>${compact(p.dps)}</b></span><span>Dano <b>${int(p.damage)}</b></span>
+          <span>DPS <b>${compact(p.dps)}</b></span><span>Pico <b>${compact(p.peak)}</b></span><span>Dano <b>${int(p.damage)}</b></span>
           <span>Hits <b>${int(p.hits)}</b></span><span>Crit <b>${pct(p.critRate)}</b></span>
         </div>
       </div>

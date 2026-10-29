@@ -1563,3 +1563,14 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 :root[data-theme="light"] .energy-label, :root[data-theme="light"] .energy-refill { color: #536982; }
 :root[data-theme="light"] .energy-refill b { color: #243d59; }
 :root[data-theme="light"] .energy-amount em { color: #24699c; }
+
+/* Pico (melhor momento de 10 s) ao lado do DPS contínuo */
+.dps-peak { font-style: normal; font-size: 10px; font-weight: 600; color: #ffda76; margin-right: 7px; }
+.combat-peak { flex: none; font-size: 9px; color: #ffda76; opacity: .9; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@container (max-width: 270px) { .combat-peak { display: none; } }
+
+.combat-total { margin-left: auto; font-size: 10px; color: #aeb4bf; white-space: nowrap; }
+.combat-total b { color: #f6f7fa; font-weight: 700; }
+.combat-dmg { flex: none; min-width: 36px; text-align: right; font-size: 10px; color: #aeb4bf; font-variant-numeric: tabular-nums; }
+@container (max-width: 270px) { .combat-dmg { display: none; } }
+.prow .pk { display: block; font-size: 10px; font-weight: 500; color: #ffda76; line-height: 1.1; }

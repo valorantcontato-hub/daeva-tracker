@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarize, activeSeconds } from '../js/encounter.js';
+import { summarize, activeSeconds, peakDps } from '../js/encounter.js';
 
 const skills = damage => [{ id: 1, name: 'Skill', hits: 10, crits: 0, damage, max: 1 }];
 const flat = (from, to, v, len) => Array.from({ length: len }, (_, i) => (i >= from && i <= to ? v : 0));
@@ -28,4 +28,19 @@ test('pausas longas (boneco renascendo) não entram no tempo batendo; pausas cur
   assert.equal(activeSeconds([...flat(0, 9, 1000, 10), ...Array(28).fill(0), ...flat(0, 9, 1000, 10)], 48), 20);
   // pausa de 2 s entre dois golpes conta como tempo batendo
   assert.equal(activeSeconds([1, 0, 0, 1, 1, 1, 1, 1, 1, 1], 10), 10);
+});
+
+test('pico é o melhor momento de 10 s; o DPS contínuo fica mais baixo quando há altos e baixos', () => {
+  const tl = [...Array(10).fill(6000), ...Array(10).fill(2000)];
+  assert.equal(peakDps(tl), 6000);
+  assert.equal(peakDps([3000, 3000]), 3000); // luta curta: usa a janela inteira
+  assert.equal(peakDps([]), 0);
+  const S = summarize({ duration: 20, players: [{ name: 'A', class: '', skills: skills(80000), timeline: tl }] });
+  assert.equal(S.players[0].peak, 6000);
+  assert.equal(S.players[0].dps, 4000);
+});
+
+test('em luta curta o pico não fica abaixo do DPS contínuo', () => {
+  const S = summarize({ duration: 9, players: [{ name: 'A', class: '', skills: skills(540000), timeline: [0, ...Array(8).fill(67500)] }] });
+  assert.ok(S.players[0].peak >= S.players[0].dps);
 });
