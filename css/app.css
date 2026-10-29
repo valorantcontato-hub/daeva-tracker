@@ -1586,3 +1586,6 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .pchips::-webkit-scrollbar-track { background: rgba(255, 255, 255, .05); border-radius: 99px; }
 .pchips::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .28); border-radius: 99px; }
 .pchips::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .45); }
+
+/* Dano total do jogador no painel do chefe: branco e maior para ler no meio da luta */
+.combat-dmg { min-width: 46px; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000a; }
