@@ -172,7 +172,8 @@ void SendPositions()
     long now = Environment.TickCount64;
     if (now - lastPositions < 100) return;
     lastPositions = now;
-    var seen = tracker.Snapshot(8000);
+    // Monstros parados não mandam posição nova: mantém por 2 min os que foram vistos, para o mapa mostrar também os de longe (até 2 km).
+    var seen = tracker.Snapshot(120_000);
     var prof = engine.Store.GetLocalProfile();
     // Um pacote de movimento de montaria também pertence a outros jogadores. Só um perfil
     // local nomeado pelo jogo, com servidor, autoriza usar a entidade como sua posição.
@@ -183,6 +184,11 @@ void SendPositions()
     // Usa somente a entidade local confirmada, com idade explícita da última posição recebida.
     if (self is null && meId is int me && tracker.Get(me, 300_000) is { } mine) self = new { x = mine.X, y = mine.Y, z = mine.Z, ageMs = Environment.TickCount64 - mine.At };
     if (seen.Count == 0 && self is null) return;
+    // Do mais perto para o mais longe, até ~2,2 km (a unidade do jogo é 1 cm): com muitos monstros à vista, o limite de envio corta os de longe, não os de perto.
+    float sx = 0, sy = 0; bool hasSelf = false;
+    if (movement?.Get(prof) is { } liveSelf) { sx = liveSelf.Position.X; sy = liveSelf.Position.Y; hasSelf = true; }
+    else if (meId is int me2 && tracker.Get(me2, 300_000) is { } mine2) { sx = mine2.X; sy = mine2.Y; hasSelf = true; }
+    if (hasSelf) seen = seen.Where(p => Math.Abs(p.Value.X - sx) < 220_000f && Math.Abs(p.Value.Y - sy) < 220_000f).OrderBy(p => (p.Value.X - sx) * (p.Value.X - sx) + (p.Value.Y - sy) * (p.Value.Y - sy)).ToList();
     var mobs = new List<object>();
     foreach (var (id, pos) in seen)
     {
