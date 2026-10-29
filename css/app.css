@@ -1603,3 +1603,5 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 .sm-note { color: var(--muted); font-size: 12px; }
 .stream-btn { white-space: nowrap; }
 @media (max-width: 520px) { .sm-row { grid-template-columns: minmax(0, 1fr) auto; } .sm-row > div { grid-column: 1 / -1; } }
+.wg-all { display: flex; align-items: flex-start; gap: 0; }
+.wg-all-cell { flex: none; position: relative; }
