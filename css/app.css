@@ -1174,3 +1174,41 @@ html.home-fit .home-main .stat-ico img { z-index: 1; }
 .home-main .stats-card:hover, .home-main .stats-card:focus-within,
 html .hero:hover { border-color: rgba(255, 255, 255, .08); }
 .card, .home-main > .gear-card, .home-main .stats-card { transition: none; }
+
+/* ======= Botão de tema e tema claro ======= */
+.theme-btn { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
+.theme-btn:hover { color: var(--text); }
+.theme-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-btn .ico-sun { display: none; }
+:root[data-theme="light"] .theme-btn .ico-moon { display: none; }
+:root[data-theme="light"] .theme-btn .ico-sun { display: inline; }
+html.desktop .theme-btn { -webkit-app-region: no-drag; }
+
+:root[data-theme="light"] {
+  --bg: #f3f0f8; --surface: #ffffff; --surface-2: #ebe6f3; --border: #d8cfe6;
+  --text: #1e1a2b; --muted: #6a6480; --accent: #8e3fc4; --accent-ink: #ffffff;
+  --lotus-mark: url('../icons/lotus-light.svg');
+  --shadow: 0 8px 24px rgba(60, 40, 90, .12);
+  color-scheme: light;
+}
+:root[data-theme="light"] .card, :root[data-theme="light"] .home-main > .gear-card, :root[data-theme="light"] .home-main .stats-card,
+:root[data-theme="light"] html .hero, :root[data-theme="light"] .hero { border-color: rgba(60, 40, 90, .14); background: var(--surface); }
+:root[data-theme="light"] .card:hover, :root[data-theme="light"] .card:focus-within, :root[data-theme="light"] .hero:hover,
+:root[data-theme="light"] .home-main > .gear-card:hover, :root[data-theme="light"] .home-main .stats-card:hover { border-color: rgba(60, 40, 90, .14); }
+:root[data-theme="light"] .topbar { border-bottom-color: rgba(60, 40, 90, .14); background: var(--bg); }
+:root[data-theme="light"] .tabs { border-top-color: rgba(60, 40, 90, .14); background: var(--surface); }
+:root[data-theme="light"] .home-main .card-head h2, :root[data-theme="light"] .home-main .card-head h3 { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-tile { background: rgba(60, 40, 90, .05); }
+:root[data-theme="light"] .home-main .stat-tile:hover { background: rgba(60, 40, 90, .12); }
+:root[data-theme="light"] .home-main .stat-name { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-tile b { color: var(--text); }
+:root[data-theme="light"] .home-main .stat-ico img { filter: invert(1) brightness(.35); }
+:root[data-theme="light"] .hero-name, :root[data-theme="light"] .hero-stats b { color: var(--text); }
+:root[data-theme="light"] .hero-tabs a:not(.active), :root[data-theme="light"] .account-page .hero-tabs a:not(.active) { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+:root[data-theme="light"] .home-main .stat-tile, :root[data-theme="light"] .combat-stat { border-color: transparent; }
+:root[data-theme="light"] .combat-stat span, :root[data-theme="light"] .combat-stat b { color: var(--text); }
+:root[data-theme="light"] .lang-switch, :root[data-theme="light"] .theme-btn { background: var(--surface); }
+:root[data-theme="light"] .pet-card, :root[data-theme="light"] .enc-item { color: var(--text); }
+:root[data-theme="light"] .slot { box-shadow: 0 1px 2px rgba(60, 40, 90, .2); }
+:root[data-theme="light"] .tabs a.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); }
+:root[data-theme="light"] .hero-tabs a.active, :root[data-theme="light"] .lang-switch button.active { background: var(--accent); color: #fff; }
