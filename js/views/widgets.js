@@ -206,17 +206,18 @@ const BODIES = {
     const rows = activeSkills(p).sort((a, b) => b.damage - a.damage);
     const best = rows[0]?.damage || 1;
     return `
-      <header class="combat-summary skills-summary" style="--c:${c.color}">
-        <div class="combat-meta"><span>${classIcon(p.class, 18)}<b>${esc(p.name)}</b></span><strong>${compact(p.dps)} <small>DPS</small></strong></div>
-        <div class="skills-context"><span>${esc(S.boss)}</span><span>${duration(S.duration)} · ${pct(p.critRate)} crítico</span></div>
+      <header class="combat-summary skills-summary" style="--c:${c.color}" title="${esc(S.boss)} · ${pct(p.critRate)} crítico">
+        <div class="combat-meta"><span>${classIcon(p.class, 16)}<b>${esc(p.name)}</b><time>${duration(S.duration)}</time></span><strong>${compact(p.dps)} <small>DPS</small></strong></div>
       </header>
-      <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span></div>
+      <div class="skill-meter-labels"><span>Habilidade</span><span>DPS</span><span>Dano %</span><span>DMG</span><span>Crít.</span></div>
       <div class="skill-meters">${rows.map(s => `
         <div class="skill-meter" style="--c:${c.color};--share:${(s.damage / best) * 100}%" title="${esc(skillLabel(p, s))} · ${int(s.hits)} hits · maior acerto ${int(s.max)}">
-          <span class="skill-art">${skillIconHtml(p, s, 30)}</span>
-          <div class="skill-meter-name"><b>${esc(skillLabel(p, s))}</b><span><span>DMG <strong>${compact(s.damage)}</strong></span><span>Crítico <strong>${s.hits ? pct(s.crits / s.hits) : '—'}</strong></span></span></div>
+          <span class="skill-art">${skillIconHtml(p, s, 16)}</span>
+          <div class="skill-meter-name"><b>${esc(skillLabel(p, s))}</b></div>
           <strong class="skill-dps">${compact(s.damage / Math.max(1, S.duration))}</strong>
           <strong class="combat-share">${pct(p.damage ? s.damage / p.damage : 0)}</strong>
+          <span class="skill-damage">${compact(s.damage)}</span>
+          <span class="skill-crit">${s.hits ? pct(s.crits / s.hits, 0) : '—'}</span>
         </div>`).join('') || '<div class="wg-empty">Nenhuma skill ativa usada ainda.</div>'}</div>`;
   },
 };
