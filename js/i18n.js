@@ -134,6 +134,8 @@ const EXACT = {
 
 // Textos com números/nomes no meio.
 const RULES = [
+  [/^Pedras de mana \((\d+)\/(\d+)\)$/, 'Mana stones ($1/$2)'],
+  [/^Pedra divina \((\d+)\/(\d+)\)$/, 'Theostone ($1/$2)'],
   [/^Prepare-se: (\d+)$/, 'Get ready: $1'],
   [/^Combe agora · (.+) restantes · (.+) DPS$/, 'Go now · $1 remaining · $2 DPS'],
   [/^Nv\. (\d+) · (\d+)\/(\d+) almas$/, 'Lv. $1 · $2/$3 souls'],
