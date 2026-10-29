@@ -69,7 +69,15 @@ export function prefetchItems(profile) {
 
 export const setTooltipContext = profile => { ctx = profile; if (profile) prefetchItems(profile); };
 
-const line = (label, value, extra) => `<div class="tt-row"><span>${esc(label)}</span><b>${esc(value)}${extra && +extra ? ` <i>(+${esc(extra)})</i>` : ''}</b></div>`;
+const art = (src, kind = '', fallback = '') => {
+  if (!src) return '';
+  return `<img class="tt-art ${kind}" src="${esc(src)}"${fallback ? ` data-fallback="${esc(fallback)}"` : ''} alt="" draggable="false" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;delete this.dataset.fallback}else{this.remove()}">`;
+};
+// The stat's rolled rarity is independent of the stone family; use the source artwork/type.
+const manaPicture = s => /magicstone_abyss|abyssal|abissal/i.test([s.icon, s.type, s.name].join(' ')) ? './icons/items/manastone-abyss.png' : './icons/items/manastone.png';
+const godPicture = s => !s.icon || /Godstone_WP_r_012\.png$/i.test(s.icon) ? './icons/items/godstone.png' : s.icon;
+const bonus = value => /^[+−-]/.test(String(value)) ? String(value) : '+' + value;
+const line = (label, value, extra, { icon, color, kind = '' } = {}) => `<div class="tt-row ${kind}"${color ? ` style="--tt-color:${color}"` : ''}><span class="tt-label">${art(icon)}<span>${esc(label)}</span></span><b>${esc(value)}${extra && +extra ? ` <i>(+${esc(extra)})</i>` : ''}</b></div>`;
 const section = (title, rows) => rows ? `<div class="tt-sec"><div class="tt-h">${title}</div>${rows}</div>` : '';
 
 function render(d, base) {
@@ -87,16 +95,18 @@ function render(d, base) {
   if (!d) return head + '<div class="tt-sub">Detalhes indisponíveis.</div>';
 
   const main = (d.mainStats || []).map(s => line(s.name, s.value, s.extra)).join('');
-  const sub = (d.subStats || []).map(s => line(s.name, '+' + s.value)).join('');
-  const stones = (d.magicStoneStat || []).map(s => line(s.name, s.value)).join('');
-  const god = (d.godStoneStat || []).map(s => `<div class="tt-god"><b style="color:${gradeColor(s.grade)}">${esc(s.name)}</b><div>${esc(s.desc || '').replace(/\n/g, '<br>')}</div></div>`).join('');
-  const skills = (d.subSkills || []).map(s => line(s.name, '+' + s.level)).join('');
+  const sub = (d.subStats || []).map(s => line(s.name, bonus(s.value), null, { icon: s.icon, color: s.grade ? gradeColor(s.grade) : null })).join('');
+  const equippedStones = (d.magicStoneStat || []).filter(s => s?.name);
+  const equippedGodstones = (d.godStoneStat || []).filter(s => s?.name);
+  const stones = equippedStones.map(s => line(s.name, s.value, null, { icon: manaPicture(s), color: gradeColor(s.grade), kind: 'tt-stone' })).join('');
+  const god = equippedGodstones.map(s => `<div class="tt-god"><div class="tt-god-name" style="color:${gradeColor(s.grade)}">${art(godPicture(s), 'tt-god-art', './icons/items/godstone.png')}<b>${esc(s.name)}</b></div><div class="tt-god-desc">${esc(s.desc || '').replace(/\n/g, '<br>')}</div></div>`).join('');
+  const skills = (d.subSkills || []).map(s => line(s.name, bonus(s.level), null, { icon: s.icon, color: gradeColor(s.grade || d.grade || base.grade), kind: 'tt-skill' })).join('');
   return head
     + section('Atributos principais', main)
     + section('Atributos adicionais', sub)
     + section('Habilidades', skills)
-    + section('Pedras mágicas', stones)
-    + section('Theostone', god)
+    + section(`Pedras de mana (${equippedStones.length}/${d.magicStoneSlotCount ?? equippedStones.length})`, stones)
+    + section(`Pedra divina (${equippedGodstones.length}/${d.godStoneSlotCount ?? equippedGodstones.length})`, god)
     + (d.soulBindRate ? `<div class="tt-sub" style="margin-top:6px">Vínculo da alma: ${esc(d.soulBindRate)}%</div>` : '');
 }
 

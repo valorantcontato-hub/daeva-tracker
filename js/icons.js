@@ -1,4 +1,4 @@
-// Ícones: classes (SVG próprio), e emblemas gerados para skills, monstros e chefes.
+// Ícones: classes fornecidas pelo usuário e emblemas para skills, monstros e chefes.
 // Imagens reais podem ser registradas em icons/index.json (veja README) ou vir no
 // próprio dado (campo "icon"); se a imagem falhar, o emblema gerado aparece no lugar.
 import { esc } from './util.js';
@@ -44,14 +44,11 @@ function initials(name) {
 
 const img = src => src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : '';
 
-// Emblemas oficiais das classes (os mesmos do site aion2.plaync.com). O SVG fica por baixo como fallback.
-const officialClassIcon = key => CLASS_PATHS[key]
-  ? `https://assets.playnccdn.com/static-aion2/characters/img/daevanion/board_icon_start_${key === 'spiritmaster' ? 'elementalist' : key}.png`
-  : '';
+const classPicture = key => CLASS_PATHS[key] ? `icons/classes/${key}.png` : '';
 
 export function classIcon(key, size = 24) {
   const c = classInfo(key);
-  const src = resolve('classes', key) || officialClassIcon(key);
+  const src = classPicture(key) || resolve('classes', key);
   const path = CLASS_PATHS[key];
   return `<span class="ico cls-ico" style="--c:${c.color};--s:${size}px" title="${esc(c.name)}">${
     path ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>` : `<b>${esc(initials(c.name))}</b>`}${img(src)}</span>`;
