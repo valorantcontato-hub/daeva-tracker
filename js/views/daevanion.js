@@ -19,16 +19,22 @@ async function fetchBoard(me, board) {
   return data;
 }
 
-// Casa de skill: o ícone é o da própria skill (o nome vem no efeito, ex.: "Wind Vigor +2").
-const nodeIcon = (n, icons) => {
-  const skill = n.type === 'SkillLevel' && n.effects[0] ? n.effects[0].replace(/\s*\+\d+\s*$/, '').trim().toLowerCase() : '';
-  const src = icons.get(skill);
-  return src ? `<img src="${esc(src)}" alt="" draggable="false" loading="lazy">` : '';
+// Fixed 68px windows into the user's original screenshot. The source pixels stay intact.
+const tileArt = {
+  Common: { off: [408, 28], on: [184, 28] },
+  Rare: { off: [783, 103], on: [184, 103] },
+  Legend: { off: [558, 103], on: [408, 103] },
+  Unique: { off: [33, 28], on: [483, 28] },
+  None: { off: [108, 28], on: [184, 28] },
+};
+const originalTile = n => {
+  const [x, y] = (tileArt[n.grade] || tileArt.Common)[n.open ? 'on' : 'off'];
+  return `<svg class="dv-tile" viewBox="0 0 68 68" aria-hidden="true" focusable="false"><image href="./icons/daevanion-tiles.png" x="-${x}" y="-${y}" width="1076" height="482"/></svg>`;
 };
 
 const tipOf = n => [n.name || 'Casa', ...n.effects, n.open ? '✔ Aberta' : '✖ Fechada'].join('\n');
 
-function boardHtml(data, skillIcons) {
+function boardHtml(data) {
   const shown = data.nodes.filter(n => n.type !== 'None');
   if (!shown.length) return '<p class="muted">Tabuleiro vazio.</p>';
   const r0 = Math.min(...shown.map(n => n.row)), r1 = Math.max(...shown.map(n => n.row));
@@ -36,7 +42,7 @@ function boardHtml(data, skillIcons) {
   const cells = shown.map(n => `
     <div class="node ${n.open ? 'on' : 'off'} t-${n.type.toLowerCase()} g-${n.grade.toLowerCase()}"
       style="grid-row:${n.row - r0 + 1};grid-column:${n.col - c0 + 1}" data-tip="${esc(tipOf(n))}">
-      ${nodeIcon(n, skillIcons)}
+      ${originalTile(n)}
     </div>`).join('');
   return `<div class="dv-board" style="--cols:${c1 - c0 + 1};--rows:${r1 - r0 + 1}">${cells}</div>`;
 }
@@ -59,7 +65,6 @@ export function renderDaevanion(root, _params, profile) {
     return;
   }
 
-  const skillIcons = new Map((me.skills || []).filter(s => s.icon).map(s => [s.name.toLowerCase(), s.icon]));
   let current = boards.find(b => b.id === load('dvBoard', 0)) || boards[0];
   const totalOpen = boards.reduce((a, b) => a + b.open, 0), total = boards.reduce((a, b) => a + b.total, 0);
 
@@ -93,7 +98,7 @@ export function renderDaevanion(root, _params, profile) {
     try {
       const data = await fetchBoard(me, current);
       if (asked !== current || !root.isConnected) return;
-      body.innerHTML = boardHtml(data, skillIcons);
+      body.innerHTML = boardHtml(data);
       side.innerHTML = list('Efeitos de habilidade', data.skillEffects) + list('Efeitos de atributo', data.statEffects);
     } catch (e) {
       if (asked === current) body.innerHTML = `<p class="small" style="color:var(--danger)">${esc(e.message)}</p>`;
