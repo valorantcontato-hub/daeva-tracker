@@ -1,0 +1,12 @@
+name = "lotus-avistamentos"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Quantas pessoas diferentes precisam ter visto o mob na célula para ela aparecer para os outros (1 = confia em todos).
+MIN_REPORTERS = "1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lotus-avistamentos"
+database_id = "COLE_AQUI_O_ID_DO_BANCO"

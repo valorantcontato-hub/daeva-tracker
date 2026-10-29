@@ -16,6 +16,7 @@ import { createWidgetActivity } from '../widget-activity.js';
 import { groupSkillVariants } from '../skill-meter.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
+import { nearbySpawns, sharedSpawns, wantSpawns, sightingsAvailable, sightingsEnabled } from '../sightings.js';
 import { shopTabs, onShop, describeOffer, sortOffers, shopMarks, SHOP_SCREEN } from '../shop.js';
 import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
 
@@ -71,11 +72,11 @@ function farmingEntries() {
     if (!focus.includes('pet-' + pet.id)) continue;
     const progress = petProgress(collection, pet.id);
     if (progress.known && progress.complete) continue; // mascote completo (MAX) não precisa mais ser farmado
-    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress,
+    out.push({ kind: 'pet', rawNames: [pet.name, ...(pet.mobs || []).map(m => m.name)], name: pet.name, icon: pet.icon, type: pet.family, progress,
       names: new Set([normName(pet.name), ...(pet.mobs || []).map(m => normName(m.name))]) });
   }
   for (const m of mergeMonsterCatalog(load('monsters', []))) {
-    if (focus.includes(m.id)) out.push({ kind: 'monster', name: m.name, icon: m.icon, kills: kills[m.id] || 0, names: new Set([normName(m.name)]) });
+    if (focus.includes(m.id)) out.push({ kind: 'monster', rawNames: [m.name], name: m.name, icon: m.icon, kills: kills[m.id] || 0, names: new Set([normName(m.name)]) });
   }
   return out;
 }
@@ -97,12 +98,12 @@ function radarSvg(self, mobs, range, rotation) {
     if (m.icon) {
       const r = far ? 6 : 8.5;
       clips += '<clipPath id="rdc' + i + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>';
-      return '<g class="rd-pet' + (far ? ' far' : '') + '">'
+      return '<g class="rd-pet' + (far ? ' far' : '') + (m.static ? ' static' : '') + '">'
         + '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 1.4) + '" style="fill:' + color + '"/>'
         + '<image href="' + esc(m.icon) + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + r * 2 + '" height="' + r * 2 + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#rdc' + i + ')"/>'
         + tip + '</g>';
     }
-    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (far ? 2 : 3.4) + '" style="fill:' + color + '" class="rd-dot' + (far ? ' far' : '') + '">' + tip + '</circle>';
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (far ? 2 : 3.4) + '" style="fill:' + color + '" class="rd-dot' + (far ? ' far' : '') + (m.static ? ' static' : '') + '">' + tip + '</circle>';
   }).join('');
   const rings = [R, R * 2 / 3, R / 3].map(r => '<circle cx="100" cy="100" r="' + r.toFixed(1) + '" class="rd-ring"/>').join('');
   return '<svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">'
@@ -172,6 +173,16 @@ function radarBody() {
       // Só os monstros selecionados para farmar, até 2 km (o jogo informa os que estão no alcance dele).
       .filter(m => typeOf.has(normName(m.name)) && m.d <= RADAR_MAX_M)
       .sort((a, b) => a.d - b.d);
+  }
+  // Spawns compartilhados: onde outros jogadores já viram esses mobs (o jogo só informa os que estão a uns 120 m), até 2 km.
+  if (sightingsEnabled() && lastRadar?.self && Number.isFinite(lastRadar.self.x)) {
+    wantSpawns([...new Set(entries.flatMap(e => e.rawNames))]);
+    const shown = nearbySpawns(sharedSpawns(), lastRadar.self, RADAR_MAX_M)
+      .filter(s => typeOf.has(normName(s.name)))
+      .filter(s => !mobs.some(l => normName(l.name) === normName(s.name) && Math.hypot(l.dx - s.dx, l.dy - s.dy) < 40))
+      .slice(0, 150)
+      .map(s => ({ ...s, type: typeOf.get(normName(s.name))?.type, icon: typeOf.get(normName(s.name))?.icon, static: true }));
+    mobs = [...mobs, ...shown].sort((a, b) => a.d - b.d);
   }
   // Zoom automático: o radar fecha em volta do mais próximo conforme você se aproxima (100 m, 250 m, 500 m, 1 km, 2 km).
   const range = mobs.length ? (RADAR_RANGES.find(r => r >= mobs[0].d) || RADAR_MAX_M) : RADAR_RANGES[0];
@@ -434,6 +445,7 @@ export async function renderWidgetsPage(root) {
             <label class="switch"><input type="checkbox" data-opt="locked" ${s.locked ? 'checked' : ''}> Travar <span class="muted small">(cliques passam para o jogo; oculta ao passar o mouse)</span></label>` : ''}
           ${ov && s.scale != null ? `<label class="opt widget-size"><span>Tamanho</span><input aria-label="Tamanho de ${esc(w.title)}" type="range" min="75" max="150" step="5" value="${Math.round(s.scale * 100)}" data-opt="size"><output>${Math.round(s.scale * 100)}%</output><button class="btn sm" data-act="size-default" type="button">Padrão</button></label>` : ''}
           ${id === 'skills' ? `<label class="opt"><span>Skills mostradas</span><select aria-label="Quantas skills mostrar" data-opt="skillLimit">${SKILL_LIMITS.map(n => `<option value="${n}" ${n === skillLimit() ? 'selected' : ''}>${n || 'Todas'}</option>`).join('')}</select></label>` : ''}
+          ${id === 'radar' && sightingsAvailable() ? `<label class="switch"><input type="checkbox" data-opt="shareSightings" ${load('shareSightings', true) !== false ? 'checked' : ''}> Compartilhar avistamentos de mobs <span class="muted small">(anônimo: só o nome do mob e a área de 25 m; os de todos aparecem no mapa)</span></label>` : ''}
           <label class="opt"><span>Opacidade</span><input type="range" min="30" max="100" step="5" value="${load('wgOpacity:' + id, 88)}" data-opt="opacity"></label>
         </div>
       </section>`;
@@ -476,6 +488,7 @@ export async function renderWidgetsPage(root) {
   });
   root.addEventListener('change', e => {
     const opt = e.target.dataset.opt, cardEl = e.target.closest('.widget-card');
+    if (opt === 'shareSightings') { save('shareSightings', e.target.checked); notifyChange(); return; }
     if (opt === 'skillLimit') { save('wgSkillLimit', Number(e.target.value)); notifyChange(); return; }
     if (!opt || !cardEl || opt === 'opacity') return;
     const id = cardEl.dataset.id;
