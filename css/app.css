@@ -1574,3 +1574,10 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .prow .pk { display: block; font-size: 10px; font-weight: 500; color: #ffda76; line-height: 1.1; }
 
 .dps-active { font-style: normal; font-size: 10px; font-weight: 600; color: #8fd0ff; margin-right: 7px; }
+
+/* Fileira de jogadores da página Boss: barra de rolagem fina e visível para chegar nos que ficam de fora */
+.pchips { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .28) transparent; padding-bottom: 8px; }
+.pchips::-webkit-scrollbar { display: block; height: 6px; }
+.pchips::-webkit-scrollbar-track { background: rgba(255, 255, 255, .05); border-radius: 99px; }
+.pchips::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .28); border-radius: 99px; }
+.pchips::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .45); }
