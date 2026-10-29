@@ -9,12 +9,7 @@
   <link id="app-icon" rel="icon" href="icons/lotus-dark.svg">
   <link rel="stylesheet" href="css/app.css">
   <script>
-    // Aplica o tema antes do primeiro paint para evitar flash.
-    try {
-      const t = JSON.parse(localStorage.getItem('a2t:theme'));
-      document.documentElement.dataset.theme = t || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    } catch { document.documentElement.dataset.theme = 'dark'; }
-    document.getElementById('app-icon').href = 'icons/lotus-' + document.documentElement.dataset.theme + '.svg';
+    document.documentElement.dataset.theme = 'dark';
   </script>
 </head>
 <body>
@@ -33,7 +28,6 @@
       <button data-lang="pt-BR" title="Português">PT</button>
       <button data-lang="en-US" title="English">EN</button>
     </div>
-    <button class="icon-btn" id="theme-toggle" aria-label="Alternar tema claro/escuro" title="Alternar tema">◐</button>
     <div class="win-controls" aria-label="Janela">
       <button class="win-btn" id="win-min" aria-label="Minimizar" title="Minimizar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8"/></svg></button>
       <button class="win-btn close" id="win-close" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>

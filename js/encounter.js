@@ -59,6 +59,7 @@ export function normalizeEncounter(raw) {
     id: raw.id ? String(raw.id) : uid(),
     boss: String(raw.boss || 'Chefe desconhecido'),
     dungeon: String(raw.dungeon || ''),
+    dungeonId: Number(raw.dungeonId) || 0,
     bossIcon: raw.bossIcon ? String(raw.bossIcon) : '',
     startedAt: raw.startedAt || new Date().toISOString(),
     duration: Number(raw.duration) || longest || 1,

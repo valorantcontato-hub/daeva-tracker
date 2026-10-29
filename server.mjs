@@ -185,7 +185,7 @@ function snapshot() {
   if (f.mode === 'snapshot') {
     const d = f.data;
     return {
-      id: f.id, boss: d.boss || 'Combate', dungeon: d.dungeon || '', npcCode: d.npcCode, isBoss: !!d.isBoss,
+      id: f.id, boss: d.boss || 'Combate', dungeon: d.dungeon || '', dungeonId: d.dungeonId, npcCode: d.npcCode, isBoss: !!d.isBoss,
       isDummy: d.isDummy === true, capturedAt: d.capturedAt || new Date(f.receivedAt).toISOString(),
       startedAt: d.startedAt, duration: Math.max(1, Number(d.duration) || 1), result: d.result, live: !f.endedAt,
       bossHp: d.bossHp || null, self: d.self || null, targets: d.targets || [],

@@ -40,10 +40,10 @@ export function renderTraining(root) {
   root.className = 'page training-page';
   let selected = [], focused = '', historyKey = '', detailKey = '';
   root.innerHTML = `<div class="page-head"><div><h1>Boneco de Treinamento</h1><p class="muted small">Tentativas cronometradas. Somente o seu dano no boneco é contado.</p></div></div>
-    <section class="card"><form class="training-form"><label>Nome do treino<input name="name" value="Treino ${trainingState().runs.length+1}" required maxlength="60" autocomplete="off"></label>
-      <label>Tempo (segundos)<input type="number" name="seconds" value="30" min="5" max="1800" step="1" required></label>
+    <section class="card training-controls"><div class="training-status" role="status" aria-live="polite"></div><form class="training-form"><label>Nome do treino<input type="text" name="name" value="Treino ${trainingState().runs.length+1}" required maxlength="60" autocomplete="off"></label>
+      <fieldset class="training-time"><legend>Tempo limite</legend><div class="training-time-options">${[30,60,120,180,300].map(t=>`<button class="chip ${t===30?'active':''}" type="button" data-time="${t}" aria-pressed="${t===30}">${duration(t)}</button>`).join('')}<input aria-label="Tempo em segundos" type="number" name="seconds" value="30" min="5" max="1800" step="1" required></div></fieldset>
       <div class="head-actions"><button class="btn" type="submit" value="add">+ Adicionar</button><button class="btn primary" type="submit" value="start" id="training-add-start">Adicionar e iniciar</button></div></form>
-      <div class="training-status" role="status" aria-live="polite"></div><button class="btn sm" data-cancel hidden>Cancelar treino</button><p class="small negative" role="alert" id="training-error"></p></section>
+      <button class="btn sm" data-cancel hidden>Cancelar treino</button><p class="small negative" role="alert" id="training-error"></p></section>
     <section class="card"><div class="card-head"><h2>Tentativas</h2><span class="muted small">Selecione duas concluídas para comparar.</span></div><div id="training-history"></div></section><div id="training-detail"></div>`;
   const form = root.querySelector('form');
   function paint() {
@@ -55,14 +55,14 @@ export function renderTraining(root) {
     root.querySelector('[data-cancel]').hidden = !state.active;
     root.querySelector('#training-add-start').disabled = !!state.active;
     root.querySelector('#training-error').textContent = state.error;
-    const key = JSON.stringify(state.runs.map(r => [r.id,r.status,r.name,r.timeLimit,selected.includes(r.id)]));
+    const key = JSON.stringify(state.runs.map(r => [r.id,r.status,r.name,r.timeLimit,selected.includes(r.id),focused===r.id]));
     if (key !== historyKey) {
       historyKey = key;
-      root.querySelector('#training-history').innerHTML = state.runs.map(r => `<div class="training-run-row ${selected.includes(r.id) ? 'selected' : ''}"><input type="checkbox" data-compare="${esc(r.id)}" aria-label="Comparar ${esc(r.name)}" ${selected.includes(r.id) ? 'checked' : ''} ${r.status !== 'completed' ? 'disabled' : ''}><button class="training-run-name" data-detail="${esc(r.id)}"><b>${esc(r.name)}</b><small class="muted">${duration(r.timeLimit)} · ${esc(labels[r.status] || r.status)} · ${dateTime(r.createdAt)}</small></button><span class="num training-run-dps" data-run-dps="${esc(r.id)}">${compact(r.dps || 0)}</span>${r.status === 'ready' ? `<button class="btn sm" data-start="${esc(r.id)}" ${state.active ? 'disabled' : ''}>Iniciar</button>` : ''}</div>`).join('') || '<p class="muted small">Nenhuma tentativa ainda.</p>';
+      root.querySelector('#training-history').innerHTML = state.runs.map((r,index) => `<div class="training-run-row ${selected.includes(r.id) ? 'selected' : ''}"><input type="checkbox" data-compare="${esc(r.id)}" aria-label="Comparar ${esc(r.name)}" ${selected.includes(r.id) ? 'checked' : ''} ${r.status !== 'completed' ? 'disabled' : ''}><span class="training-run-index muted">#${state.runs.length-index}</span><button class="training-run-name" data-detail="${esc(r.id)}" aria-expanded="${focused===r.id}" title="${esc(dateTime(r.createdAt))}"><b>${esc(r.name)}</b><small class="muted">${duration(r.timeLimit)}${r.status === 'completed' ? '' : ' · ' + esc(labels[r.status] || r.status)}</small></button><span class="num training-run-dps" data-run-dps="${esc(r.id)}">${compact(r.dps || 0)}</span>${r.status === 'ready' ? `<button class="btn sm" data-start="${esc(r.id)}" ${state.active ? 'disabled' : ''}>Iniciar</button>` : ''}</div>`).join('') || '<p class="muted small">Nenhuma tentativa ainda.</p>';
     }
     root.querySelectorAll('[data-start]').forEach(button => { button.disabled = !!state.active; });
     if (state.active) { const element = root.querySelector(`[data-run-dps="${CSS.escape(state.active.id)}"]`); if (element) element.textContent = compact(state.active.dps); }
-    const runs = selected.length === 2 ? selected.map(id => state.runs.find(r => r.id === id)) : [state.runs.find(r => r.id === selected[0]) || state.active || state.runs.find(r => r.id === focused) || state.runs.find(r => r.status === 'completed')].filter(Boolean);
+    const runs = selected.length === 2 ? selected.map(id => state.runs.find(r => r.id === id)) : [state.runs.find(r => r.id === focused)].filter(Boolean);
     const stamp = JSON.stringify(runs.map(r => [r.id,r.damage,r.hits,r.status,Math.floor(r.duration),r.warning]));
     if (stamp !== detailKey) { detailKey = stamp; root.querySelector('#training-detail').innerHTML = runs.length === 2 ? comparison(...runs) : runs.length ? details(runs[0]) : ''; }
   }
@@ -70,7 +70,7 @@ export function renderTraining(root) {
     e.preventDefault();
     try {
       const id = addTraining(form.elements.name.value, form.elements.seconds.value);
-      focused = id;
+      focused = '';
       if (e.submitter?.value === 'start') { selected = []; startTraining(id); }
       form.elements.name.value = `Treino ${trainingState().runs.length+1}`;
       paint();
@@ -78,15 +78,22 @@ export function renderTraining(root) {
   });
   root.addEventListener('click', e => {
     const start = e.target.closest('[data-start]'), detail = e.target.closest('[data-detail]');
-    if (start) { try { selected = []; focused = start.dataset.start; startTraining(focused); paint(); } catch (err) { toast(err.message); } }
-    if (detail) { focused = detail.dataset.detail; selected = []; paint(); }
+    if (start) { try { selected = []; focused = ''; startTraining(start.dataset.start); paint(); } catch (err) { toast(err.message); } }
+    if (detail) { focused = focused === detail.dataset.detail ? '' : detail.dataset.detail; selected = []; paint(); }
+    const time = e.target.closest('[data-time]');
+    if (time) { form.elements.seconds.value = time.dataset.time; form.elements.seconds.dispatchEvent(new Event('input')); }
     if (e.target.closest('[data-cancel]')) cancelTraining();
   });
+  form.elements.seconds.addEventListener('input', () => root.querySelectorAll('[data-time]').forEach(button => {
+    const on = button.dataset.time === form.elements.seconds.value;
+    button.classList.toggle('active', on); button.setAttribute('aria-pressed', on);
+  }));
   root.addEventListener('change', e => {
     const id = e.target.dataset.compare;
     if (!id) return;
     if (e.target.checked && selected.length >= 2) { e.target.checked = false; return toast('Selecione no máximo duas tentativas.'); }
     selected = e.target.checked ? [...selected,id] : selected.filter(x => x !== id);
+    focused = '';
     paint();
   });
   const off = onTraining(() => root.isConnected ? paint() : off());

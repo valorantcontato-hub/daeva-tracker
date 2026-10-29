@@ -25,6 +25,7 @@ export const searchCharacters = (name, region, serverId) =>
 export async function fetchProfile({ region, serverId, characterId }, { fresh = false } = {}) {
   const p = await api('/api/plaync/character', { region, serverId, characterId, lang: getLang(), ...(fresh ? { fresh: 1 } : {}) });
   p.class = p.class || classKey(p.className);
+  p.portraitVersion = Date.now();
   rememberSkills(p);
   return p;
 }

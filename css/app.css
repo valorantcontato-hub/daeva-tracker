@@ -18,26 +18,9 @@
   color-scheme: dark;
   font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-:root[data-theme="light"] {
-  --bg: #fcf7fa;
-  --surface: #fffdfd;
-  --surface-2: #f8eff5;
-  --border: #eed9e6;
-  --text: #141922;
-  --muted: #5d6678;
-  --accent: #ed277c;
-  --lotus-mark: url('../icons/lotus-light.svg');
-  --accent-ink: #ffffff;
-  --danger: #dc2626;
-  --ok: #16a34a;
-  --t1: #b06a26;
-  --t2: #7d8898;
-  --t3: #c99a12;
-  --shadow: 0 8px 24px rgba(20, 25, 34, .12);
-  color-scheme: light;
-}
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
@@ -863,4 +846,121 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 @media (max-width: 700px) {
   .equipment-and-look { grid-template-columns: minmax(0,3fr) minmax(0,2fr); }
   .equipment-and-look .gear-block:first-child .tile-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+
+/* The character overview fits the actual available height, including update banners. */
+html.home-fit, .home-fit body { height: 100%; overflow: hidden; }
+.home-fit #view { height: calc(100dvh - var(--topbar-height,60px) - var(--navigation-height,76px) - var(--banner-height,0px) - 2px); padding: 0 24px 8px; overflow: hidden; }
+.home-fit .home-page { height: 100%; min-height: 0; display: grid; grid-template-rows: clamp(128px,21dvh,164px) minmax(0,1fr); gap: 8px; }
+.home-fit .hero { min-height: 0; height: 100%; }
+.home-fit .sub-body, .home-fit .side-col { min-height: 0; height: 100%; }
+.home-fit .home-main { height: 100%; min-height: 0; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); }
+.home-fit .gear-card, .home-fit .stats-card { min-height: 0; height: 100%; padding: 10px; gap: 6px; }
+.home-fit .equipment-and-look { flex: 1; min-height: 0; max-width: 100%; grid-template-columns: minmax(0,2fr) minmax(0,1fr); }
+.home-fit .gear-block { display: flex; flex-direction: column; min-height: 0; }
+.home-fit .gear-block .card-head { flex: none; margin-bottom: 5px; }
+.home-fit .tile-grid { flex: 1; min-height: 0; grid-template-columns: repeat(var(--cols),minmax(0,1fr)) !important; grid-template-rows: repeat(var(--rows),minmax(0,1fr)); gap: 4px; }
+.home-fit .tile-grid .slot { width: auto; max-width: 100%; height: 100%; max-height: 100%; justify-self: start; aspect-ratio: 1; }
+.home-fit .arcana-block { flex: 0 0 clamp(60px,11dvh,86px); width: 100%; max-width: none; margin-top: 0; padding-top: 5px; }
+.home-fit .stats-card { display: flex; flex-direction: column; }
+.home-fit .stats-card .card-head { flex: none; margin-bottom: 4px; }
+.home-fit .stat-grid { flex: var(--stat-rows) 1 0; min-height: 0; grid-template-rows: repeat(var(--stat-rows),minmax(0,1fr)); gap: 5px; }
+.home-fit .stat-tile { min-height: 0; height: 100%; padding-block: 2px; overflow: hidden; }
+.home-fit .stat-ico { max-height: 100%; }
+.home-fit .stat-tile b { font-size: clamp(11px,1.8dvh,14px); }
+.boss-id h1 { font-weight: 700; }
+.training-controls { background: #15121b; }
+.training-controls .training-status { margin: 0 0 16px; padding: 0; font-size: 12px; font-weight: 500; color: #b783f7; }
+.training-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.training-form > label { flex: 1 1 160px; max-width: 240px; }
+.training-form .head-actions { margin-left: auto; gap: 6px; }
+.training-time { min-width: 0; margin: 0; padding: 0; border: 0; }
+.training-time legend { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.training-time-options { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; background: #201a27; border-radius: 18px; padding: 3px; }
+.training-time-options .chip { border-radius: 16px; font-size: 11px; padding: 0 9px; }
+.training-time-options input { width: 62px; height: 28px; border-radius: 14px; }
+#training-history { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.training-run-row { border-radius: 0; padding: 8px 10px; min-height: 44px; background: #141018; }
+.training-run-row:nth-child(even) { background: #19141f; }
+.training-run-row:hover { background: #241a30; }
+.training-run-name { flex-direction: row; align-items: baseline; gap: 12px; }
+.training-run-name small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.training-run-dps { font-size: 14px; }
+@media (max-width: 640px) {
+  .home-fit #view { padding-inline: 10px; }
+  .home-fit .hero { grid-template-columns: 76px minmax(0,1fr) auto; padding: 8px; gap: 8px; }
+  .home-fit .hero .portrait { width: 76px; height: 76px; }
+  .home-fit .hero-tabs { grid-column: auto; flex-direction: column; }
+  .home-fit .hero-tabs a { font-size: 10px; padding: 5px 6px; }
+  .home-fit .equipment-and-look { gap: 5px; }
+  .home-fit .gear-card, .home-fit .stats-card { padding: 6px; }
+  .home-fit .equipment-and-look h2 { font-size: 10px; }
+  .home-fit .stat-name { font-size: 9px; }
+  .home-fit .stat-ico { display: none; }
+  .training-run-name { flex-direction: column; gap: 0; }
+}
+
+/* Quiet desktop styling: shared surfaces, simple dividers and restrained accents. */
+:root { --bg: #101114; --surface: #17191d; --surface-2: #202329; --border: #2b2e35; --text: #e6e7eb; --muted: #989ca7; --accent: #b78bdc; --radius: 6px; --shadow: 0 8px 24px #0006; }
+.card { border-radius: 6px; box-shadow: none; }
+.topbar { background: var(--bg); border-bottom-color: var(--border); }
+.hero { background: var(--surface); }
+.hero::before { opacity: .06; }
+:root:not([data-theme="light"]) .hero::before { opacity: .1; filter: none; }
+.hero .portrait { border-radius: 5px; box-shadow: none; border: 1px solid #39323f; }
+.hero-tabs { gap: 3px; }
+.hero-tabs a { border-radius: 4px; border-color: transparent; background: transparent; font-weight: 500; text-align: left; }
+.hero-tabs a:hover { background: var(--surface-2); }
+.hero-tabs a.active, .lang-switch button.active { background: #694b81; color: #fff; }
+.hero-stats > div:not(.head-actions) { border: 0; background: transparent; border-radius: 0; padding-left: 0; padding-right: 18px; }
+.hero-stats > div + div:not(.head-actions) { border-left: 1px solid var(--border); padding-left: 16px; }
+.home-main { gap: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.home-main > .gear-card, .home-main .stats-card { border: 0; border-radius: 0; background: transparent; }
+.home-main > .side-col { border-left: 1px solid var(--border); }
+.home-main .card-head h2, .home-main .card-head h3 { font-size: 12px; font-weight: 600; color: #c9cbd2; }
+.home-main .stat-tile { border: 0; border-bottom: 1px solid #292c32; border-radius: 0; background: transparent; padding-inline: 1px; }
+.home-main .stat-tile:hover { background: #1e2126; }
+.home-main .stat-ico { background: transparent; border-radius: 0; box-shadow: none; }
+.home-main .stat-name { color: #c2c5cd; font-weight: 400; }
+.home-main .stat-tile b { font-weight: 600; }
+.home-main .slot { border-radius: 4px; box-shadow: none; }
+.btn, input, select, .chip, .note { border-radius: 5px; }
+.btn.primary { background: #795296; color: #fff; font-weight: 500; }
+.tabs a { border-radius: 4px; }
+.tabs a.active { background: #211a29; color: #cfabe9; }
+.tooltip { background: #1c1e23; border-color: #4b3b59; border-radius: 6px; }
+.training-controls { background: var(--surface); }
+.training-time-options { background: #202329; border-radius: 5px; }
+.training-time-options .chip { border-radius: 3px; }
+.training-run-row, .training-run-row:nth-child(even) { background: #17191d; }
+.training-run-row:hover { background: #202329; }
+.training-run-row.selected { background: #292131; }
+.training-run-row + .training-run-row { border-top: 1px solid #272a31; }
+.training-run-name b { font-weight: 500; }
+.training-page #training-history { border-radius: 5px; }
+.training-run-index { width: 24px; flex: none; font-size: 10px; }
+
+/* Compact character sheet: equipment, appearance and arcana stacked in one column. */
+.home-main { background: transparent; border: 0; border-radius: 0; gap: 8px; overflow: visible; }
+.home-main > .gear-card, .home-main .stats-card { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; }
+.home-main > .side-col { border-left: 0; }
+.equipment-and-look { display: contents; }
+.equipment-and-look > .gear-block + .gear-block { border-top: 1px solid var(--border); padding-top: 8px; }
+.gear-card .tile-grid { grid-template-columns: repeat(var(--cols),minmax(0,1fr)); }
+.gear-card .slot { border-radius: 6px; }
+.home-fit .home-page { grid-template-rows: 128px minmax(0,1fr); }
+.home-fit .equipment-and-look { display: contents; }
+.home-fit .equipment-and-look > .gear-block { flex: var(--block-rows) 1 0; min-height: 0; }
+.home-fit .tile-grid { container-type: inline-size; }
+.home-fit .tile-grid .slot { height: min(100%,calc((100cqw - (var(--cols) - 1)*4px)/var(--cols))); width: auto; }
+.home-fit .stats-card.combat-card { height: auto; flex: none; display: block; }
+.combat-totals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 8px; }
+.combat-stat { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; padding: 9px 2px; border-bottom: 1px solid #2b2e35; font-size: 11px; }
+.combat-stat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #bec2cb; }
+.combat-stat b { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.combat-source { font-size: 10px; line-height: 1.5; margin-top: 10px; }
+@media (min-width: 481px) and (max-width: 640px) {
+  .home-fit .hero { grid-template-columns: 112px minmax(0,1fr) auto; }
+  .home-fit .hero .portrait { width: 112px; height: 112px; }
+  .home-fit .hero-tabs a { font-size: 11px; }
 }
