@@ -5,6 +5,10 @@
   "description": "Tracker leve para AION 2: DPS da party, skills, perfis reais e bestiário, com widgets de overlay.",
   "author": "Daeva Tracker",
   "type": "module",
+  "daevaUpdates": {
+    "owner": "valorantcontato-hub",
+    "repo": "daeva-tracker"
+  },
   "main": "electron/main.mjs",
   "scripts": {
     "start": "electron .",

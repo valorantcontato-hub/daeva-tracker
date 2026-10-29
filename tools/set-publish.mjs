@@ -10,5 +10,6 @@ if (!owner || !repo) {
 const file = new URL('../package.json', import.meta.url);
 const pkg = JSON.parse(readFileSync(file, 'utf8'));
 Object.assign(pkg.build.publish[0], { owner, repo });
+pkg.daevaUpdates = { owner, repo };
 writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n');
 console.log(`Auto-update: github.com/${owner}/${repo}/releases`);

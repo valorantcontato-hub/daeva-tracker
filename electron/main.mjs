@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import updaterPkg from 'electron-updater';
 import { start, notifyReload } from '../server.mjs';
 import { setupLiveUi } from './live-ui.mjs';
+import { uiRepository } from './ui-source.mjs';
 
 const { autoUpdater } = updaterPkg;
 
@@ -277,8 +278,9 @@ async function liveUiOverlay() {
   if (DEV) return '';
   try {
     const pkg = JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'));
-    const { owner, repo } = pkg.build?.publish?.[0] || {};
-    if (!owner || owner === 'SEU_USUARIO_GITHUB') return '';
+    const source = uiRepository(pkg);
+    if (!source) return '';
+    const { owner, repo } = source;
     return await setupLiveUi({
       owner, repo, branch: 'main',
       appDir: app.getAppPath(), dataDir: app.getPath('userData'), appVersion: app.getVersion(),
