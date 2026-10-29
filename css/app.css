@@ -1268,3 +1268,13 @@ html.home-fit .stats-card .stat-name { font-size: 11px; }
 /* Avatar do personagem com o mesmo traçado grosso dos containers */
 .hero .portrait, html.home-fit .hero .portrait { border: 2px solid rgba(255, 255, 255, .08); border-radius: 12px; overflow: hidden; }
 :root[data-theme="light"] .hero .portrait { border-color: rgba(30, 55, 100, .14); }
+
+/* Menu de baixo: ícone de casa no Início e seleção neutra (sem o azul-claro) */
+.ico-home { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+.tab-ico { filter: none; }
+.tab-ico:not(:has(svg)) { filter: grayscale(1) brightness(1.25); }
+html .tabs a.active, :root[data-theme="light"] .tabs a.active { background: var(--surface-2); color: var(--text); box-shadow: none; }
+html .tabs a.active .tab-ico { color: var(--text); filter: none; }
+html .tabs a.active .tab-ico:not(:has(svg)) { filter: grayscale(1) brightness(1.6); }
+html .btn.primary { background: var(--accent); color: #fff; }
+html .btn.primary:hover { filter: brightness(1.1); }

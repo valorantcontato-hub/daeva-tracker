@@ -16,7 +16,7 @@ export function renderBestiary(root) {
   const ui = { q: '', region: '', page: 0, status: 'all' };
 
   root.innerHTML = `
-    <div class="page-head"><div><h1>Bestiário</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
+    <div class="page-head"><div><h1>Mascotes</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
     <p class="note small" id="collection-status"></p>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro ou região…" aria-label="Buscar">
