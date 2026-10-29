@@ -19,8 +19,6 @@ export function renderBestiary(root) {
   const ui = { q: '', page: 0, family: '', status: 'all' };
 
   root.innerHTML = `
-    <div class="page-head"><div><h1>Mascotes</h1><p class="muted small">${esc(me?.name || 'Sem personagem vinculado')}</p></div></div>
-    <p class="note small" id="collection-status"></p>
     <nav class="pet-status-tabs" aria-label="Progresso dos mascotes">${STATUSES.map(([key, label]) => `<button class="chip" data-status="${key}" aria-pressed="${key === 'all'}">${label} <span></span></button>`).join('')}</nav>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro…" aria-label="Buscar">
@@ -28,7 +26,6 @@ export function renderBestiary(root) {
     </div>
     <div class="small muted" id="bestiary-summary"></div>
     <div id="list" class="pet2-grid"></div>
-    <p class="img-credit">Imagens dos monstros: <a href="https://metabot.gg/en/aion-2" target="_blank" rel="noopener">MetaBot.gg</a></p>
     <div class="bestiary-pagination"><button class="btn sm" data-page="-1">Anterior</button><span class="small muted" id="bestiary-page-count"></span><button class="btn sm" data-page="1">Próxima</button></div>`;
   const $ = selector => root.querySelector(selector);
 
@@ -86,9 +83,6 @@ export function renderBestiary(root) {
       el.querySelector('span').textContent = pets.filter(m => matchesPetStatus(petProgress(collection, m.petId), state.focus.includes(m.id), status)).length;
     });
     $('#bestiary-summary').textContent = `${pets.filter(m => petProgress(collection, m.petId).complete).length} / ${pets.length} completos · ${state.focus.length} farmando`;
-    $('#collection-status').textContent = collection
-      ? `Coleção recebida do jogo em ${new Date(collection.capturedAt).toLocaleString()}. O último estado fica salvo para este personagem.`
-      : 'Aguardando a coleção do jogo. Com a captura atualizada e ligada, volte à seleção de personagens e entre novamente. Até receber a lista, o progresso fica desconhecido.';
     $('#list').innerHTML = visible.slice(first, first + PAGE_SIZE).map(card).join('') || '<p class="muted small">Nenhum monstro corresponde aos filtros.</p>';
   }
 

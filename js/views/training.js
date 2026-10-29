@@ -51,7 +51,8 @@ export function renderTraining(root) {
     selected = selected.filter(id => state.runs.some(r => r.id === id && r.status === 'completed'));
     const status = root.querySelector('.training-status');
     status.dataset.phase = state.phase;
-    status.textContent = state.phase === 'countdown' ? `Prepare-se: ${state.remaining}` : state.phase === 'running' ? `Combe agora · ${duration(state.remaining)} restantes · ${compact(state.active.dps)} DPS` : state.phase === 'finalizing' ? 'Finalizando a medição…' : 'Adicione uma tentativa e inicie. A contagem começa após 5 segundos.';
+    status.textContent = state.phase === 'countdown' ? `Prepare-se: ${state.remaining}` : state.phase === 'running' ? `Combe agora · ${duration(state.remaining)} restantes · ${compact(state.active.dps)} DPS` : state.phase === 'finalizing' ? 'Finalizando a medição…' : '';
+    status.hidden = !status.textContent;
     root.querySelector('[data-cancel]').hidden = !state.active;
     root.querySelector('#training-add-start').disabled = !!state.active;
     root.querySelector('#training-error').textContent = state.error;

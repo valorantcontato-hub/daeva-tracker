@@ -16,10 +16,10 @@ export function accountResourcesHtml(me) {
   const duty = currentAccountCounter(state?.dutyMissions), craft = currentAccountCounter(state?.craftOdyleEnergy);
   const fill = energy?.max ? Math.max(0, Math.min(100, energy.current / energy.max * 100)) : 0;
   const refill = energy?.nextRefillAt && Date.parse(energy.nextRefillAt) > Date.now() ? remaining(Date.parse(energy.nextRefillAt)) : null;
-  return `<div class="resource-row" title="${state?.kinah == null ? wait : 'Saldo lido do personagem conectado'}">${icon(kinahIcon, 'kinah-icon')}<span>Kinah</span><b>${state?.kinah == null ? '—' : int(state.kinah)}</b></div>
+  return `<div class="resource-row kinah-row" title="${state?.kinah == null ? wait : 'Saldo lido do personagem conectado'}">${icon(kinahIcon, 'kinah-icon')}<span>Kinah</span><b>${state?.kinah == null ? '—' : int(state.kinah)}</b></div>
     <div class="resource-energy" title="${energy ? 'Energia normal e energia carregada do personagem conectado' : wait}">
       ${icon(energyIcon, 'energy-icon')}
-      <div class="energy-content"><div class="energy-top"><span class="energy-label">Od Energy</span><span class="energy-amount"><b>${energy ? int(energy.current) : '—'}</b>${energy?.bonus ? ` <em>(+${int(energy.bonus)})</em>` : ''}<small>/${energy?.max ? int(energy.max) : '—'}</small></span><span class="energy-refill">${refill ? `Recarga em <b>${refill}</b>` : energy?.max && energy.current >= energy.max ? 'Completa' : 'Recarga: —'}</span></div><div class="energy-track"><i style="width:${fill}%"></i></div></div>
+      <div class="energy-content"><div class="energy-top"><span class="energy-label">Od Energy</span><span class="energy-amount"><b>${energy ? int(energy.current) : '—'}</b>${energy?.bonus ? ` <em>(+${int(energy.bonus)})</em>` : ''}<small>/${energy?.max ? int(energy.max) : '—'}</small></span><span class="energy-refill">${refill ? `Recarga em <b>${refill}</b>` : energy?.max && energy.current >= energy.max ? 'Completa' : ''}</span></div><div class="energy-track"><i style="width:${fill}%"></i></div></div>
     </div>
     <div class="resource-row" title="${duty ? 'Missões concluídas neste período' : wait}">${icon('☷', 'duty-icon')}<span>Duty Missions</span><b>${duty ? int(duty.completed) : '—'}<small>/${duty?.max || 5}</small></b></div>
     <div class="resource-row" title="${craft ? 'Fabricações usadas nesta semana' : wait}">${icon('◇', 'craft-icon')}<span>Craft Odyle Energy</span><b>${craft ? int(craft.crafted) : '—'}<small>/${craft?.max || 20}</small></b></div>`;
