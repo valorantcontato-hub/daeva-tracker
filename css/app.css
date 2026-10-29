@@ -351,7 +351,11 @@ table.skills { width: 100%; border-collapse: collapse; }
 .live-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .live-line .live-dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 30%, transparent); }
 .home-main { display: grid; grid-template-columns: auto minmax(280px, 1fr); gap: 12px; align-items: start; }
-.gear-card { display: flex; gap: 10px; width: fit-content; max-width: 100%; }
+.gear-card { display: flex; flex-direction: column; gap: 14px; width: fit-content; max-width: 100%; }
+.gear-top { display: flex; gap: 10px; justify-content: center; }
+.arcana-block { border-top: 1px solid var(--border); padding-top: 10px; }
+.arcana-block .card-head { justify-content: center; margin-bottom: 8px; }
+.arcana-block .gear-row { justify-content: center; }
 .gear-col { min-width: 0; }
 .look-col .gear { align-items: center; }
 .subtabs { display: flex; gap: 6px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: fit-content; max-width: 100%; overflow-x: auto; }
@@ -407,7 +411,7 @@ img, svg { -webkit-user-drag: none; user-drag: none; }
   background: linear-gradient(160deg, var(--g1), var(--g2)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
 }
 .slot img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.slot.empty { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+.slot.blank { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
 .slot .enchant, .slot .exceed { position: absolute; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; line-height: 1; }
 .slot .enchant { right: 3px; bottom: 3px; }
 .slot .exceed { left: 3px; top: 3px; color: #ffe08a; }
@@ -534,7 +538,6 @@ kbd { font: 600 11px ui-monospace, monospace; padding: 1px 5px; border-radius: 4
   .account-side { position: static; order: -1; }
   .two-col { grid-template-columns: minmax(0, 1fr); }
   .dv-layout { grid-template-columns: minmax(0, 1fr); }
-  .gear-card .gear-row { justify-content: flex-start; }
   .portrait { width: 132px; }
   .hero-name { font-size: 24px; }
 }

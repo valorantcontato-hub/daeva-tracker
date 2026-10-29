@@ -17,7 +17,7 @@ const GEAR = [
   ['Cape', 'Belt'], ['Necklace', 'Amulet'], ['Earring1', 'Earring2'], ['Ring1', 'Ring2'],
   ['Bracelet1', 'Bracelet2'], ['Rune1', 'Rune2'],
 ];
-const ARCANA = [['Arcana1', 'Arcana2'], ['Arcana3', 'Arcana4'], ['Arcana5']];
+const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
 // Aparência: uma coluna, só o que o personagem está usando.
 const LOOK = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape', 'WingSkin', 'Wings', 'Pet'];
 const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion']];
@@ -25,7 +25,7 @@ const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
 /** Casa de item. Itens equipados (com slotPos numérico) mostram o detalhe real ao passar o mouse. */
 function tile(item, { skin = false } = {}) {
-  if (!item) return '<div class="slot empty"></div>';
+  if (!item) return '<div class="slot blank"></div>';
   const detail = !skin && item.id && Number.isInteger(item.slotPos) ? `${item.id}|${item.enchant || 0}|${item.slotPos}` : `${item.id || 0}|0|x`;
   return `
     <div class="slot ${gradeClass(item.grade)}" data-item="${esc(detail)}" data-name="${esc(item.name)}" data-grade="${esc(item.grade || '')}" data-icon="${esc(item.icon || '')}">
@@ -98,21 +98,25 @@ function characterMain(me) {
   return `
     <div class="home-main">
       <section class="card gear-card">
-        <div class="gear-col">
-          <div class="card-head"><h2>Equipamentos</h2></div>
-          <div class="gear">
-            ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
+          <div class="gear-top">
+            <div class="gear-col">
+              <div class="card-head"><h2>Equipamentos</h2></div>
+              <div class="gear">
+                ${GEAR.map(([a, b]) => `<div class="gear-row">${tile(bySlot[a])}${tile(bySlot[b])}</div>`).join('')}
+              </div>
+            </div>
+            <div class="gear-col look-col">
+              <div class="card-head"><h2>Aparência</h2></div>
+              <div class="gear look">
+                ${look.map(i => `<div class="gear-row">${tile(i, { skin: true })}</div>`).join('') || '<p class="muted small">Sem itens de aparência.</p>'}
+              </div>
+            </div>
           </div>
-          <div class="card-head" style="margin-top:14px"><h3>Arcanas</h3></div>
-          <div class="gear">${ARCANA.map(row => `<div class="gear-row">${row.map(s => tile(bySlot[s])).join('')}</div>`).join('')}</div>
-        </div>
-        <div class="gear-col look-col">
-          <div class="card-head"><h2>Aparência</h2></div>
-          <div class="gear look">
-            ${look.map(i => `<div class="gear-row">${tile(i, { skin: true })}</div>`).join('') || '<p class="muted small">Sem itens de aparência.</p>'}
+          <div class="arcana-block">
+            <div class="card-head"><h3>Arcanas</h3></div>
+            <div class="gear-row">${ARCANA.map(s => tile(bySlot[s])).join('')}</div>
           </div>
-        </div>
-      </section>
+        </section>
 
       <section class="card stats-card">
         <div class="card-head"><h2>Atributos</h2></div>
