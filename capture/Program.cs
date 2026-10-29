@@ -77,7 +77,17 @@ engine.Store.LocalIdentityChanged += (id, name, source) =>
 {
     Console.WriteLine($"Personagem local: {name} ({source})");
     if (!string.IsNullOrWhiteSpace(name) && !name.StartsWith("Player_", StringComparison.OrdinalIgnoreCase))
+    {
         try { File.WriteAllText(nameFile, name); } catch { }
+        // Avisa o app já ao teleportar/relogar, sem precisar de uma luta: ele vincula o personagem sozinho.
+        var prof = engine.Store.GetLocalProfile();
+        outbox.Enqueue(new
+        {
+            type = "identity",
+            capturedAt = DateTime.UtcNow.ToString("o"),
+            self = new { name, serverId = (int)(prof?.ServerId ?? 0), @class = prof is { Job: not JobClass.Unknown } ? ClassKey(prof.Job) : "", level = prof?.Level },
+        });
+    }
 };
 engine.Error += ex => Console.Error.WriteLine("Erro no parser: " + ex.Message);
 
