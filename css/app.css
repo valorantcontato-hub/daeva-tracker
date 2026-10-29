@@ -1663,3 +1663,4 @@ html.desktop .stream-btn { -webkit-app-region: no-drag; }
 /* Cursor personalizado também enquanto o botão do mouse está pressionado (clicar/arrastar) */
 html:not(.widget-mode):active body *:not(input):not(textarea):not(select):not(:disabled) { cursor: var(--app-cursor-hover); }
 html:not(.widget-mode) body :is(a, button, label, summary) { -webkit-user-drag: none; user-drag: none; }
+.sm-mark.info { transform: translate(-50%, 0); color: #fff; background: #0d1118ee; border-color: #8f9bb0; }

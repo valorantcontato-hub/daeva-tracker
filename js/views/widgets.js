@@ -337,7 +337,7 @@ function renderShopMarks(root) {
     const [w, h] = SHOP_SCREEN;
     root.innerHTML = '<div class="sm-stage">' + shopMarks(current, ctx).map(m =>
       '<div class="sm-mark ' + m.kind + '" style="left:' + (m.x / w * 100).toFixed(3) + '%;top:' + (m.y / h * 100).toFixed(3) + '%">'
-      + (m.kind === 'worth' ? '★ ' : '◆ ') + m.label + (m.reason ? '<small>' + esc(REASON[m.reason]) + '</small>' : '') + '</div>').join('') + '</div>';
+      + (m.kind === 'worth' ? '★ ' : m.kind === 'rare' ? '◆ ' : '') + m.label + (m.reason ? '<small>' + esc(REASON[m.reason]) + '</small>' : '') + '</div>').join('') + '</div>';
     return true;
   };
   const off = onShop(() => paint() || off());

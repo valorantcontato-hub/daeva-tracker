@@ -30,6 +30,7 @@ export function describeOffer(offer, ctx = {}) {
   if (!pet) return out;
   out.pet = pet;
   const progress = ctx.progress?.(pet.id);
+  out.progress = progress?.known ? progress : null;
   out.done = !!(progress?.known && progress.complete);
   out.owned = !!ctx.owned?.(pet.id);
   const mobs = pet.mobs || [];
@@ -46,15 +47,25 @@ export const SHOP_SCREEN = [1920, 1080];
 const RARE_GRADES = new Set(['Unique', 'Heroic']);
 
 /** Marcadores a desenhar sobre a loja: só as ofertas que valem comprar ou são raras, com a posição do cartão. */
+const CARD_HEIGHT = 228; // altura de um cartão na tela da loja (1080p)
+
+/** "Nv 2 · 14/75": nível e almas do mascote na sua coleção (MAX quando completo). */
+export const petLevelText = p => p?.known ? (p.complete ? 'Nv 3 · MAX' : 'Nv ' + p.level + ' · ' + p.points + '/' + p.goal) : '';
+
 export function shopMarks(tab, ctx = {}) {
   const offers = [...(tab?.offers || [])];
   if (offers.length !== SHOP_SLOTS.length || offers.some(o => !o.order)) return []; // sem a ordem completa, a posição seria um palpite
   offers.sort((a, b) => a.order - b.order);
-  return offers.map((o, i) => {
+  return offers.flatMap((o, i) => {
     const d = describeOffer(o, ctx);
+    const [x, y] = SHOP_SLOTS[i];
     const kind = d.worth ? 'worth' : RARE_GRADES.has(d.grade) && d.category !== 'Pet' ? 'rare' : '';
-    return kind ? { kind, label: d.worth ? 'Vale comprar' : 'Raro', reason: d.reason, x: SHOP_SLOTS[i][0], y: SHOP_SLOTS[i][1], name: d.name } : null;
-  }).filter(Boolean);
+    const marks = kind ? [{ kind, label: d.worth ? 'Vale comprar' : 'Raro', reason: d.reason, x, y, name: d.name }] : [];
+    const level = petLevelText(d.progress);
+    // Em todo mascote: o nível e as almas que você já tem dele, embaixo do cartão.
+    if (level) marks.push({ kind: 'info', label: level, x, y: y + CARD_HEIGHT, name: d.name });
+    return marks;
+  });
 }
 
 /** Ordem da lista: o que vale comprar primeiro, depois maior desconto. */

@@ -37,6 +37,19 @@ test('já tem vem da coleção de mascotes', () => {
   assert.equal(describeOffer(offer(534760082, 100000, 90000), ctx).owned, false); // Spider
 });
 
+test('mascote mostra nível e almas que você já tem embaixo do cartão', async () => {
+  const { shopMarks, petLevelText } = await import('../js/shop.js');
+  assert.equal(petLevelText({ known: true, level: 1, points: 12, goal: 25 }), 'Nv 1 · 12/25');
+  assert.equal(petLevelText({ known: true, level: 3, complete: true }), 'Nv 3 · MAX');
+  assert.equal(petLevelText({ known: false }), '');
+  const mk = (item, order) => ({ item, original: 100000, price: 90000, tier: 0, order });
+  const offers = [mk(534760082, 300), ...Array.from({ length: 9 }, (_, i) => mk(999000000 + i, 100 + i))];
+  const withLevel = { ...ctx, progress: id => id === 1083 ? { known: true, level: 2, points: 30, goal: 75 } : null };
+  const info = shopMarks({ offers }, withLevel).filter(m => m.kind === 'info');
+  assert.equal(info.length, 1);
+  assert.equal(info[0].label, 'Nv 2 · 30/75');
+});
+
 test('item sem nome conhecido aparece pelo número e a lista põe o que vale primeiro', () => {
   const unknown = describeOffer(offer(999999999, 100, 90), ctx);
   assert.equal(unknown.name, 'Item 999999999');
