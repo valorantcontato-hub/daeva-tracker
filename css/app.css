@@ -1587,5 +1587,26 @@ html.widget-mode body { min-height: 0; height: 100dvh; box-sizing: border-box; }
 .pchips::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .28); border-radius: 99px; }
 .pchips::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .45); }
 
+/* Painel de DPS do chefe no estilo Questlog: cabeçalho com DPS grande e colunas alinhadas */
+.q-head { padding: 6px 9px 7px; }
+.q-top { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: .14em; color: #aeb4bf; font-weight: 700; }
+.q-time { letter-spacing: 0; font-variant-numeric: tabular-nums; color: #d6dae2; }
+.q-big { display: flex; align-items: baseline; gap: 5px; margin-top: 1px; }
+.q-big strong { font-size: 26px; line-height: 1.1; font-weight: 800; color: #c3a2ff; font-variant-numeric: tabular-nums; }
+.q-big small { font-size: 12px; color: #aeb4bf; }
+.q-mine { margin-left: auto; font-size: 10px; color: #ffda76; white-space: nowrap; }
+.q-cols, .q-row { display: grid; grid-template-columns: minmax(0, 1fr) 50px 62px 46px 46px; gap: 4px; align-items: center; }
+.q-cols { padding: 3px 9px 2px; font-size: 9px; letter-spacing: .08em; color: #8f96a3; text-transform: uppercase; background: #101318e8; }
+.q-cols span:not(:first-child), .q-row > :not(.q-name) { text-align: right; }
+.q-row { min-height: 30px; padding: 3px 9px; font-variant-numeric: tabular-nums; }
+.q-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.q-name .combat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.q-cp { flex: none; font-size: 9px; color: #9aa3b0; }
+.q-dps { font-size: 13px; color: #fff; }
+.q-dmg { font-size: 15px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000a; }
+.q-pct { font-size: 11px; color: #c8ccd4; }
+.q-row.is-me { background: linear-gradient(90deg, #8a6d2c66, #8a6d2c26); box-shadow: inset 3px 0 #e6c04a; }
+.q-row.is-me::before { background: color-mix(in srgb, #e6c04a 30%, transparent); }
+@container (max-width: 270px) { .q-cols span:nth-child(4), .q-cols span:nth-child(5), .q-row > :nth-child(4), .q-row > :nth-child(5) { display: none; } .q-cols, .q-row { grid-template-columns: minmax(0, 1fr) 50px 62px; } }
 /* Dano total do jogador no painel do chefe: branco e maior para ler no meio da luta */
 .combat-dmg { min-width: 46px; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000a; }
