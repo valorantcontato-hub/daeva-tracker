@@ -2,7 +2,7 @@
 // e a tela de gerenciamento (#/widgets).
 import { load, save, notifyChange } from '../store.js';
 import { readBestiary, bestiaryKey } from '../bestiary-state.js';
-import { isBossEncounter } from '../combat-types.js';
+import { isInstancedBossFight } from '../combat-types.js';
 import { classInfo } from '../data/classes.js';
 import { getPetCatalog, readCollection } from '../collection.js';
 import { petProgress } from '../collection-state.js';
@@ -26,10 +26,10 @@ export const WIDGETS = {
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
-/** Somente combate ao vivo: DPS de chefes; skills também em mobs e bonecos. */
-function currentFight(id) {
+/** Somente combate ao vivo de CHEFE em DG instanciada: mundo aberto, mobs comuns e bonecos não aparecem nos overlays. */
+function currentFight() {
   const enc = liveFight();
-  if (!enc?.live || (id === 'party' && !isBossEncounter(enc))) return null;
+  if (!enc?.live || !isInstancedBossFight(enc)) return null;
   const S = summarize(enc);
   for (const p of S.players) p.class = playerClass(p);
   return S;
