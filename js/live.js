@@ -7,6 +7,7 @@ import { MILESTONES } from './data/monsters.js';
 import { autoLinkFromFight } from './profiles.js';
 import { getMe } from './profiles.js';
 import { readBestiary, writeBestiary, imageUrl } from './bestiary-state.js';
+import { findCatalogMonster, monsterPicture } from './monster-catalog.js';
 import { toast } from './util.js';
 
 let current = null;
@@ -39,13 +40,15 @@ function countKills(snap) {
   const state = readBestiary(me);
   const kills = state.kills;
   for (const t of killed) {
-    let m = monsters.find(x => (t.npcCode && x.npcCode === t.npcCode) || norm(x.name) === norm(t.name));
+    const catalog = findCatalogMonster(t);
+    let m = monsters.find(x => (t.npcCode && x.npcCode === t.npcCode) || (catalog && x.sourceSlug === catalog.sourceSlug) || norm(x.name) === norm(t.name));
     if (!m) {
-      m = { id: 'npc-' + (t.npcCode || norm(t.name)), npcCode: t.npcCode || 0, name: t.name, region: snap.dungeon || 'Mundo aberto', level: null, note: 'Detectado pela captura' };
+      m = { ...catalog, id: catalog?.id || 'npc-' + (t.npcCode || norm(t.name)), npcCode: t.npcCode || 0, name: t.name, region: catalog?.region || snap.dungeon || 'Mundo aberto', level: catalog?.level || null, note: catalog?.note || 'Detectado pela captura', recorded: true };
       monsters.push(m);
     }
     const before = kills[m.id] || 0;
     if (imageUrl(t.icon)) m.icon = imageUrl(t.icon);
+    else if (!m.icon) m.icon = monsterPicture(t);
     kills[m.id] = before + 1;
     const reached = MILESTONES.find(ms => before < ms && kills[m.id] >= ms);
     if (reached) toast(`${m.name}: marco de ${reached} abates alcançado!`);

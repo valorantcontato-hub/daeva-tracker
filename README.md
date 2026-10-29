@@ -8,10 +8,13 @@ Tracker leve para AION 2 com dados **reais**:
 - **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
 - **Macros**: notas e comandos salvos por personagem, no menu da ficha. O app não executa comandos no jogo.
 
-O bestiário separa abates e favoritos por personagem (região + servidor + ID). O catálogo local pode
-ter fotos associadas pela edição do monstro, pela importação ou pelo campo `icon` da captura.
+O bestiário separa abates e favoritos por personagem (região + servidor + ID). O catálogo estático
+inclui nomes, níveis, regiões e fotos do MetaBot, relacionadas aos códigos conhecidos da captura.
+As fotos são carregadas sob demanda; a lista tem paginação de 60 entradas. Monstros comuns e
+nomeados aparecem no bestiário; fotos de chefes também ficam disponíveis no medidor de DPS.
+Fotos personalizadas podem ser associadas pela edição/importação ou pelo campo `icon` da captura.
 Sem imagem conhecida, mostra “Sem foto”. Os contadores são os registrados no app: o perfil público
-não fornece o histórico completo da conta nem o catálogo de monstros com fotos. Zero registrado
+não fornece o histórico completo da conta. Zero registrado
 não significa que o monstro esteja faltando no jogo. Os filtros acompanham a mudança de progresso.
 Ao atualizar, os dados antigos são preservados e migrados para o primeiro personagem vinculado,
 sem repetir os mesmos abates nos demais personagens.
@@ -64,8 +67,13 @@ Se um patch do jogo mudar os opcodes, coloque um `opcodes.json` atualizado (form
 Testes de estado, migração do bestiário, catálogo de skills e identificação da party:
 
 ```bash
-node --test tests/state.test.mjs
+node --test tests/*.test.mjs
 ```
+
+O snapshot está em `js/data/monster-catalog.json`. Para importar uma tabela atualizada no mesmo
+formato (`{ fetchedAt, monsters: [{ slug, name, portrait, level, rank, maps, isBoss }] }`), use
+`node tools/import-metabot.mjs snapshot.json caminho/para/npcs.en.json`. A origem e a data ficam no
+arquivo para auditoria; nenhuma consulta de catálogo é feita ao MetaBot durante o uso do app.
 
 ```bash
 node tools/fake-capture.mjs --self "SeuNome" --server 2301 --skills "17010000:Earth's Retribution"

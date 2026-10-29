@@ -2,7 +2,8 @@ import { load, save } from '../store.js';
 import { MILESTONES } from '../data/monsters.js';
 import { esc, int, pct, uid, download, pickJson, toast } from '../util.js';
 import { getMe } from '../profiles.js';
-import { readBestiary, writeBestiary, imageUrl } from '../bestiary-state.js';
+import { readBestiary, writeBestiary, imageUrl, bestiaryKey } from '../bestiary-state.js';
+import { mergeMonsterCatalog } from '../monster-catalog.js';
 
 export const ROMAN = ['', 'I', 'II', 'III'];
 export const LAST = MILESTONES[MILESTONES.length - 1];
@@ -23,18 +24,22 @@ const matches = {
 
 export function renderBestiary(root) {
   root.className = 'page bestiary-page';
-  let monsters = load('monsters', []) || [];
+  let monsters = mergeMonsterCatalog(load('monsters', []) || []);
   const me = getMe();
   const state = readBestiary(me);
   let kills = state.kills;
   let focus = new Set(state.focus);
-  const ui = { q: '', region: '', status: load('bestiaryStatus', 'all') };
+  const ui = { q: '', region: '', page: 0, status: load('bestiaryStatus', 'all') };
+  const PAGE_SIZE = 60;
 
   const persist = () => {
-    save('monsters', monsters);
+    const stored = new Map(load('monsters', []).map(m => [m.id, m]));
+    for (const m of monsters) if (!m.sourceSlug || m.customized || m.recorded) stored.set(m.id, m);
+    save('monsters', [...stored.values()]);
+    monsters = mergeMonsterCatalog([...stored.values()]);
     writeBestiary({ kills, focus }, me);
   };
-  const regions = () => [...new Set(monsters.map(m => m.region))];
+  const regions = () => [...new Set(monsters.flatMap(m => [m.region, ...(m.maps || [])]).filter(Boolean))].sort();
   const countOf = id => kills[id] || 0;
 
   root.innerHTML = `
@@ -49,7 +54,7 @@ export function renderBestiary(root) {
         <button class="btn" data-act="export">Exportar</button>
       </div>
     </div>
-    <p class="note bestiary-source">${esc(me?.name || 'Sem personagem vinculado')} · Abates registrados neste app. O histórico anterior da conta e o catálogo completo não são fornecidos pelo perfil público; zero aqui não confirma que o monstro esteja faltando no jogo.</p>
+    <p class="note bestiary-source">${esc(me?.name || 'Sem personagem vinculado')} · Catálogo de monstros com fotos quando disponíveis. Os abates são os registrados neste app; o histórico anterior da conta não é sincronizado. Zero registrado não confirma que esteja faltando no jogo.</p>
     <div class="summary" id="summary"></div>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro, região ou nota…" aria-label="Buscar">
@@ -59,6 +64,7 @@ export function renderBestiary(root) {
       </div>
     </div>
     <div id="list" class="bestiary-page"></div>
+    <div class="bestiary-pagination"><button class="btn sm" data-act="previous">Anterior</button><span class="small muted" id="bestiary-page-count"></span><button class="btn sm" data-act="next">Próxima</button></div>
 
     <dialog class="dlg" id="dlg">
       <form method="dialog">
@@ -142,7 +148,7 @@ export function renderBestiary(root) {
   }
 
   function regionProgress(region) {
-    const ms = monsters.filter(m => m.region === region);
+    const ms = monsters.filter(m => m.region === region || m.maps?.includes(region));
     return `${ms.filter(m => countOf(m.id) >= LAST).length}/${ms.length} completos`;
   }
 
@@ -150,9 +156,16 @@ export function renderBestiary(root) {
     const q = ui.q.trim().toLowerCase();
     const test = matches[ui.status] || matches.all;
     const visible = monsters.filter(m =>
-      (!ui.region || m.region === ui.region) &&
+      (!ui.region || m.region === ui.region || m.maps?.includes(ui.region)) &&
       (!q || `${m.name} ${m.region} ${m.note}`.toLowerCase().includes(q)) &&
       test(m, countOf(m.id), focus));
+
+    const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+    ui.page = Math.min(ui.page, pages - 1);
+    const first = ui.page * PAGE_SIZE;
+    $('#bestiary-page-count').textContent = `${visible.length ? first + 1 : 0}–${Math.min(first + PAGE_SIZE, visible.length)} / ${visible.length} monstros`;
+    $('[data-act="previous"]').disabled = ui.page === 0;
+    $('[data-act="next"]').disabled = ui.page + 1 >= pages;
 
     if (!visible.length) {
       listEl.innerHTML = `<div class="empty card"><h2>Nada por aqui</h2><p class="muted">${monsters.length ? 'Nenhum monstro corresponde aos filtros.' : 'Com a captura ligada, cada monstro que você mata entra aqui sozinho, com o nome oficial do jogo, e os abates são contados automaticamente. Você também pode usar “+ Monstro” ou importar uma lista.'}</p></div>`;
@@ -160,12 +173,16 @@ export function renderBestiary(root) {
     }
 
     const groups = new Map();
-    for (const m of visible) {
-      if (!groups.has(m.region)) groups.set(m.region, []);
-      groups.get(m.region).push(m);
+    const shown = visible.slice(first, first + PAGE_SIZE);
+    const focused = ui.status === 'all' ? shown.filter(m => focus.has(m.id)) : [];
+    const featured = new Set(focused.map(m => m.id));
+    for (const m of shown) {
+      if (featured.has(m.id)) continue;
+      const region = ui.region || m.region;
+      if (!groups.has(region)) groups.set(region, []);
+      groups.get(region).push(m);
     }
     let html = '';
-    const focused = ui.status === 'all' ? visible.filter(m => focus.has(m.id)) : [];
     if (focused.length) {
       html += `<section class="region"><div class="region-head"><h2>★ Farmando agora</h2><span class="rp">${focused.length}</span></div><div class="mgrid">${focused.map(card).join('')}</div></section>`;
     }
@@ -201,6 +218,8 @@ export function renderBestiary(root) {
   }
 
   function setKills(id, value) {
+    const fresh = readBestiary(me);
+    kills = fresh.kills; focus = new Set(fresh.focus);
     const before = countOf(id), after = clampKills(value);
     if (after === before) return;
     if (after) kills[id] = after; else delete kills[id];
@@ -245,7 +264,7 @@ export function renderBestiary(root) {
     editing = m || null;
     form.reset();
     $('#dlg-title').textContent = m ? 'Editar monstro' : 'Novo monstro';
-    form.querySelector('[data-act="del"]').hidden = !m;
+    form.querySelector('[data-act="del"]').hidden = !m || !!m.sourceSlug;
     fields.name.value = m?.name || '';
     fields.region.value = m?.region || ui.region || '';
     fields.level.value = m?.level || '';
@@ -259,12 +278,15 @@ export function renderBestiary(root) {
 
   dlg.addEventListener('close', () => {
     if (dlg.returnValue !== 'ok') return;
+    const fresh = readBestiary(me);
+    kills = fresh.kills; focus = new Set(fresh.focus);
     const data = {
       name: fields.name.value.trim(),
       region: fields.region.value.trim(),
       level: parseInt(fields.level.value, 10) || null,
       note: fields.note.value.trim(),
       icon: imageUrl(fields.icon.value.trim()),
+      customized: true,
     };
     if (!data.name || !data.region) return;
     let m = editing;
@@ -280,6 +302,7 @@ export function renderBestiary(root) {
   form.querySelector('[data-act="del"]').addEventListener('click', () => {
     if (!editing || !confirm(`Excluir "${editing.name}" e seu progresso?`)) return;
     monsters = monsters.filter(x => x !== editing);
+    save('monsters', load('monsters', []).filter(m => m.id !== editing.id));
     delete kills[editing.id];
     focus.delete(editing.id);
     persist();
@@ -292,6 +315,7 @@ export function renderBestiary(root) {
     const filter = e.target.closest('[data-filter]');
     if (filter) {
       ui.status = filter.dataset.filter;
+      ui.page = 0;
       save('bestiaryStatus', ui.status);
       renderFilters();
       return renderList();
@@ -301,6 +325,12 @@ export function renderBestiary(root) {
     const act = actEl.dataset.act;
     const cardEl = actEl.closest('.mcard');
     const id = cardEl?.dataset.id;
+
+    if (act === 'previous' || act === 'next') {
+      ui.page = Math.max(0, ui.page + (act === 'next' ? 1 : -1));
+      renderList();
+      return root.querySelector('.toolbar').scrollIntoView({ block: 'start' });
+    }
 
     if (cardEl && act === 'add') return setKills(id, countOf(id) + Number(actEl.dataset.n));
     if (cardEl && act === 'set') return startInlineEdit(cardEl);
@@ -321,7 +351,8 @@ export function renderBestiary(root) {
       if (!Array.isArray(list)) return toast('O arquivo precisa ter uma lista "monsters"');
       monsters = list
         .filter(m => m && m.name)
-        .map(m => ({ id: String(m.id || 'c-' + uid()), npcCode: Number(m.npcCode) || 0, name: String(m.name), region: String(m.region || 'Sem região'), level: parseInt(m.level, 10) || null, note: String(m.note || ''), icon: imageUrl(m.icon), elite: !!m.elite }));
+        .map(m => ({ id: String(m.id || 'c-' + uid()), npcCode: Number(m.npcCode) || 0, name: String(m.name), region: String(m.region || 'Sem região'), level: parseInt(m.level, 10) || null, note: String(m.note || ''), icon: imageUrl(m.icon), elite: !!m.elite, customized: true }));
+      monsters = mergeMonsterCatalog(monsters);
       if (data.kills && typeof data.kills === 'object') kills = Object.fromEntries(Object.entries(data.kills).map(([k, v]) => [k, clampKills(v)]));
       if (Array.isArray(data.focus)) focus = new Set(data.focus.map(String));
       persist();
@@ -330,8 +361,23 @@ export function renderBestiary(root) {
     }
   });
 
-  $('#q').addEventListener('input', e => { ui.q = e.target.value; renderList(); });
-  $('#region').addEventListener('change', e => { ui.region = e.target.value; renderList(); });
+  $('#q').addEventListener('input', e => { ui.q = e.target.value; ui.page = 0; renderList(); });
+  $('#region').addEventListener('change', e => { ui.region = e.target.value; ui.page = 0; renderList(); });
+
+  const onData = () => {
+    if (!root.isConnected) {
+      removeEventListener('a2t:changed', onData); removeEventListener('storage', onData);
+      return;
+    }
+    if (bestiaryKey(me) !== bestiaryKey()) return dispatchEvent(new HashChangeEvent('hashchange'));
+    if (dlg.open || root.querySelector('.count-input')) return;
+    const latest = readBestiary(me);
+    kills = latest.kills; focus = new Set(latest.focus);
+    monsters = mergeMonsterCatalog(load('monsters', []));
+    renderAll();
+  };
+  addEventListener('a2t:changed', onData);
+  addEventListener('storage', onData);
 
   renderAll();
 }

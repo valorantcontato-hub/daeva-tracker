@@ -3,6 +3,7 @@
 // próprio dado (campo "icon"); se a imagem falhar, o emblema gerado aparece no lugar.
 import { esc } from './util.js';
 import { classInfo } from './data/classes.js';
+import { monsterPicture } from './monster-catalog.js';
 
 const CLASS_PATHS = {
   gladiator: 'M20 4 10 14M20 4v5M20 4h-5M7 11l6 6M9.5 14.5 4 20',
@@ -61,5 +62,6 @@ export function entityIcon(kind, name, { size = 28, icon, color } = {}) {
   const group = kind === 'skill' ? 'skills' : kind === 'boss' ? 'bosses' : 'monsters';
   const h = hue(name);
   const tint = color || `hsl(${h} 55% 55%)`;
-  return `<span class="ico ent-ico ${kind}" style="--c:${tint};--s:${size}px" aria-hidden="true"><b>${esc(initials(name))}</b>${img(resolve(group, name, icon))}</span>`;
+  const picture = icon || (kind !== 'skill' ? monsterPicture({ name }) : '');
+  return `<span class="ico ent-ico ${kind}" style="--c:${tint};--s:${size}px" aria-hidden="true"><b>${esc(initials(name))}</b>${img(resolve(group, name, picture))}</span>`;
 }
