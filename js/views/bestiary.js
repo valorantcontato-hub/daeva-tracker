@@ -25,6 +25,7 @@ export function renderBestiary(root) {
     </div>
     <div class="small muted" id="bestiary-summary"></div>
     <div id="list" class="pet2-grid"></div>
+    <p class="img-credit">Imagens dos monstros: <a href="https://metabot.gg/en/aion-2" target="_blank" rel="noopener">MetaBot.gg</a></p>
     <div class="bestiary-pagination"><button class="btn sm" data-page="-1">Anterior</button><span class="small muted" id="bestiary-page-count"></span><button class="btn sm" data-page="1">Próxima</button></div>`;
   const $ = selector => root.querySelector(selector);
 

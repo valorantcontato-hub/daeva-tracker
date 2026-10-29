@@ -95,6 +95,7 @@ export function renderDps(root, [id]) {
             <div class="s dim"><span>${dateTime(e.startedAt)}</span></div>
           </div>
         </a>`).join('')}
+      <p class="img-credit">Imagens: <a href="https://metabot.gg/en/aion-2" target="_blank" rel="noopener">MetaBot.gg</a></p>
     </aside>
 
     <section class="enc-detail">

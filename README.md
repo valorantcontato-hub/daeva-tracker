@@ -126,6 +126,10 @@ node tools/fake-capture.mjs --self "SeuNome" --server 2301 --skills "17010000:Ea
 ```
 Envia snapshots no mesmo formato da ponte de captura (números simulados). `tools/replay.mjs` envia eventos crus.
 
+## Créditos
+
+As imagens dos monstros vêm de [MetaBot.gg](https://metabot.gg/en/aion-2). O responsável informou que não há API, mas que as imagens do site podem ser usadas desde que o app mantenha um link de crédito (dofollow), que fica nas telas Boss e Mascotes. Dados além das imagens (por exemplo, pontos de spawn) não foram autorizados e não são coletados.
+
 ## Licença
 
 A ponte `capture/` depende do Aion2DpsMeter, que é **GPL-3.0**. Se você distribuir o Lotus Tracker junto com a captura, o projeto precisa ser distribuído sob a GPL-3.0 (código-fonte aberto).
