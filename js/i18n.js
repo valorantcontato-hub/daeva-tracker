@@ -6,6 +6,13 @@ import { getLang } from './lang.js';
 
 // Texto completo em português -> inglês.
 const EXACT = {
+  'Vincule o seu personagem para organizar as macros.': 'Link your character to organize macros.',
+  '+ Nova macro': '+ New macro', 'Macros salvas': 'Saved macros', 'Comandos': 'Commands',
+  'Salvar macro': 'Save macro', 'Excluir macro': 'Delete macro', 'Macro salva.': 'Macro saved.',
+  'Nenhuma macro salva.': 'No saved macros.',
+  'Anotações e comandos salvos para este personagem. A execução é feita por você no jogo.': 'Notes and commands saved for this character. You run them yourself in game.',
+  'Sem abates registrados': 'No recorded kills', 'Progresso registrado': 'Recorded progress',
+  'Foto do monstro': 'Monster photo', 'Foto indisponível': 'Photo unavailable', 'Sem foto': 'No photo',
   // Navegação e topo
   'Início': 'Home', 'Bestiário': 'Bestiary', 'Conta': 'Account', 'Alternar tema claro/escuro': 'Toggle light/dark theme',
   'Alternar tema': 'Toggle theme', 'Seções': 'Sections', 'Idioma': 'Language', 'Janela': 'Window', 'Minimizar': 'Minimize', 'Fechar': 'Close',
@@ -71,7 +78,7 @@ const EXACT = {
   'Marcar como farmando agora': 'Mark as farming now', 'Farmando agora ': 'Farming now ', 'Editar': 'Edit',
   'Clique para digitar o valor': 'Click to type the value', 'Quantidade de abates': 'Number of kills',
   'Completo ✓': 'Complete ✓', 'Mundo aberto': 'Open world', 'Detectado pela captura': 'Detected by capture',
-  'Skills de': 'Skills of', 'Ex.: perto do obelisco norte': 'E.g.: near the north obelisk', 'Nota / local': 'Note / location', 'Filtro': 'Filter',
+  'Skills de': 'Skills of', 'Os membros entram sozinhos nas lutas contra chefes, ou use a busca em Conta (+ Party).': 'Members join automatically in boss fights, or use the search in Account (+ Party).', 'Ex.: perto do obelisco norte': 'E.g.: near the north obelisk', 'Nota / local': 'Note / location', 'Filtro': 'Filter',
   'Atalhos globais:': 'Global shortcuts:', 'mostra/esconde os widgets no jogo': 'shows/hides the widgets in game',
   'Remover 1 abate': 'Remove 1 kill', 'Adicionar 1 abate': 'Add 1 kill', 'Adicionar 5 abates': 'Add 5 kills',
   // Faixa do app desktop
@@ -114,6 +121,8 @@ const RULES = [
 
 // Frases longas (parágrafos) por trecho.
 const PHRASES = [
+  ['Abates registrados neste app. O histórico anterior da conta e o catálogo completo não são fornecidos pelo perfil público; zero aqui não confirma que o monstro esteja faltando no jogo.', 'Kills recorded in this app. The public profile does not provide previous account history or the full catalog; zero here does not mean the monster is missing in game.'],
+  ['Os membros entram sozinhos nas lutas contra chefes, ou use a busca em Conta (+ Party).', 'Members are linked automatically during boss fights, or use Account search (+ Party).'],
   ['O jogo só informa o nome do personagem ao teleportar ou entrar numa DG. Faça um desses com o app aberto e o', 'The game only reveals your character name when you teleport or enter a dungeon. Do one of those with the app open and'],
   ['Daeva Tracker carrega o visual e os equipamentos sozinho — nas próximas vezes ele já lembra de você.', 'Daeva Tracker loads your look and equipment by itself — next time it already remembers you.'],
   ['Ou vincule agora pela busca.', 'Or link it now using search.'],

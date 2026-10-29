@@ -99,6 +99,7 @@ async function characterDetail(q) {
     combatPower: p.combatPower,
     itemLevel: stats.find(s => s.type === 'ItemLevel')?.value ?? null,
     race: p.raceName,
+    raceId: p.raceId,
     serverId: p.serverId,
     serverName: p.serverName,
     region,

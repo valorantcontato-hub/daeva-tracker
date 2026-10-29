@@ -1,6 +1,7 @@
 // Widgets compactos (#/w/<id>) para usar como janelas de overlay sobre o jogo,
 // e a tela de gerenciamento (#/widgets).
 import { load, save, notifyChange } from '../store.js';
+import { readBestiary, writeBestiary } from '../bestiary-state.js';
 import { classInfo } from '../data/classes.js';
 import { MILESTONES } from '../data/monsters.js';
 import { summarize } from '../encounter.js';
@@ -82,8 +83,8 @@ const BODIES = {
 
   farm() {
     const monsters = load('monsters', []) || [];
-    const kills = load('kills', {});
-    const focus = new Set(load('focus', []));
+    const { kills, focus: savedFocus } = readBestiary();
+    const focus = new Set(savedFocus);
     let list = monsters.filter(m => focus.has(m.id));
     if (!list.length) list = monsters.filter(m => (kills[m.id] || 0) > 0 && (kills[m.id] || 0) < LAST).slice(0, 6);
     if (!list.length) return '<div class="wg-empty">Marque monstros com ★ no Bestiário.</div>';
@@ -151,9 +152,10 @@ export function renderWidget(root, [id]) {
   root.addEventListener('click', e => {
     const kill = e.target.closest('[data-kill]');
     if (kill) {
-      const kills = load('kills', {});
+      const state = readBestiary();
+      const kills = state.kills;
       kills[kill.dataset.kill] = clampKills((kills[kill.dataset.kill] || 0) + 1);
-      save('kills', kills);
+      writeBestiary(state);
       return paint();
     }
     const act = e.target.closest('[data-act]')?.dataset.act;

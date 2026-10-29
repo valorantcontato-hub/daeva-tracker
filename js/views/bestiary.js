@@ -1,7 +1,8 @@
 import { load, save } from '../store.js';
 import { MILESTONES } from '../data/monsters.js';
 import { esc, int, pct, uid, download, pickJson, toast } from '../util.js';
-import { entityIcon } from '../icons.js';
+import { getMe } from '../profiles.js';
+import { readBestiary, writeBestiary, imageUrl } from '../bestiary-state.js';
 
 export const ROMAN = ['', 'I', 'II', 'III'];
 export const LAST = MILESTONES[MILESTONES.length - 1];
@@ -10,7 +11,7 @@ export const isElite = m => !!m.elite || /\belite\b/i.test(m.note || '');
 export const clampKills = v => Math.max(0, Math.min(99999, Math.floor(Number(v) || 0)));
 
 const FILTERS = [
-  ['all', 'Todos'], ['focus', '★ Farmando'], ['progress', 'Em progresso'], ['todo', 'Não iniciado'], ['done', 'Completo'],
+  ['all', 'Todos'], ['focus', '★ Farmando'], ['progress', 'Em progresso'], ['todo', 'Sem abates registrados'], ['done', 'Completo'],
 ];
 const matches = {
   all: () => true,
@@ -23,14 +24,15 @@ const matches = {
 export function renderBestiary(root) {
   root.className = 'page bestiary-page';
   let monsters = load('monsters', []) || [];
-  let kills = load('kills', {});
-  let focus = new Set(load('focus', []));
+  const me = getMe();
+  const state = readBestiary(me);
+  let kills = state.kills;
+  let focus = new Set(state.focus);
   const ui = { q: '', region: '', status: load('bestiaryStatus', 'all') };
 
   const persist = () => {
     save('monsters', monsters);
-    save('kills', kills);
-    save('focus', [...focus]);
+    writeBestiary({ kills, focus }, me);
   };
   const regions = () => [...new Set(monsters.map(m => m.region))];
   const countOf = id => kills[id] || 0;
@@ -47,6 +49,7 @@ export function renderBestiary(root) {
         <button class="btn" data-act="export">Exportar</button>
       </div>
     </div>
+    <p class="note bestiary-source">${esc(me?.name || 'Sem personagem vinculado')} · Abates registrados neste app. O histórico anterior da conta e o catálogo completo não são fornecidos pelo perfil público; zero aqui não confirma que o monstro esteja faltando no jogo.</p>
     <div class="summary" id="summary"></div>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar monstro, região ou nota…" aria-label="Buscar">
@@ -67,6 +70,7 @@ export function renderBestiary(root) {
           <label>Abates<input type="number" name="kills" min="0" max="99999"></label>
         </div>
         <label>Nota / local<input type="text" name="note" maxlength="120" placeholder="Ex.: perto do obelisco norte" autocomplete="off"></label>
+        <label>Foto do monstro<input type="url" name="icon" maxlength="2000" placeholder="https://…" autocomplete="off"></label>
         <datalist id="regions"></datalist>
         <div class="dlg-actions">
           <button type="button" class="btn ghost danger" data-act="del">Excluir</button>
@@ -94,7 +98,7 @@ export function renderBestiary(root) {
     return `
       <article class="mcard tier-${t}" data-id="${esc(m.id)}">
         <header>
-          ${entityIcon(isElite(m) ? 'boss' : 'monster', m.name, { size: 36, icon: m.icon })}
+          <span class="monster-photo">${imageUrl(m.icon) ? `<img src="${esc(imageUrl(m.icon))}" alt="${esc(m.name)}" draggable="false" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>Foto indisponível</span>` : '<span>Sem foto</span>'}</span>
           <div>
             <h3 title="${esc(m.name)}">${esc(m.name)}</h3>
             <div class="sub">${m.level ? `Nv. ${m.level}` : ''}${m.level && m.note ? ' · ' : ''}${esc(m.note)}</div>
@@ -125,7 +129,7 @@ export function renderBestiary(root) {
     const total = counts.reduce((a, b) => a + b, 0);
     $('#summary').innerHTML = `
       <div class="stat">
-        <div class="l">Progresso geral</div>
+        <div class="l">Progresso registrado</div>
         <div class="v">${pct(done / (n * MILESTONES.length), 0)} <small>${done}/${n * MILESTONES.length} marcos · ${int(total)} abates</small></div>
         <div class="bar"><i style="width:${(done / (n * MILESTONES.length)) * 100}%"></i></div>
       </div>
@@ -190,16 +194,10 @@ export function renderBestiary(root) {
     renderList();
   }
 
-  /** Atualiza só os cards afetados (rápido e mantém o scroll). */
+  /** Reaplica os filtros quando o contador muda de faixa (por exemplo, ficou completo). */
   function refresh(id, flash) {
-    const m = monsters.find(x => x.id === id);
-    root.querySelectorAll(`.mcard[data-id="${CSS.escape(id)}"]`).forEach(el => {
-      el.outerHTML = card(m);
-    });
+    renderAll();
     if (flash) root.querySelectorAll(`.mcard[data-id="${CSS.escape(id)}"]`).forEach(el => el.classList.add('flash'));
-    const rp = root.querySelector(`[data-rp="${CSS.escape(m.region)}"]`);
-    if (rp) rp.textContent = regionProgress(m.region);
-    renderSummary();
   }
 
   function setKills(id, value) {
@@ -253,6 +251,7 @@ export function renderBestiary(root) {
     fields.level.value = m?.level || '';
     fields.kills.value = m ? countOf(m.id) : '';
     fields.note.value = m?.note || '';
+    fields.icon.value = imageUrl(m?.icon);
     dlg.returnValue = '';
     dlg.showModal();
     fields.name.focus();
@@ -265,6 +264,7 @@ export function renderBestiary(root) {
       region: fields.region.value.trim(),
       level: parseInt(fields.level.value, 10) || null,
       note: fields.note.value.trim(),
+      icon: imageUrl(fields.icon.value.trim()),
     };
     if (!data.name || !data.region) return;
     let m = editing;
@@ -321,7 +321,7 @@ export function renderBestiary(root) {
       if (!Array.isArray(list)) return toast('O arquivo precisa ter uma lista "monsters"');
       monsters = list
         .filter(m => m && m.name)
-        .map(m => ({ id: String(m.id || 'c-' + uid()), name: String(m.name), region: String(m.region || 'Sem região'), level: parseInt(m.level, 10) || null, note: String(m.note || ''), icon: m.icon ? String(m.icon) : '', elite: !!m.elite }));
+        .map(m => ({ id: String(m.id || 'c-' + uid()), npcCode: Number(m.npcCode) || 0, name: String(m.name), region: String(m.region || 'Sem região'), level: parseInt(m.level, 10) || null, note: String(m.note || ''), icon: imageUrl(m.icon), elite: !!m.elite }));
       if (data.kills && typeof data.kills === 'object') kills = Object.fromEntries(Object.entries(data.kills).map(([k, v]) => [k, clampKills(v)]));
       if (Array.isArray(data.focus)) focus = new Set(data.focus.map(String));
       persist();

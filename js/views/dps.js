@@ -121,18 +121,14 @@ export function renderDps(root, [id]) {
       </div>
 
       <div class="card">
-        <div class="card-head"><h2>Dano da party</h2><span class="muted small">Toque num jogador para ver as skills</span></div>
-        <div class="party-head" aria-hidden="true">
-          <span>#</span><span>Jogador</span><span class="hide-sm"></span>
-          <span class="num c-dps">DPS</span><span class="num c-total hide-sm">Dano</span><span class="num c-crit hide-sm">Crit</span><span class="num c-share">%</span>
-        </div>
+        <div class="card-head"><h2>Dano da party</h2><span class="muted small">DPS · %</span></div>
         <div id="party">
           ${S.players.map((p, i) => {
             const c = classInfo(p.class);
             return `
             <button class="prow" data-player="${esc(p.name)}" style="--c:${c.color}">
               <span class="rank">${i + 1}</span>
-              <span class="pname">${classIcon(p.class, 30)}<span class="pname-txt"><b>${esc(p.name)}</b><span class="cls">${esc(c.name)}</span></span></span>
+              <span class="pname">${classIcon(p.class, 22)}<span class="pname-txt"><b>${esc(p.name)}</b><span class="cls">${esc(c.name)}</span></span></span>
               <span class="pbar"><i style="width:${(p.share / maxShare) * 100}%"></i></span>
               <span class="num c-dps">${compact(p.dps)}</span>
               <span class="num c-total hide-sm">${compact(p.damage)}</span>

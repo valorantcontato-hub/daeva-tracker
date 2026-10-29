@@ -6,6 +6,15 @@ Tracker leve para AION 2 com dados **reais**:
 - **Conta e party**: perfil real da PlayNC (CP, item level, atributos, Daevanion, equipamentos e skills). Vinculado automaticamente pela captura.
 - **Bestiário**: cada mob que você mata entra sozinho com o nome oficial, e os abates contam para os marcos **5 / 25 / 75**.
 - **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
+- **Macros**: notas e comandos salvos por personagem, no menu da ficha. O app não executa comandos no jogo.
+
+O bestiário separa abates e favoritos por personagem (região + servidor + ID). O catálogo local pode
+ter fotos associadas pela edição do monstro, pela importação ou pelo campo `icon` da captura.
+Sem imagem conhecida, mostra “Sem foto”. Os contadores são os registrados no app: o perfil público
+não fornece o histórico completo da conta nem o catálogo de monstros com fotos. Zero registrado
+não significa que o monstro esteja faltando no jogo. Os filtros acompanham a mudança de progresso.
+Ao atualizar, os dados antigos são preservados e migrados para o primeiro personagem vinculado,
+sem repetir os mesmos abates nos demais personagens.
 
 ## Como funciona
 
@@ -51,6 +60,12 @@ Opções da captura: `--url http://localhost:4173` (app no navegador com `npm ru
 Se um patch do jogo mudar os opcodes, coloque um `opcodes.json` atualizado (formato do Aion2DpsMeter) em `%APPDATA%\DaevaTracker\`.
 
 ## Testar sem o jogo
+
+Testes de estado, migração do bestiário, catálogo de skills e identificação da party:
+
+```bash
+node --test tests/state.test.mjs
+```
 
 ```bash
 node tools/fake-capture.mjs --self "SeuNome" --server 2301 --skills "17010000:Earth's Retribution"
