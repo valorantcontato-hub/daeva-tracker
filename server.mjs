@@ -2,7 +2,8 @@
 //   node server.mjs            -> http://localhost:4173
 // Também é usado pelo app desktop (electron/main.mjs) via start().
 import { createServer } from 'node:http';
-import { watch } from 'node:fs';
+import { watch, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -259,6 +260,18 @@ async function handle(req, res) {
     if (path === '/api/plaync/character') return sendJson(res, 200, await characterDetail(url.searchParams));
     if (path === '/api/plaync/item') return sendJson(res, 200, await itemDetail(url.searchParams));
     if (path === '/api/plaync/daevanion') return sendJson(res, 200, await daevanionBoard(url.searchParams));
+    // Gravação de pacotes (pesquisa de protocolo): o app escreve um arquivo-gatilho que a captura lê.
+    if (path === '/api/capture/record') {
+      const dir = join(process.env.APPDATA || homedir(), 'DaevaTracker');
+      if (req.method === 'POST') {
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, 'record.start'), String(Math.min(900, Math.max(10, +url.searchParams.get('seconds') || 300))));
+        return sendJson(res, 200, { ok: true, dir: join(dir, 'recordings') });
+      }
+      let status = { state: 'idle' };
+      try { status = JSON.parse(readFileSync(join(dir, 'record.status'), 'utf8')); } catch { /* sem gravação ainda */ }
+      return sendJson(res, 200, { ...status, dir: join(dir, 'recordings') });
+    }
     if (path === '/api/live' && req.method === 'POST') {
       const body = await readBody(req);
       (Array.isArray(body) ? body : [body]).forEach(message => message?.type === 'pet-state' ? pets.ingest(message) : ingest(message));

@@ -188,10 +188,35 @@ export async function renderWidgetsPage(root) {
       ${card('party', WIDGETS.party, `<label class="switch"><input type="checkbox" data-opt="bossOnly" ${bossOnly() ? 'checked' : ''}> Somente chefe <span class="muted small">(ignora mobs comuns; conta só o dano no chefe)</span></label>`)}
       ${card('skills', WIDGETS.skills)}
       ${card('farm', WIDGETS.farm)}
-    </div>`;
+    </div>
+    ${ov ? '<section class="card rec-card"><h2>Gravar pacotes do jogo</h2><p class="muted small">Para estudar como o jogo envia a posição do personagem e dos monstros (distância dos mascotes). Grava 5 minutos de tráfego do jogo em um arquivo no seu computador; nada é enviado. Com a captura ligada e o jogo aberto, ande pelo mapa e olhe os monstros.</p><div class="rec-row"><button class="btn primary sm" data-act="record">Gravar 5 minutos</button><span class="small muted" id="rec-status"></span></div></section>' : ''}`;
 
 
-  root.addEventListener('click', e => {
+  const recStatus = root.querySelector('#rec-status');
+  let recTimer;
+  async function pollRecording() {
+    clearTimeout(recTimer);
+    if (!root.isConnected || !recStatus) return;
+    try {
+      const st = await (await fetch('/api/capture/record')).json();
+      if (st.state === 'recording') {
+        const left = Math.max(0, Math.round((Date.parse(st.endsAt) - Date.now()) / 1000));
+        recStatus.textContent = 'Gravando… faltam ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+        recTimer = setTimeout(pollRecording, 2000);
+      } else if (st.state === 'done') recStatus.textContent = 'Pronto. Arquivo: ' + st.file;
+    } catch { /* servidor fora do ar */ }
+  }
+  pollRecording();
+  root.addEventListener('click', async e => {
+    if (e.target.closest('[data-act="record"]')) {
+      recStatus.textContent = 'Pedindo à captura…';
+      try {
+        await fetch('/api/capture/record?seconds=300', { method: 'POST' });
+        recStatus.textContent = 'Aguardando a captura iniciar (precisa estar ligada e com o jogo aberto)…';
+        setTimeout(pollRecording, 2500);
+      } catch { recStatus.textContent = 'Não consegui falar com a captura.'; }
+      return;
+    }
     const cardEl = e.target.closest('.widget-card');
     if (cardEl && e.target.closest('[data-act="popup"]')) {
       const w = WIDGETS[cardEl.dataset.id];
