@@ -1414,3 +1414,6 @@ html.home-fit .sub-body .card { padding: 12px; }
 .pet2 .pet2-ico, .pet2.maxed .pet2-ico { box-shadow: 0 0 0 2px var(--c, #e0605a); }
 .pet2-bar i { background: var(--c, #e0605a); }
 .pet2.maxed .pet2-bar i { background: linear-gradient(90deg, #d9a441, #5ec8e8); }
+/* Pedras: mesmo tamanho (imagens quadradas e normalizadas) */
+.fam-chip .stone { width: 30px; height: 30px; max-width: none; margin: -7px -2px -7px -4px; }
+.pet2-type .stone { width: 26px; height: 26px; max-width: none; margin: -5px -1px -5px -4px; }
