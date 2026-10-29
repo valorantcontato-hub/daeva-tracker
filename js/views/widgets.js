@@ -13,6 +13,7 @@ import { getMe, findProfileByName } from '../profiles.js';
 import { onLive, onPositions, lastPositions, liveFight } from '../live.js';
 import { playerClass, skillIconHtml, skillLabel, activeSkills } from './dps.js';
 import { createWidgetActivity } from '../widget-activity.js';
+import { groupSkillVariants } from '../skill-meter.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 import { PET_FAMILIES as PET_TYPES, petStone } from '../pet-families.js';
 import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOffset } from '../radar-state.js';
@@ -199,7 +200,7 @@ const BODIES = {
     const p = S && myPlayer(S);
     if (!p) return `<div class="wg-empty">${S ? 'Seu personagem ainda não foi identificado nesta luta.' : 'Sem lutas ainda.'}</div>`;
     const c = classInfo(p.class);
-    const rows = activeSkills(p).sort((a, b) => b.damage - a.damage);
+    const rows = groupSkillVariants(activeSkills(p), skill => skillLabel(p, skill));
     const best = rows[0]?.damage || 1;
     return `
       <header class="combat-summary skills-summary" style="--c:${c.color}" title="${esc(S.boss)} · ${pct(p.critRate)} crítico">
