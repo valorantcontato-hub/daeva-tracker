@@ -21,7 +21,7 @@ import { radarSelf, verifiedRadarOwner, readVerifiedRadar, radarHeading, radarOf
 export const WIDGETS = {
   party: { title: 'DPS', icon: '⚔', width: 320, height: 270, desc: 'Ranking de DPS da party na luta atual, com classe e porcentagem do dano.' },
   skills: { title: 'Skills', icon: '✦', width: 340, height: 340, desc: 'DPS, participação, dano total e crítico de cada habilidade ativa do seu personagem.' },
-  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes): progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
+  radar: { title: 'Mini mapa', icon: '◎', width: 300, height: 460, desc: 'Radar e os mascotes que você está farmando (★ em Mascotes), sem os já completos: progresso de almas e distância até o mais próximo. As distâncias aguardam a identificação e a posição do seu personagem pelo jogo.' },
 };
 
 // Quantas skills o widget de Skills mostra (0 = todas), escolhido na tela Widgets.
@@ -66,7 +66,9 @@ function farmingEntries() {
   const out = [];
   for (const pet of getPetCatalog()) {
     if (!focus.includes('pet-' + pet.id)) continue;
-    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress: petProgress(collection, pet.id),
+    const progress = petProgress(collection, pet.id);
+    if (progress.known && progress.complete) continue; // mascote completo (MAX) não precisa mais ser farmado
+    out.push({ kind: 'pet', name: pet.name, icon: pet.icon, type: pet.family, progress,
       names: new Set([normName(pet.name), ...(pet.mobs || []).map(m => normName(m.name))]) });
   }
   for (const m of mergeMonsterCatalog(load('monsters', []))) {
