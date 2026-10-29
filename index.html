@@ -27,7 +27,15 @@
       <a href="#/widgets" data-route="widgets"><span class="tab-ico">▣</span>Widgets</a>
     </nav>
     <span class="spacer"></span>
+    <div class="lang-switch" role="group" aria-label="Idioma">
+      <button data-lang="pt-BR" title="Português">PT</button>
+      <button data-lang="en-US" title="English">EN</button>
+    </div>
     <button class="icon-btn" id="theme-toggle" aria-label="Alternar tema claro/escuro" title="Alternar tema">◐</button>
+    <div class="win-controls" aria-label="Janela">
+      <button class="win-btn" id="win-min" aria-label="Minimizar" title="Minimizar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8"/></svg></button>
+      <button class="win-btn close" id="win-close" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
   </header>
   <div id="app-banner" class="app-banner" role="status" hidden></div>
   <main id="view"></main>

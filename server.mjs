@@ -25,6 +25,8 @@ const TYPES = {
 const SEARCH = 'https://api-search.plaync.com/aion2global/search/v2/character';
 const SITE = 'https://aion2.plaync.com/api/character';
 const REGIONS = new Set(['eu', 'nae', 'naw', 'la', 'as']);
+const LANGS = new Set(['en-US', 'pt-BR']);
+const langOf = q => (LANGS.has(q.get('lang')) ? q.get('lang') : 'en-US');
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36',
   Accept: 'application/json',
@@ -51,7 +53,7 @@ async function searchCharacters(q) {
   const keyword = String(q.get('name') || '').trim();
   const region = q.get('region');
   if (!keyword || !REGIONS.has(region)) throw Object.assign(new Error('Informe nome e região'), { status: 400 });
-  const params = new URLSearchParams({ keyword, page: 1, size: 30, region, localeInfo: 'en-US' });
+  const params = new URLSearchParams({ keyword, page: 1, size: 30, region, localeInfo: langOf(q) });
   // Filtro por servidor: torna exata a busca de quem a captura identificou.
   if (/^\d+$/.test(q.get('serverId') || '')) params.set('serverId', q.get('serverId'));
   const data = await plaync(`${SEARCH}?${params}`);
@@ -81,7 +83,7 @@ const mapItem = e => ({ id: e.id, slotPos: e.slotPos, slot: e.slotPosName, name:
 async function characterDetail(q) {
   const region = q.get('region'), serverId = q.get('serverId'), characterId = q.get('characterId');
   if (!REGIONS.has(region) || !/^\d+$/.test(serverId || '') || !characterId) throw Object.assign(new Error('Parâmetros inválidos'), { status: 400 });
-  const params = new URLSearchParams({ lang: 'en-US', region, serverId, characterId });
+  const params = new URLSearchParams({ lang: langOf(q), region, serverId, characterId });
   // Cache curto: a página inicial atualiza os itens do personagem com frequência.
   const fresh = q.get('fresh') === '1' ? 60e3 : 10 * 60e3;
   const [info, equip] = await Promise.all([plaync(`${SITE}/info?${params}`, fresh), plaync(`${SITE}/equipment?${params}`, fresh)]);
@@ -91,6 +93,8 @@ async function characterDetail(q) {
     characterId: p.characterId || characterId,
     name: p.characterName,
     className: p.className,
+    class: classOfPcId(p.pcId),
+    lang: langOf(q),
     level: p.characterLevel,
     combatPower: p.combatPower,
     itemLevel: stats.find(s => s.type === 'ItemLevel')?.value ?? null,
@@ -116,13 +120,13 @@ async function characterDetail(q) {
 function charParams(q) {
   const region = q.get('region'), serverId = q.get('serverId'), characterId = q.get('characterId');
   if (!REGIONS.has(region) || !/^\d+$/.test(serverId || '') || !characterId) throw Object.assign(new Error('Parâmetros inválidos'), { status: 400 });
-  return { lang: 'en-US', region, serverId, characterId };
+  return { lang: langOf(q), region, serverId, characterId };
 }
 const num = (q, k) => { const v = q.get(k); if (!/^\d+$/.test(v || '')) throw Object.assign(new Error('Parâmetro inválido: ' + k), { status: 400 }); return v; };
 
 async function itemDetail(q) {
   const params = new URLSearchParams({ ...charParams(q), id: num(q, 'id'), enchantLevel: num(q, 'enchantLevel'), slotPos: num(q, 'slotPos') });
-  return plaync(`${SITE}/equipment/item?${params}`);
+  return plaync(`${SITE}/equipment/item?${params}`, 30 * 60e3);
 }
 
 async function daevanionBoard(q) {

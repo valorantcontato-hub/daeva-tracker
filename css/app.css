@@ -509,7 +509,7 @@ html.widget-mode main { padding: 0; max-width: none; }
 .widget-ico { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; background: color-mix(in srgb, var(--accent) 16%, var(--surface-2)); }
 .widget-txt { flex: 1; min-width: 0; }
 .widget-txt h2 { font-size: 16px; }
-.widget-desc { min-height: 2.8em; }
+.widget-desc { margin: -2px 0 0; }
 .widget-preview { position: relative; height: 240px; border-radius: 12px; overflow: hidden; background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px; }
 .widget-preview .wg { position: absolute; inset: 8px; border-radius: 10px; }
 .widget-preview .wg-head { cursor: default; }
@@ -582,3 +582,38 @@ kbd { font: 600 11px ui-monospace, monospace; padding: 1px 5px; border-radius: 4
 
 @media (max-width: 520px) { .home-main { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 960px) { .stats-card { min-width: 0; } .stat-grid, .stat-grid.compact { grid-template-columns: minmax(0, 1fr); } .stat-tile { padding: 8px 10px; } }
+
+/* ---------- Barra de título desenhada no app (janela sem moldura do Windows) ---------- */
+.win-controls { display: none; gap: 2px; margin-left: 2px; }
+html.desktop .win-controls { display: flex; }
+.win-btn { width: 36px; height: 30px; border-radius: 8px; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.win-btn svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+.win-btn:hover { background: var(--surface-2); color: var(--text); }
+.win-btn.close:hover { background: #e5484d; color: #fff; }
+html.desktop .topbar { -webkit-app-region: drag; user-select: none; }
+html.desktop .topbar a, html.desktop .topbar button, html.desktop .topbar .tabs { -webkit-app-region: no-drag; }
+html.desktop body { border: 1px solid var(--border); min-height: 100vh; }
+
+/* ---------- Ficha do personagem compacta ---------- */
+.hero { padding: 10px 12px; gap: 12px; flex-wrap: nowrap; align-items: center; }
+.portrait { width: 92px; border-radius: 12px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent); }
+.hero-info { gap: 2px; min-width: 0; }
+.hero-info .eyebrow { font-size: 11px; margin: 0; }
+.hero-name { font-size: 22px; line-height: 1.15; }
+.hero-title { font-size: 11px; }
+.hero-info .meta { margin-top: 0; font-size: 12px; gap: 6px; }
+.hero-stats { gap: 6px; margin-top: 4px; align-items: center; }
+.hero-stats > div:not(.head-actions) { padding: 3px 10px; min-width: 0; border-radius: 8px; }
+.hero-stats span { font-size: 10px; }
+.hero-stats b { font-size: 15px; }
+.hero-stats .head-actions { margin-left: auto; gap: 6px; }
+.hero-stats .switch { margin-left: auto; }
+@media (max-width: 640px) { .portrait { width: 80px; } .hero-name { font-size: 20px; } }
+
+/* ---------- Seleção de idioma ---------- */
+.lang-switch { display: flex; padding: 2px; border-radius: 9px; background: var(--surface); border: 1px solid var(--border); }
+.lang-switch button { width: 34px; height: 28px; border: 0; border-radius: 7px; background: none; color: var(--muted); font-weight: 700; font-size: 12px; cursor: pointer; }
+.lang-switch button:hover { color: var(--text); }
+.lang-switch button.active { background: var(--accent); color: var(--accent-ink); }
+.lang-switch button:disabled { opacity: .6; cursor: wait; }
+html.desktop .lang-switch { -webkit-app-region: no-drag; }

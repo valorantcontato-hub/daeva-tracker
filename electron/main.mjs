@@ -12,8 +12,11 @@ import { setupLiveUi } from './live-ui.mjs';
 
 const { autoUpdater } = updaterPkg;
 
+// Testes do app em desenvolvimento sem mexer nos dados (nem na instância única) do app instalado.
+if (process.env.DAEVA_USERDATA) app.setPath('userData', process.env.DAEVA_USERDATA);
+
 // Porta fixa: o localStorage (progresso, perfis, histórico) é por origem, então ela não pode variar.
-const PORT = 47173;
+const PORT = Number(process.env.DAEVA_PORT) || 47173;
 const BASE = `http://localhost:${PORT}`;
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PRELOAD = fileURLToPath(new URL('./preload.cjs', import.meta.url));
@@ -70,6 +73,7 @@ let captureProc = null;
 let captureRestarts = 0;
 
 function startCapture() {
+  if (process.env.DAEVA_NO_CAPTURE) return; // testes do app sem iniciar a captura
   const exe = captureExe();
   if (!existsSync(exe)) return setStatus({ capture: 'missing' });
   if (!status.npcap) return setStatus({ capture: 'stopped' });
@@ -173,30 +177,33 @@ function setWidget(id, patch) {
 
 // Janela estreita por padrão (não ocupa a tela toda) e volta onde o usuário deixou.
 function mainBounds() {
-  // Estreita, estilo celular (menu embaixo), cabendo na altura da tela.
-  const def = { width: 580, height: Math.min(820, screen.getPrimaryDisplay().workArea.height - 40) };
+  // Tamanho fixo, estreito, estilo celular (menu embaixo), cabendo na altura da tela.
+  const size = { width: 580, height: Math.min(820, screen.getPrimaryDisplay().workArea.height - 40) };
   const b = cfg.mainBounds;
-  if (!b || !(b.width >= 380) || !(b.height >= 400)) return def;
+  if (!b || !Number.isFinite(b.x) || !Number.isFinite(b.y)) return size;
+  // Só reaproveita a posição se a janela ainda aparece em alguma tela.
   const visible = screen.getAllDisplays().some(d => {
     const a = d.workArea;
-    return b.x < a.x + a.width - 80 && b.x + b.width > a.x + 80 && b.y < a.y + a.height - 80 && b.y + 80 > a.y;
+    return b.x < a.x + a.width - 80 && b.x + size.width > a.x + 80 && b.y < a.y + a.height - 80 && b.y + 80 > a.y;
   });
-  return visible ? b : { width: b.width, height: b.height };
+  return visible ? { ...size, x: b.x, y: b.y } : size;
 }
 
 function createMain() {
   mainWin = new BrowserWindow({
-    ...mainBounds(), minWidth: 380, minHeight: 500,
+    ...mainBounds(),
+    // Sem barra do Windows: o nome e os botões (minimizar/fechar) são desenhados dentro do app.
+    frame: false, resizable: false, maximizable: false, fullscreenable: false,
     backgroundColor: '#0b0e14', title: 'Daeva Tracker', autoHideMenuBar: true, show: false,
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
   const rememberMain = () => {
-    if (!mainWin || mainWin.isMinimized() || mainWin.isMaximized() || mainWin.isFullScreen()) return;
-    cfg.mainBounds = mainWin.getBounds();
+    if (!mainWin || mainWin.isMinimized()) return;
+    const { x, y } = mainWin.getBounds();
+    cfg.mainBounds = { x, y };
     saveCfg();
   };
-  mainWin.on('resize', rememberMain);
   mainWin.on('move', rememberMain);
   mainWin.once('ready-to-show', () => { mainWin.show(); if (AUTOSTART) mainWin.minimize(); });
   mainWin.loadURL(BASE + '/');
@@ -220,6 +227,9 @@ ipcMain.on('widget:close-self', e => {
   for (const [id, w] of wins) if (w.webContents === e.sender) setWidget(id, { visible: false });
 });
 ipcMain.handle('app:status', () => status);
+// Botões da barra de título desenhada dentro do app (só valem para a janela principal).
+ipcMain.on('win:minimize', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.minimize(); });
+ipcMain.on('win:close', e => { if (BrowserWindow.fromWebContents(e.sender) === mainWin) mainWin.close(); });
 // Opcional e só o usuário liga: abrir junto com o Windows deixa a captura rodando antes do jogo abrir.
 ipcMain.handle('app:autostart', (_e, on) => {
   if (app.isPackaged && typeof on === 'boolean') app.setLoginItemSettings({ openAtLogin: on, args: ['--autostart'] });

@@ -15,4 +15,6 @@ contextBridge.exposeInMainWorld('desktop', {
   installUpdate: () => ipcRenderer.invoke('app:install-update'),
   recheckNpcap: () => ipcRenderer.invoke('app:recheck-npcap'),
   setAutostart: on => ipcRenderer.invoke('app:autostart', on),
+  minimize: () => ipcRenderer.send('win:minimize'),
+  close: () => ipcRenderer.send('win:close'),
 });

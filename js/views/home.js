@@ -64,8 +64,8 @@ function heroHtml(me, extra = '') {
         <div class="hero-stats">
           <div><span>Combat Power</span><b>${int(me.combatPower || 0)}</b></div>
           <div><span>Item Level</span><b>${me.itemLevel != null ? int(me.itemLevel) : '—'}</b></div>
+          ${extra}
         </div>
-        ${extra}
       </div>
     </section>`;
 }

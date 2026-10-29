@@ -2,28 +2,72 @@
 // vindos do site oficial (PlayNC). Marque um elemento com data-item="<id>|<enchant>|<slotPos>" e
 // chame setTooltipContext(perfil) para dizer de quem são os itens.
 import { esc } from './util.js';
+import { load, save } from './store.js';
+import { getLang } from './lang.js';
 
 const GRADE = { Common: '#9aa3b2', Superior: '#4ade80', Rare: '#4ade80', Heroic: '#60a5fa', Legend: '#60a5fa', Legendary: '#60a5fa', Unique: '#fbbf24', Epic: '#fb923c', Mythic: '#f87171', Special: '#2dd4bf' };
 const gradeColor = g => GRADE[g] || '#cbd5e1';
 
 let ctx = null;
-const cache = new Map();
 let tip, current = null, hideTimer;
 
 export function hideTooltip() { current = null; if (tip) tip.hidden = true; }
 
-export const setTooltipContext = profile => { ctx = profile; };
+// ---------- Detalhes dos itens: instantâneos ----------
+// Todos os itens equipados são buscados em segundo plano assim que o personagem aparece e ficam
+// guardados em disco (localStorage). Ao passar o mouse, o tooltip já tem tudo e abre na hora.
+// Entradas com mais de STALE_MS são mostradas na hora e atualizadas por baixo dos panos.
+const STORE = 'itemcache';
+const MAX_ENTRIES = 400;
+const STALE_MS = 30 * 60e3;
+const mem = new Map();       // chave -> { t, d }
+const inflight = new Map();  // chave -> Promise
+try { for (const [k, v] of Object.entries(load(STORE, {}))) mem.set(k, v); } catch { /* sem cache salvo */ }
 
-async function fetchItem(key) {
-  if (cache.has(key)) return cache.get(key);
-  const [id, enchantLevel, slotPos] = key.split('|');
-  const params = new URLSearchParams({ region: ctx.region, serverId: ctx.serverId, characterId: ctx.characterId, id, enchantLevel: enchantLevel || 0, slotPos });
-  const p = fetch('/api/plaync/item?' + params).then(r => r.ok ? r.json() : Promise.reject(new Error(r.status))).catch(() => null);
-  cache.set(key, p);
-  const data = await p;
-  if (!data) cache.delete(key);
-  return data;
+let persistTimer;
+function persistSoon() {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    while (mem.size > MAX_ENTRIES) mem.delete(mem.keys().next().value);
+    save(STORE, Object.fromEntries(mem));
+  }, 800);
 }
+
+const keyOf = (profile, id, enchant, slotPos) => `${getLang()}|${profile.characterId}|${id}|${enchant || 0}|${slotPos}`;
+
+function fetchItem(profile, id, enchant, slotPos) {
+  const key = keyOf(profile, id, enchant, slotPos);
+  if (inflight.has(key)) return inflight.get(key);
+  const params = new URLSearchParams({ region: profile.region, serverId: profile.serverId, characterId: profile.characterId, id, enchantLevel: enchant || 0, slotPos, lang: getLang() });
+  const p = fetch('/api/plaync/item?' + params)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)))
+    .then(d => { mem.set(key, { t: Date.now(), d }); persistSoon(); return d; })
+    .catch(() => null)
+    .finally(() => inflight.delete(key));
+  inflight.set(key, p);
+  return p;
+}
+
+/** Busca em segundo plano os itens equipados (2 por vez, para não sobrecarregar o site oficial). */
+let prefetchFor = '';
+export function prefetchItems(profile) {
+  const items = (profile?.equipment || []).filter(e => e.id && Number.isInteger(e.slotPos));
+  const sig = getLang() + profile.characterId + items.map(e => e.id + ':' + (e.enchant || 0)).join(',');
+  if (sig === prefetchFor) return;
+  prefetchFor = sig;
+  let i = 0;
+  const worker = async () => {
+    while (i < items.length) {
+      const e = items[i++];
+      const hit = mem.get(keyOf(profile, e.id, e.enchant, e.slotPos));
+      if (hit && Date.now() - hit.t < STALE_MS) continue;
+      await fetchItem(profile, e.id, e.enchant, e.slotPos);
+    }
+  };
+  setTimeout(() => { worker(); worker(); }, 150);
+}
+
+export const setTooltipContext = profile => { ctx = profile; if (profile) prefetchItems(profile); };
 
 const line = (label, value, extra) => `<div class="tt-row"><span>${esc(label)}</span><b>${esc(value)}${extra && +extra ? ` <i>(+${esc(extra)})</i>` : ''}</b></div>`;
 const section = (title, rows) => rows ? `<div class="tt-sec"><div class="tt-h">${title}</div>${rows}</div>` : '';
@@ -36,7 +80,7 @@ function render(d, base) {
     <div class="tt-head">
       ${(d?.icon || base.icon) ? `<img src="${esc(d?.icon || base.icon)}" alt="" draggable="false">` : ''}
       <div>
-        <b style="color:${gradeColor(grade)}">${esc(name)}${ench ? ` +${ench}` : ''}</b>
+        <b style="color:${gradeColor(d?.grade || base.grade)}">${esc(name)}${ench ? ` +${ench}` : ''}</b>
         <div class="tt-sub">${[grade, d?.categoryName, d?.equipLevel ? 'Nv. ' + d.equipLevel : ''].filter(Boolean).map(esc).join(' · ')}</div>
       </div>
     </div>`;
@@ -88,7 +132,16 @@ async function show(el, x, y) {
     tip.innerHTML = render(null, base);
     return place(x, y);
   }
-  const data = await fetchItem(`${id}|${enchant}|${slotPos}`);
+  const key = keyOf(ctx, id, +enchant, slotPos);
+  const hit = mem.get(key);
+  if (hit) {
+    // Já está guardado: abre sem esperar (e atualiza em segundo plano se for antigo).
+    tip.innerHTML = render(hit.d, base);
+    place(x, y);
+    if (Date.now() - hit.t > STALE_MS) fetchItem(ctx, id, +enchant, slotPos);
+    return;
+  }
+  const data = await fetchItem(ctx, id, +enchant, slotPos);
   if (current !== el) return;
   tip.innerHTML = render(data, base);
   place(x, y);

@@ -3,12 +3,14 @@ import { load, save } from '../store.js';
 import { getMe } from '../profiles.js';
 import { esc, int } from '../util.js';
 
+import { getLang } from '../lang.js';
+
 const boardCache = new Map();
 
 async function fetchBoard(me, board) {
-  const key = `${me.characterId}:${board.id}`;
+  const key = `${getLang()}:${me.characterId}:${board.id}`;
   if (boardCache.has(key)) return boardCache.get(key);
-  const params = new URLSearchParams({ region: me.region, serverId: me.serverId, characterId: me.characterId, boardId: board.id });
+  const params = new URLSearchParams({ region: me.region, serverId: me.serverId, characterId: me.characterId, boardId: board.id, lang: getLang() });
   const res = await fetch('/api/plaync/daevanion?' + params);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Erro ${res.status}`);
   const data = await res.json();

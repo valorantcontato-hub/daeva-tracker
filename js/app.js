@@ -3,12 +3,15 @@ import { renderBestiary } from './views/bestiary.js';
 import { renderAccount } from './views/account.js';
 import { renderHome } from './views/home.js';
 import { lockApp } from './lock.js';
-import { initTooltips, hideTooltip } from './tooltip.js';
+import { initTooltips, hideTooltip, setTooltipContext } from './tooltip.js';
+import { initI18n } from './i18n.js';
+import { getLang, setLang, LANGS } from './lang.js';
+import { getMe, relocalizeProfiles, needsRelocalization } from './profiles.js';
 import { renderWidgetsPage, renderWidget } from './views/widgets.js';
 import { loadIconManifest } from './icons.js';
 import { startLive } from './live.js';
 import { initDesktopBanner } from './desktop.js';
-import { load, save } from './store.js';
+import { load, save, notifyChange } from './store.js';
 
 const view = document.getElementById('view');
 const routes = { inicio: renderHome, dps: renderDps, bestiario: renderBestiary, conta: renderAccount, widgets: renderWidgetsPage, w: renderWidget };
@@ -61,9 +64,33 @@ if (typeof EventSource !== 'undefined') {
   new EventSource('/api/reload/stream').onmessage = () => location.reload();
 }
 
+// App desktop: janela sem barra do Windows; o topo do app arrasta a janela e tem minimizar/fechar.
+if (window.desktop) {
+  document.documentElement.classList.add('desktop');
+  document.getElementById('win-min').addEventListener('click', () => window.desktop.minimize());
+  document.getElementById('win-close').addEventListener('click', () => window.desktop.close());
+}
+
+// Idioma (PT/EN): troca a interface e os nomes reais do jogo (vindos do site oficial no idioma escolhido).
+const langBtns = [...document.querySelectorAll('.lang-switch [data-lang]')];
+langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === getLang()));
+document.querySelector('.lang-switch')?.addEventListener('click', async e => {
+  const b = e.target.closest('[data-lang]');
+  if (!b || b.dataset.lang === getLang()) return;
+  langBtns.forEach(x => { x.disabled = true; });
+  b.textContent = '…';
+  setLang(b.dataset.lang);
+  try { await relocalizeProfiles(); } catch { /* recarrega mesmo assim */ }
+  location.reload();
+});
+// Perfis salvos em outro idioma são refeitos em segundo plano.
+if (needsRelocalization()) relocalizeProfiles().then(notifyChange, () => {});
+
 lockApp();
 initTooltips();
+setTooltipContext(getMe()); // já começa a buscar os detalhes dos itens, para o tooltip abrir na hora
 await loadIconManifest();
 startLive();
 route();
 initDesktopBanner();
+initI18n();

@@ -4,7 +4,7 @@ import { sampleEncounters } from '../data/samples.js';
 import { normalizeEncounter, summarize, smooth } from '../encounter.js';
 import { dpsChart } from '../chart.js';
 import { classIcon, entityIcon } from '../icons.js';
-import { findProfileByName, skillIcon } from '../profiles.js';
+import { findProfileByName, skillIcon, findSkill } from '../profiles.js';
 import { liveFight, onLive } from '../live.js';
 import { esc, compact, int, pct, duration, dateTime, download, pickJson, toast } from '../util.js';
 
@@ -17,6 +17,9 @@ export function getEncounters() {
 
 /** Classe vinda do log ou, se faltar, do perfil PlayNC do jogador. */
 export const playerClass = p => p.class || findProfileByName(p.name)?.class || '';
+
+/** Nome da skill no idioma escolhido (do perfil oficial, pelo ID); sem perfil, o nome que veio da captura. */
+export const skillLabel = (player, skill) => findSkill(player.name, skill.name, playerClass(player), skill.id)?.name || skill.name;
 
 export function skillIconHtml(player, skill, size = 24) {
   const src = skill.icon || skillIcon(player.name, skill.name, playerClass(player), skill.id);
@@ -215,7 +218,7 @@ export function renderDps(root, [id]) {
             </th>`).join('')}</tr></thead>
           <tbody>${rows.map(r => `
             <tr>
-              <td class="sk"><span class="skbar" style="width:${(r.share / best) * 100}%"></span><span class="sk-in">${skillIconHtml(p, r, 26)}${esc(r.name)}</span></td>
+              <td class="sk"><span class="skbar" style="width:${(r.share / best) * 100}%"></span><span class="sk-in">${skillIconHtml(p, r, 26)}${esc(skillLabel(p, r))}</span></td>
               <td>${int(r.damage)}</td>
               <td class="share">${pct(r.share)}</td>
               <td>${int(r.hits)}</td>

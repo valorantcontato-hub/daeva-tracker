@@ -1,6 +1,7 @@
 // Perfis reais (PlayNC) do jogador e da party, buscados pelo servidor local.
 import { load, save } from './store.js';
 import { classKey } from './data/classes.js';
+import { getLang } from './lang.js';
 
 export const REGIONS = [
   ['eu', 'Europa'], ['nae', 'NA Leste'], ['naw', 'NA Oeste'], ['la', 'América Latina'], ['as', 'Ásia/Oceania'],
@@ -19,11 +20,11 @@ async function api(path, params) {
 }
 
 export const searchCharacters = (name, region, serverId) =>
-  api('/api/plaync/search', serverId ? { name, region, serverId } : { name, region });
+  api('/api/plaync/search', { name, region, lang: getLang(), ...(serverId ? { serverId } : {}) });
 
 export async function fetchProfile({ region, serverId, characterId }, { fresh = false } = {}) {
-  const p = await api('/api/plaync/character', fresh ? { region, serverId, characterId, fresh: 1 } : { region, serverId, characterId });
-  p.class = classKey(p.className);
+  const p = await api('/api/plaync/character', { region, serverId, characterId, lang: getLang(), ...(fresh ? { fresh: 1 } : {}) });
+  p.class = p.class || classKey(p.className);
   return p;
 }
 
@@ -135,4 +136,28 @@ export async function autoLinkFromFight(fight) {
     const prof = await fetchProfile(ref);
     if (!p.class || !prof.class || prof.class === p.class) upsertPartyMember(prof);
   }
+}
+
+/**
+ * Troca o idioma dos perfis salvos (você e a party): refaz a busca de cada um no idioma novo para que
+ * nomes de itens, skills, títulos e atributos venham com os nomes reais do jogo nesse idioma.
+ */
+const langOf = p => p.lang || 'en-US'; // perfis antigos foram buscados em inglês
+
+export function needsRelocalization() {
+  const lang = getLang();
+  return [getMe(), ...getParty()].some(p => p && langOf(p) !== lang);
+}
+
+export async function relocalizeProfiles() {
+  const lang = getLang();
+  const me = getMe();
+  if (me && langOf(me) !== lang) { try { setMe(await fetchProfile(me)); } catch { /* mantém o antigo */ } }
+  const party = getParty();
+  const next = [];
+  for (const m of party) {
+    if (langOf(m) === lang) { next.push(m); continue; }
+    try { next.push(await fetchProfile(m)); } catch { next.push(m); }
+  }
+  save('party', next);
 }

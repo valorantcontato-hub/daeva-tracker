@@ -7,7 +7,7 @@ import { summarize } from '../encounter.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { getMe, findSkill, findProfileByName } from '../profiles.js';
 import { onLive } from '../live.js';
-import { getEncounters, playerClass, skillIconHtml } from './dps.js';
+import { getEncounters, playerClass, skillIconHtml, skillLabel } from './dps.js';
 import { ROMAN, LAST, tierOf, isElite, clampKills } from './bestiary.js';
 import { esc, compact, int, pct, duration } from '../util.js';
 
@@ -80,7 +80,7 @@ const BODIES = {
       ${rows.map(s => `
         <div class="wrow skill" style="--c:${c.color}" title="${esc(s.name)} · ${int(s.hits)} hits · máx ${int(s.max)}">
           <span class="wfill" style="width:${(s.damage / best) * 100}%"></span>
-          ${skillIconHtml(p, s, 22)}<b>${esc(s.name)}</b>
+          ${skillIconHtml(p, s, 22)}<b>${esc(skillLabel(p, s))}</b>
           <span class="num">${compact(s.damage)}</span>
           <span class="num muted">${pct(p.damage ? s.damage / p.damage : 0, 0)}</span>
           <span class="num muted">${s.hits ? pct(s.crits / s.hits, 0) : '—'}</span>
@@ -190,7 +190,7 @@ export async function renderWidgetsPage(root) {
                : `<button class="btn sm primary" data-act="popup">Abrir janela</button>`}
         </div>
         <p class="muted small widget-desc">${esc(w.desc)}</p>
-        <div class="widget-preview" data-preview="${id}"></div>
+
         <div class="widget-opts">
           ${extra}
           ${ov ? `
@@ -216,9 +216,6 @@ export async function renderWidgetsPage(root) {
       ${card('farm', WIDGETS.farm)}
     </div>`;
 
-  // Prévia ao vivo: o próprio widget desenhado dentro do bloco (acompanha a luta e as opções).
-  for (const box of root.querySelectorAll('[data-preview]')) renderWidget(box, [box.dataset.preview]);
-  // (kill +1 no preview do Farm também atualiza a página principal pelos eventos de dados.)
 
   root.addEventListener('click', e => {
     const cardEl = e.target.closest('.widget-card');
