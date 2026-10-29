@@ -86,6 +86,8 @@ Os widgets têm dimensões fixas, sem redimensionamento pelas bordas. Ajuste **T
 
 Os overlays aparecem somente com o AION 2 em primeiro plano. Alt+Tab os deixa invisíveis e sem receber cliques; voltar ao jogo os restaura automaticamente. Arrastar um widget destravado mantém esse contexto. A detecção faz parte da captura nativa e, se ela parar de responder, os overlays ficam ocultos até a leitura voltar.
 
+É possível acompanhar até 3 mascotes por personagem. O mini mapa mostra esses três sem barra de rolagem; seu padrão fica a 8 px da borda inferior da tela do jogo.
+
 ### Atualização automática (nunca baixe outro instalador)
 
 | O que mudou | Como chega no app instalado | Tempo |
