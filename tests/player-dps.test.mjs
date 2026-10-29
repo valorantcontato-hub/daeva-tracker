@@ -22,3 +22,10 @@ test('golpe isolado não vira DPS gigante e sem linha do tempo usa a duração',
   assert.equal(activeSeconds([], 12), 12);
   assert.equal(activeSeconds(undefined, 12), 12);
 });
+
+test('pausas longas (boneco renascendo) não entram no tempo batendo; pausas curtas entram', () => {
+  // 10 s batendo, 28 s parado, 10 s batendo: 20 s ativos, não 48
+  assert.equal(activeSeconds([...flat(0, 9, 1000, 10), ...Array(28).fill(0), ...flat(0, 9, 1000, 10)], 48), 20);
+  // pausa de 2 s entre dois golpes conta como tempo batendo
+  assert.equal(activeSeconds([1, 0, 0, 1, 1, 1, 1, 1, 1, 1], 10), 10);
+});

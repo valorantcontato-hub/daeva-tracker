@@ -78,16 +78,24 @@ export function normalizeEncounter(raw) {
 /** Tempo mínimo (s) usado no DPS de quem bateu só um instante: evita um golpe isolado virar um DPS enorme. */
 const MIN_ACTIVE_SECONDS = 5;
 
+/** Pausas de até 2 s entre golpes (animação, macro) contam como tempo batendo; pausas maiores não. */
+const MAX_BRIDGED_GAP = 2;
+
 /**
- * Tempo em que o jogador esteve batendo: do primeiro ao último segundo com dano dele. Numa luta com várias
- * pessoas (boneco de treino, monstros em grupo) o combate começa quando o primeiro bate; quem entra depois não
- * pode ter o DPS diluído pelos segundos em que ainda nem tinha começado.
+ * Tempo em que o jogador esteve batendo: os segundos com dano dele mais as pausas curtas entre eles. Pausas longas
+ * (esperar o boneco de treino renascer, andar até outro monstro) e o tempo antes de ele entrar na luta não contam, para
+ * o DPS refletir a taxa em que ele realmente bate, e não quanto tempo a luta ficou aberta.
  */
 export function activeSeconds(timeline, fallback) {
-  let first = -1, last = -1;
-  for (let i = 0; i < (timeline || []).length; i++) if (timeline[i] > 0) { if (first < 0) first = i; last = i; }
-  if (first < 0) return fallback;
-  return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, last - first + 1));
+  let seconds = 0, last = -1;
+  for (let i = 0; i < (timeline || []).length; i++) {
+    if (!(timeline[i] > 0)) continue;
+    if (last >= 0 && i - last - 1 <= MAX_BRIDGED_GAP) seconds += i - last - 1;
+    seconds += 1;
+    last = i;
+  }
+  if (seconds === 0) return fallback;
+  return Math.min(fallback, Math.max(MIN_ACTIVE_SECONDS, seconds));
 }
 
 /** Totais derivados: dano, DPS, crit e participação por jogador (ordenado por dano). */
