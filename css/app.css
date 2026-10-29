@@ -21,7 +21,7 @@
 
 * { box-sizing: border-box; }
 :root { --app-cursor: url('../icons/cursor-lotus.svg') 3 2, auto; --app-cursor-hover: url('../icons/cursor-lotus-hover.svg') 3 2, auto; }
-html:not(.widget-mode) body,
+html:not(.widget-mode), html:not(.widget-mode) body,
 html:not(.widget-mode) body :is(a, button, label, summary, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"]) { cursor: var(--app-cursor); }
 html:not(.widget-mode) body :is(a, button, summary, [role="button"], .slot, [data-tip]):not(:disabled):hover { cursor: var(--app-cursor-hover); }
 html:not(.widget-mode) body :is(button, input):disabled { cursor: not-allowed; }
@@ -664,33 +664,11 @@ html.desktop .lang-switch { -webkit-app-region: no-drag; }
 .stat-name { font-size: 10.5px; letter-spacing: -.2px; }
 .stat-tile b, .stat-grid.compact b { font-size: 13.5px; }
 
-/* ---------- Daevanion: casas de atributo com o visual do jogo (moldura de bronze + runa) ---------- */
-.node.t-stat {
-  --rune: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5.5l3 11.5 4-8 4 8 3-11.5'/%3E%3Cpath d='M5.5 20.5a9.5 9.5 0 0 0 13 0'/%3E%3C/svg%3E");
-  background: linear-gradient(145deg, #a48d5f, #4e422b 52%, #8a7549);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 3px rgba(0, 0, 0, .6);
-  border-radius: 9px;
-}
-.node.t-stat::before {
-  content: ""; position: absolute; inset: 3px; border-radius: 6px;
-  background: radial-gradient(circle at 50% 30%, #2d323d, #14171d 78%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), inset 0 -6px 10px rgba(0, 0, 0, .35);
-}
-.node.t-stat::after {
-  content: ""; position: absolute; inset: 20%; font-size: 0;
-  background: #cdb68a; opacity: .9;
-  -webkit-mask: var(--rune) center / contain no-repeat; mask: var(--rune) center / contain no-repeat;
-}
-.node.t-stat.off { opacity: .95; filter: none; }
-.node.t-stat.on {
-  background: linear-gradient(145deg, #6fc0ff, #1d56a8 52%, #4b9cf0);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px #2f8dff, 0 0 11px 2px rgba(70, 160, 255, .75);
-}
-.node.t-stat.on::before { background: radial-gradient(circle at 50% 30%, #25405f, #0f1a2a 78%); }
-.node.t-stat.on::after { background: #e8f5ff; opacity: 1; filter: drop-shadow(0 0 3px rgba(120, 200, 255, .9)); }
-
-/* casas de skill e a inicial: moldura no mesmo estilo, sem dar brilho quando fechadas */
-.node.t-skilllevel.off { opacity: .55; filter: grayscale(.6); }
+/* Daevanion: original tile textures, clipped from the supplied game screenshot. */
+.dv-board { background: #0c1011; }
+.dv-board .node { background: transparent; box-shadow: none; border-radius: 0; opacity: 1; filter: none; }
+.dv-board .node::before, .dv-board .node::after { content: none; }
+.dv-tile { display: block; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
 
 /* ---------- Dano da party compacto: uma linha por jogador, barra de dano como fundo ---------- */
 .dps-page .card { padding: 10px 12px; }
