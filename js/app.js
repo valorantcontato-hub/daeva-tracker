@@ -89,16 +89,6 @@ if (window.desktop) {
   document.getElementById('win-close').addEventListener('click', () => window.desktop.close());
 }
 
-// Tema claro/escuro (escuro é o padrão; o <script> do index.html já aplica o salvo antes de pintar).
-const themeBtn = document.getElementById('theme-btn');
-const applyTheme = t => { document.documentElement.dataset.theme = t; themeBtn?.setAttribute('aria-pressed', t === 'light'); };
-applyTheme(load('theme', 'dark') === 'light' ? 'light' : 'dark');
-themeBtn?.addEventListener('click', () => {
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  save('theme', next);
-  applyTheme(next);
-});
-
 // Idioma (PT/EN): troca a interface e os nomes reais do jogo (vindos do site oficial no idioma escolhido).
 const langBtns = [...document.querySelectorAll('.lang-switch [data-lang]')];
 langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === getLang()));
