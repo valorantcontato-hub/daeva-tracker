@@ -29,7 +29,7 @@ export const WIDGETS = {
 const SKILL_LIMITS = [3, 5, 8, 10, 15, 0];
 export const skillLimit = () => { const n = Number(load('wgSkillLimit', 8)); return SKILL_LIMITS.includes(n) ? n : 8; };
 
-WIDGETS.market = { title: 'Mercador', icon: '🛒', width: 340, height: 420, desc: 'Black Cloud Merchant: ofertas da hora lidas quando você abre a loja no jogo. Destaca os mascotes que vale comprar (de chefe ou que só existem na loja) que você ainda não completou. Dados dos itens: aion2data.com.' };
+WIDGETS.market = { title: 'Mercador', icon: '🛒', width: 340, height: 420, desc: 'Black Cloud Merchant: ofertas da hora lidas quando você abre a loja no jogo. Destaca os mascotes que vale comprar (de chefe ou que só existem na loja) que você ainda não completou.' };
 
 const overlay = () => window.overlay; // exposto pelo app desktop (electron/preload.cjs)
 
@@ -441,7 +441,7 @@ export async function renderWidgetsPage(root) {
     ${ov ? `<div class="note"><kbd>PgUp</kbd> mostra/oculta os widgets · <kbd>PgDown</kbd> trava/destrava todos.</div>`
       : `<div class="note">No navegador os widgets abrem como janelas comuns. Para ficarem <b>por cima do jogo</b>, use o app desktop.</div>`}
     ${ov?.setShopMarks ? `<section class="card shopmarks-card">
-      <div class="widget-top"><span class="widget-ico">★</span><div class="widget-txt"><h2>Marcadores na loja do Mercador</h2></div>
+      <div class="widget-top"><span class="widget-ico">🛒</span><div class="widget-txt"><h2>Mercador</h2></div>
         <label class="switch"><input type="checkbox" data-opt="shopmarks"> Ligado</label></div>
       <p class="muted small widget-desc">Com o Mercador aberto no jogo, põe um selo ★ em cima das ofertas que valem comprar (mascote de chefe ou só da loja) e ◆ nas raras. Alinhado para a tela do jogo em 16:9; some sozinho depois de 90 s sem trocar de aba.</p>
     </section>` : ''}
@@ -455,9 +455,7 @@ export async function renderWidgetsPage(root) {
       ${card('party', WIDGETS.party)}
       ${card('skills', WIDGETS.skills)}
       ${card('radar', WIDGETS.radar)}
-      ${card('market', WIDGETS.market)}
-    </div>
-    <p class="muted small credit">Nomes dos itens do Mercador: <a href="https://aion2data.com" target="_blank" rel="noopener">aion2data.com</a>.</p>`;
+    </div>`;
 
 
   root.addEventListener('click', e => {
