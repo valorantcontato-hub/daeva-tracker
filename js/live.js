@@ -10,6 +10,7 @@ import { findCatalogMonster, monsterPicture } from './monster-catalog.js';
 import { toast } from './util.js';
 import { isTrainingDummy, isBossEncounter } from './combat-types.js';
 import { listenStream } from './stream.js';
+import { receiveShop } from './shop.js';
 
 let current = null;
 const subs = new Set();
@@ -61,6 +62,7 @@ export function startLive() {
   if (startLive.es || typeof EventSource === 'undefined') return;
   startLive.es = listenStream('live', e => {
     const snap = JSON.parse(e.data);
+    if (snap?.type === 'shop') { receiveShop(snap); return; }
     if (snap?.type === 'positions') { lastPos = snap; [...posSubs].forEach(fn => fn(snap)); return; }
     // Identidade (teleporte/relogin): vincula o personagem sem esperar uma luta.
     if (snap?.type === 'identity') {

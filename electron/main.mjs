@@ -31,6 +31,7 @@ const WIDGETS = {
   party: { width: 320, height: 270 },
   skills: { width: 340, height: 340 },
   radar: { width: 300, height: 460 },
+  market: { width: 340, height: 420 },
 };
 const UPDATE_CHECK_MS = 15 * 60e3;
 // npm run dev: recarrega ao salvar a interface e reinicia ao salvar o código do app.
@@ -196,7 +197,7 @@ setInterval(() => {
 function openWidget(id) {
   if (wins.has(id)) return syncOverlay(id, wins.get(id));
   const c = cfg[id];
-  activeWidgets.set(id, id === 'radar');
+  activeWidgets.set(id, id === 'radar' || id === 'market');
   const bounds = defaultBounds(id);
   const win = new BrowserWindow({
     ...bounds,

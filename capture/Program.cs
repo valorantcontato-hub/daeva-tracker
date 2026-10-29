@@ -43,6 +43,7 @@ using var petCollection = new DaevaCapture.PetCollection(outbox.Enqueue);
 using var accountResources = new DaevaCapture.AccountResources(outbox.Enqueue);
 using var recorder = new DaevaCapture.PacketRecorder(engine.Dispatcher);
 using var tracker = new DaevaCapture.PositionTracker();
+using var shop = new DaevaCapture.ShopTracker(outbox.Enqueue);
 // Movimento é parte nativa da captura. O modo passivo é uma recuperação interna caso a elevação seja recusada.
 using var movement = args.Contains("--passive-only") ? null : new DaevaCapture.LiveMovement(engine.Dispatcher, engine.Store.GetLocalProfile, outbox.Enqueue);
 var stopFile=Arg("--stop-file", "");
