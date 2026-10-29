@@ -196,8 +196,8 @@ function createMain() {
   mainWin = new BrowserWindow({
     ...mainBounds(),
     // Sem barra do Windows: o nome e os botões (minimizar/fechar) são desenhados dentro do app.
-    frame: false, resizable: false, maximizable: false, fullscreenable: false,
-    backgroundColor: '#0d0b14', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus.png'), autoHideMenuBar: true, show: false,
+    frame: false, transparent: true, hasShadow: false, resizable: false, maximizable: false, fullscreenable: false,
+    backgroundColor: '#00000000', title: 'Lotus Tracker', icon: join(ROOT, 'icons', 'lotus.png'), autoHideMenuBar: true, show: false,
     webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, devTools: DEV, spellcheck: false },
   });
   // Aberto pelo Windows no login: sobe minimizado (a captura já fica rodando e os widgets abrem).
