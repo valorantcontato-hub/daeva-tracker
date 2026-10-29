@@ -29,6 +29,7 @@ function route() {
   const key = routes[name] ? name : 'inicio';
   // #/w/<id> = widget isolado (janela de overlay): sem cabeçalho, fundo transparente.
   document.documentElement.classList.toggle('widget-mode', key === 'w');
+  document.documentElement.classList.toggle('home-fit', key === 'inicio' && !params[0]);
   document.querySelectorAll('[data-route]').forEach(a => {
     const on = a.dataset.route === key;
     a.classList.toggle('active', on);
@@ -40,12 +41,16 @@ function route() {
   routes[key](root, params);
 }
 
-document.getElementById('theme-toggle').addEventListener('click', () => {
-  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = next;
-  document.getElementById('app-icon').href = `icons/lotus-${next}.svg`;
-  save('theme', next);
-});
+document.documentElement.dataset.theme = 'dark';
+save('theme', 'dark');
+// Fit the overview to the real space left by the title bar, update banner and navigation.
+const measureShell = () => {
+  for (const [variable,selector] of [['topbar','.topbar'],['navigation','.tabs'],['banner','#app-banner']])
+    document.documentElement.style.setProperty(`--${variable}-height`, `${document.querySelector(selector)?.getBoundingClientRect().height || 0}px`);
+};
+const shellObserver = new ResizeObserver(measureShell);
+for (const selector of ['.topbar','.tabs','#app-banner']) if (document.querySelector(selector)) shellObserver.observe(document.querySelector(selector));
+measureShell();
 
 addEventListener('hashchange', route);
 // Mudanças feitas em outra janela (ex.: +1 no widget de Farm) ou pela captura atualizam a tela.

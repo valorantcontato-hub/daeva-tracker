@@ -6,7 +6,7 @@ import { dpsChart } from '../chart.js';
 import { classIcon, entityIcon } from '../icons.js';
 import { findProfileByName, skillIcon, findSkill } from '../profiles.js';
 import { liveFight, onLive } from '../live.js';
-import { isBossEncounter } from '../combat-types.js';
+import { isFinalDungeonBoss } from '../combat-types.js';
 import { esc, compact, int, pct, duration, dateTime, download, pickJson, toast } from '../util.js';
 
 export function getEncounters() {
@@ -44,15 +44,15 @@ const encDps = e => {
 
 export function renderDps(root, [id]) {
   root.className = 'page dps-page';
-  const list = getEncounters().filter(isBossEncounter);
+  const list = getEncounters().filter(isFinalDungeonBoss);
   const enc = list.find(e => e.id === id) || list[0];
 
   if (!enc) {
-    const off = onLive(f => { if (!root.isConnected) return off(); if (isBossEncounter(f)) dispatchEvent(new HashChangeEvent('hashchange')); });
+    const off = onLive(f => { if (!root.isConnected) return off(); if (isFinalDungeonBoss(f)) dispatchEvent(new HashChangeEvent('hashchange')); });
     root.className = 'page';
     root.innerHTML = `
       <div class="empty card">
-        <h1>Nenhuma luta contra boss ainda</h1>
+        <h1>Nenhuma luta contra chefe final ainda</h1>
         <p class="muted">Abra o jogo com a captura ligada (<b>capture\\bin\\daeva-capture.exe</b>, veja o README).<br>A luta aparece aqui ao vivo, com os nomes, classes e skills reais da party.</p>
         <div class="head-actions">
           <button class="btn" data-act="samples">Ver demonstração</button>
@@ -74,7 +74,7 @@ export function renderDps(root, [id]) {
   if (enc.live || !id) {
     const off = onLive(f => {
       if (!root.isConnected) return off();
-      if (isBossEncounter(f) && (f.id === enc.id || (!id && !enc.live))) dispatchEvent(new HashChangeEvent('hashchange'));
+      if (isFinalDungeonBoss(f) && (f.id === enc.id || (!id && !enc.live))) dispatchEvent(new HashChangeEvent('hashchange'));
       else if (!f && enc.live) dispatchEvent(new HashChangeEvent('hashchange'));
     });
   }
@@ -104,7 +104,6 @@ export function renderDps(root, [id]) {
         <div class="boss-id">
           ${entityIcon('boss', S.boss, { size: 52, icon: S.bossIcon })}
           <div>
-          ${S.dungeon ? `<div class="eyebrow">${esc(S.dungeon)}</div>` : ''}
           <h1>${esc(S.boss)}</h1>
           <div class="meta">
             ${S.live ? '<span class="badge wipe"><span class="live-dot" style="display:inline-block;width:6px;height:6px;margin-right:4px"></span>Ao vivo</span>' : `<span class="badge ${S.result}">${S.result === 'wipe' ? 'Wipe' : 'Vitória'}</span>`}

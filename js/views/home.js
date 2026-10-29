@@ -4,10 +4,11 @@ import { classInfo } from '../data/classes.js';
 import { classIcon } from '../icons.js';
 import { getMe, getParty, refreshProfile, removePartyMember } from '../profiles.js';
 import { setTooltipContext } from '../tooltip.js';
-import { BASE_STATS, STAT_COLORS, statIcon } from '../stat-icons.js';
 import { renderSkills } from './skills.js';
 import { renderDaevanion } from './daevanion.js';
 import { esc, int } from '../util.js';
+import { portraitUrl } from '../portrait.js';
+import { appearanceItems, combatStats } from '../character-layout.js';
 
 const REFRESH_MS = 60e3;
 
@@ -19,7 +20,6 @@ const GEAR = [
 ];
 const ARCANA = ['Arcana1', 'Arcana2', 'Arcana3', 'Arcana4', 'Arcana5'];
 // Aparência: só o que o personagem está usando.
-const LOOK = ['Helmet', 'Shoulder', 'Torso', 'Pants', 'Gloves', 'Boots', 'Cape', 'WingSkin', 'Wings', 'Pet'];
 const TABS = [['', 'Personagem'], ['skills', 'Skills'], ['daevanion', 'Daevanion']];
 const gradeClass = g => 'g-' + String(g || 'common').toLowerCase();
 
@@ -36,25 +36,13 @@ function tile(item, { skin = false } = {}) {
     </div>`;
 }
 
-/** "Justice [Nezekan]" -> rótulo "Justice" (o tabuleiro de origem aparece no tooltip). */
-function statTile(s) {
-  const m = /^(.*?)\s*\[(.*)\]$/.exec(s.name);
-  const label = m ? m[1] : s.name;
-  return `
-    <div class="stat-tile" style="--c:${STAT_COLORS[s.type] || 'var(--accent)'}" data-tip="${esc([s.name, ...(s.effects || [])].join('\n'))}">
-      <span class="stat-ico">${statIcon(s.type)}</span>
-      <span class="stat-name">${esc(label)}</span>
-      <b>${int(s.value)}</b>
-    </div>`;
-}
-
 /** Cabeçalho do personagem. "extra" é HTML opcional (botões) ao lado dos números; "tabs" é o menu do personagem. */
 function heroHtml(me, extra = '', tabs = '') {
   const c = classInfo(me.class);
   return `
     <section class="hero card" style="--c:${c.color}">
       <div class="portrait">
-        ${me.image ? `<img src="${esc(me.image)}" alt="" draggable="false">` : classIcon(me.class, 120)}
+        ${me.image ? `<img src="${esc(portraitUrl(me))}" alt="" draggable="false">` : classIcon(me.class, 120)}
       </div>
       <div class="hero-info">
         <div class="eyebrow">${esc(me.serverName)} · ${esc(me.race)}</div>
@@ -91,7 +79,7 @@ export function characterSheet(root, me, { tab = '', base = '#/inicio', extra = 
 }
 
 /** Casas em grade que se esticam para preencher toda a largura do container. */
-const grid = (cols, items) => `<div class="tile-grid" style="--cols:${cols}">${items.join('')}</div>`;
+const grid = (cols, items) => `<div class="tile-grid" style="--cols:${cols};--rows:${Math.ceil(items.length / cols)}">${items.join('')}</div>`;
 
 /** "Minha party": você e os membros já vinculados; clique abre a ficha, ✕ remove. */
 function partyCard(me) {
@@ -121,11 +109,8 @@ function partyCard(me) {
 
 function characterMain(me, { withParty = false } = {}) {
   const bySlot = Object.fromEntries((me.equipment || []).map(e => [e.slot, e]));
-  const skins = Object.fromEntries((me.skins || []).map(e => [e.slot, e]));
-  const extras = { Wings: me.wings, WingSkin: me.wingSkin, Pet: me.pet };
-  const look = LOOK.map(s => skins[s] || extras[s]).filter(Boolean);
-  const base = BASE_STATS.map(t => (me.stats || []).find(s => s.type === t)).filter(Boolean);
-  const board = (me.stats || []).filter(s => !BASE_STATS.includes(s.type));
+  const look = appearanceItems(me);
+  const totals = combatStats(me);
   // Equipamentos em 4 colunas (dois pares por linha, como a janela do jogo).
   const gear = [];
   for (let i = 0; i < GEAR.length; i += 2) gear.push(...GEAR[i], ...(GEAR[i + 1] || []));
@@ -134,13 +119,13 @@ function characterMain(me, { withParty = false } = {}) {
     <div class="home-main">
       <section class="card gear-card">
         <div class="equipment-and-look">
-        <div class="gear-block">
+        <div class="gear-block" style="--block-rows:5">
           <div class="card-head"><h2>Equipamentos</h2></div>
           ${grid(4, gear.map(s => tile(bySlot[s])))}
         </div>
-        <div class="gear-block">
+        <div class="gear-block" style="--block-rows:${Math.max(1,Math.ceil(look.length/4))}">
           <div class="card-head"><h2>Aparência</h2></div>
-          ${look.length ? grid(2, look.map(i => tile(i, { skin: true }))) : '<p class="muted small">Sem itens de aparência.</p>'}
+          ${look.length ? grid(4, look.map(i => tile(i, { skin: true }))) : '<p class="muted small">Sem itens de aparência.</p>'}
         </div>
         </div>
         <div class="gear-block arcana-block">
@@ -150,10 +135,10 @@ function characterMain(me, { withParty = false } = {}) {
       </section>
 
       <div class="side-col">
-        <section class="card stats-card">
+        <section class="card stats-card combat-card">
           <div class="card-head"><h2>Atributos</h2></div>
-          <div class="stat-grid">${base.map(statTile).join('')}</div>
-          ${board.length ? `<div class="card-head" style="margin-top:12px"><h3>Daevanion</h3></div><div class="stat-grid compact">${board.map(statTile).join('')}</div>` : ''}
+          <div class="combat-totals">${totals.map(s=>`<div class="combat-stat" data-tip="${esc(s.label)}${s.value===null?' · Aguardando dados do jogo':''}"><span>${esc(s.label)}</span><b>${s.value===null?'—':s.percent?s.value.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':int(s.value)}</b></div>`).join('')}</div>
+          ${totals.some(s=>s.value===null)?'<p class="combat-source muted">Os totais de combate ainda não estão disponíveis na captura. O perfil público fornece apenas os atributos básicos.</p>':''}
         </section>
         ${withParty ? partyCard(me) : ''}
       </div>
@@ -163,7 +148,7 @@ function characterMain(me, { withParty = false } = {}) {
 export function renderHome(root, [tab = ''] = []) {
   root.className = 'page home-page';
   if (!TABS.some(([k]) => k === tab)) tab = '';
-  let me = getMe();
+  let me = getMe(), refreshing = false;
 
   if (!me) {
     root.innerHTML = `
@@ -185,11 +170,15 @@ export function renderHome(root, [tab = ''] = []) {
   // Skills e Daevanion só atualiza os dados, sem redesenhar o que você está olhando.
   async function refresh() {
     if (!root.isConnected) return clearInterval(timer);
+    if (refreshing) return;
+    refreshing = true;
     try {
       me = await refreshProfile(me);
+      if (!root.isConnected) return;
       setTooltipContext(me);
       if (tab === '') render();
     } catch { /* sem internet ou PlayNC fora do ar: mantém o que já está na tela */ }
+    finally { refreshing = false; }
   }
 
   root.addEventListener('click', e => {
@@ -199,6 +188,8 @@ export function renderHome(root, [tab = ''] = []) {
     render();
   });
 
+  const onFocus = () => { if (root.isConnected) refresh(); else removeEventListener('focus', onFocus); };
+  addEventListener('focus', onFocus);
   const timer = setInterval(refresh, REFRESH_MS);
   render();
   refresh();

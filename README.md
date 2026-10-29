@@ -4,10 +4,24 @@ Tracker leve para AION 2 com dados **reais**:
 
 - **DPS ao vivo** da sua party nas DGs: nomes, classes e skills reais (com ícones oficiais), HP do chefe, gráfico e detalhamento por skill.
 - **Conta e party**: perfil real da PlayNC (CP, item level, atributos, Daevanion, equipamentos e skills). Vinculado automaticamente pela captura.
-- **Boss**: histórico e status de DPS exclusivamente de chefes.
+- **Boss**: histórico e status de DPS dos chefes finais de DG identificados no catálogo. Intermediários e bonecos não entram nessa página.
 - **Boneco de Treinamento**: tentativas com nome, duração, preparação de 5 segundos, dano próprio e comparação de duas tentativas concluídas.
 - **Bestiário**: coleção de 207 pets, com níveis e almas lidos do jogo; catálogo de monstros e abates locais em uma aba separada.
 - **Widgets de overlay**: DPS da party, Skills e Farm, cada um numa janela que fica por cima do jogo.
+
+A interface usa um único tema escuro. A janela compacta abre em 580 × 940 px, limitada à área útil
+do monitor. O Início ajusta a altura dos itens ao espaço disponível, incluindo a faixa de atualização,
+para caber sem rolagem. Equipamentos, aparência e arcanas ficam empilhados; Aparência prioriza
+a asa visual equipada e não repete a asa base. O retrato é requisitado novamente ao atualizar o
+perfil, a cada minuto e ao voltar para a janela; a mudança visual depende da imagem publicada pela PlayNC.
+
+O painel de combate substitui atributos primários/Daevanion por Ataque, Defesa, Precisão, Evasão,
+Crítico, resistência a crítico, PV/PM e velocidades. **A leitura automática desses totais ainda não
+está implementada no motor.** Os campos sem fonte ficam indisponíveis. A API pública atual traz
+os seis atributos primários e bônus, não esses totais; eles não são inferidos de bônus, inventados
+nem copiados de um personagem para outro. O anexo do usuário não foi importado como dado de conta.
+Quando um perfil fornece tipos de combate explícitos, o painel usa somente os valores desse perfil.
+Detalhes de treino ficam recolhidos até clicar numa tentativa; selecionar duas concluídas abre a comparação.
 
 O bestiário separa abates e favoritos por personagem (região + servidor + ID). O catálogo estático
 inclui nomes, níveis, regiões e fotos do MetaBot, relacionadas aos códigos conhecidos da captura.
