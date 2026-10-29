@@ -1446,3 +1446,5 @@ html.home-fit .sub-body .card { padding: 12px; }
 .rd-bar { display: flex; gap: 6px; margin: 4px 0 2px; }
 .rd-bar .mini { flex: 1; white-space: nowrap; width: auto; height: 26px; padding: 0 8px; font-size: 12px; }
 .rd-bar .mini.on { background: var(--accent); color: #fff; }
+.rd-pet.far { opacity: .55; }
+.rd-pet image { image-rendering: auto; }

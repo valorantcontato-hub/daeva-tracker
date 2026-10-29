@@ -74,15 +74,26 @@ const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km'
 
 function radarSvg(P, mobs, range) {
   const R = 92, k = R / range;
-  const dots = mobs.slice(0, 150).map(m => {
-    const f = m.d > range ? range / m.d : 1;
+  let clips = '';
+  const dots = mobs.slice(0, 150).map((m, i) => {
+    const far = m.d > range, f = far ? range / m.d : 1;
+    const cx = (100 + m.dx * f * k).toFixed(1), cy = (100 - m.dy * f * k).toFixed(1);
     const color = PET_TYPES[m.type]?.color || '#e9b949';
-    return '<circle cx="' + (100 + m.dx * f * k).toFixed(1) + '" cy="' + (100 - m.dy * f * k).toFixed(1) + '" r="' + (m.d > range ? 2 : 3.4)
-      + '" style="fill:' + color + '" class="rd-dot' + (m.d > range ? ' far' : '') + '"><title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title></circle>';
+    const tip = '<title>' + esc(m.name) + ' · ' + fmtDist(m.d) + '</title>';
+    // Mascote em farm: a bolinha vira a foto dele, com anel na cor do tipo.
+    if (m.icon) {
+      const r = far ? 6 : 8.5;
+      clips += '<clipPath id="rdc' + i + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>';
+      return '<g class="rd-pet' + (far ? ' far' : '') + '">'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 1.4) + '" style="fill:' + color + '"/>'
+        + '<image href="' + esc(m.icon) + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + r * 2 + '" height="' + r * 2 + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#rdc' + i + ')"/>'
+        + tip + '</g>';
+    }
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (far ? 2 : 3.4) + '" style="fill:' + color + '" class="rd-dot' + (far ? ' far' : '') + '">' + tip + '</circle>';
   }).join('');
   const rings = [R, R * 2 / 3, R / 3].map(r => '<circle cx="100" cy="100" r="' + r.toFixed(1) + '" class="rd-ring"/>').join('');
   return '<svg class="radar" viewBox="0 0 200 200" aria-label="Mini mapa">'
-    + '<defs><radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
+    + '<defs>' + clips + '<radialGradient id="rdbg"><stop offset="0" stop-color="#1b2a3d" stop-opacity=".9"/><stop offset="1" stop-color="#0d1118" stop-opacity=".95"/></radialGradient></defs>'
     + '<circle cx="100" cy="100" r="' + (R + 4) + '" fill="url(#rdbg)" class="rd-disc"/>' + rings
     + '<path d="M100 8v184M8 100h184" class="rd-axis"/>'
     + '<text x="100" y="7" class="rd-n" text-anchor="middle">N</text>'
@@ -134,7 +145,7 @@ function radarBody() {
   for (const e of entries) for (const n of e.names) if (!typeOf.has(n)) typeOf.set(n, e);
   let mobs = [];
   if (lastRadar) {
-    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type }))
+    mobs = lastRadar.mobs.map(m => ({ ...m, dx: (m.x - lastRadar.self.x) * RADAR_UNIT_M, dy: (m.y - lastRadar.self.y) * RADAR_UNIT_M, type: typeOf.get(normName(m.name))?.type, icon: typeOf.get(normName(m.name))?.icon }))
       .map(m => ({ ...m, d: Math.hypot(m.dx, m.dy) }))
       .filter(m => showAll || typeOf.has(normName(m.name)))
       .sort((a, b) => a.d - b.d);
