@@ -120,6 +120,17 @@ foreach(var (facing,expected) in new(float,float)[]{(0,90),(90,0),(-90,180),(180
     Check(MovementCrypto.TryMovement(MovementBody(30,facing),clock,out direct)&&direct.Heading==expected,"facing converts world X/Y to radar north");
 Check(!MovementCrypto.TryMovement(MovementBody(30,float.NaN),clock,out _),"invalid facing rejected");
 Check(!MovementCrypto.TryMovement(MovementBody(),clock+1000000,out _),"stale or wrong-stream movement rejected");
+// Voo: layout parecido, tamanho/tipo diferentes; só vale se contínuo com a última posição confirmada.
+var walking=new ClientMovement(1000,2000,3000,45,clock);
+byte[] FlightBody(float x,float y,float z,int length=40) {
+    var p=new byte[length];p[0]=1;p[1]=0x37;p[2]=3;
+    BitConverter.GetBytes(x).CopyTo(p,3);BitConverter.GetBytes(y).CopyTo(p,7);BitConverter.GetBytes(z).CopyTo(p,11);BitConverter.GetBytes(clock+500).CopyTo(p,length-8);return p;
+}
+Check(!MovementCrypto.TryMovement(FlightBody(1100,2000,3500),clock+500,out _),"flight packet is not a walking packet");
+Check(MovementCrypto.TryRelaxed(FlightBody(1100,2000,3500),clock+500,walking,out var flying)&&flying.Z==3500&&flying.X==1100,"flight packet accepted when continuous with last position");
+Check(!MovementCrypto.TryRelaxed(FlightBody(1100,2000,3500),clock+500,null,out _),"flight packet needs a previous confirmed position");
+Check(!MovementCrypto.TryRelaxed(FlightBody(900000,2000,3500),clock+500,walking,out _),"flight packet that jumps far is rejected");
+Check(!MovementCrypto.TryRelaxed(FlightBody(1100,2000,3500),clock+1000000,walking,out _),"flight packet with a wrong clock is rejected");
 var testKey=Enumerable.Range(0,214).Select(i=>(byte)i).ToArray();var cipher=new Rc4(testKey);
 for(int n=0;n<517;n++)cipher.Next();
 byte[] CryptFrame(byte[] plain) => [..Var(plain.Length+4),..plain.Select(b=>(byte)(b^cipher.Next()))];
