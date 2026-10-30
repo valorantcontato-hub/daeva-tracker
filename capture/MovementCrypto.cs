@@ -28,12 +28,13 @@ public sealed class MovementCrypto
     readonly Dictionary<uint,(byte[] Data,long Time)> held=new();
     readonly Action<ClientMovement> emit;
     long firstHeld;
+    ClientMovement? last;
     public bool Aligned => confirmations>=3;
     public MovementCrypto(byte[] key,Action<ClientMovement> emit) {
         this.emit=emit;rc4=new Rc4(key);stream=new byte[SearchBytes+65536];
         for(int n=0;n<stream.Length;n++)stream[n]=rc4.Next();
     }
-    public void Reset() { pending.Clear();held.Clear();nextSequence=null;offset=-1;confirmations=0; }
+    public void Reset() { pending.Clear();held.Clear();nextSequence=null;offset=-1;confirmations=0;last=null; }
     public void Feed(uint sequence,ReadOnlySpan<byte> data,long timestamp) {
         if(nextSequence is uint next) {
             int diff=unchecked((int)(sequence-next));
@@ -85,9 +86,26 @@ public sealed class MovementCrypto
                 if(clock<timestamp-60000||clock>timestamp+60000){offset=-1;confirmations=0;continue;}
                 confirmations++;
             }
-            if(Aligned&&TryMovement(plain,timestamp,out var movement))emit(movement);
+            if(Aligned&&(TryMovement(plain,timestamp,out var movement)||TryRelaxed(plain,timestamp,last,out movement))){last=movement;emit(movement);}
         }
         if(used>0)pending.RemoveRange(0,used);
+    }
+    /// <summary>
+    /// Voo e outros modos de movimento: o pacote tem a mesma cabeça (x, y, z e relógio) mas outro tamanho ou tipo. Só aceito se o
+    /// layout bater e a posição for contínua com a última confirmada (no máximo 120 m/s), então um pacote de outro tipo não vira posição.
+    /// </summary>
+    public static bool TryRelaxed(ReadOnlySpan<byte> p,long timestamp,ClientMovement? previous,out ClientMovement movement) {
+        movement=default;
+        if(previous is not ClientMovement prev||p.Length<24||p.Length>64||p[1]!=0x37||p[0]>3)return false;
+        float x=BinaryPrimitives.ReadSingleLittleEndian(p[3..]),y=BinaryPrimitives.ReadSingleLittleEndian(p[7..]),z=BinaryPrimitives.ReadSingleLittleEndian(p[11..]);
+        long clock=BinaryPrimitives.ReadInt64LittleEndian(p[^8..]);
+        if(!float.IsFinite(x)||!float.IsFinite(y)||!float.IsFinite(z)||MathF.Abs(x)>2_000_000||MathF.Abs(y)>2_000_000||MathF.Abs(z)>2_000_000
+            ||clock<timestamp-60000||clock>timestamp+60000)return false;
+        double seconds=Math.Max(0.05,(timestamp-prev.Timestamp)/1000.0),meters=Math.Sqrt((double)(x-prev.X)*(x-prev.X)+(double)(y-prev.Y)*(y-prev.Y))*0.01;
+        if(meters>120*seconds+5||MathF.Abs(z-prev.Z)*0.01>120*seconds+5)return false;
+        float facing=p.Length>=21?BinaryPrimitives.ReadSingleLittleEndian(p[17..]):float.NaN;
+        float heading=float.IsFinite(facing)&&MathF.Abs(facing)<=360?((90-facing)%360+360)%360:prev.Heading;
+        movement=new(x,y,z,heading,timestamp);return true;
     }
     public static bool TryMovement(ReadOnlySpan<byte> p,long timestamp,out ClientMovement movement) {
         movement=default;
