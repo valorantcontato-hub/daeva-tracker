@@ -86,7 +86,10 @@ public sealed class MovementCrypto
                 if(clock<timestamp-60000||clock>timestamp+60000){offset=-1;confirmations=0;continue;}
                 confirmations++;
             }
-            if(Aligned&&(TryMovement(plain,timestamp,out var movement)||TryRelaxed(plain,timestamp,last,out movement))){last=movement;emit(movement);}
+            if(Aligned){
+                if(TryMovement(plain,timestamp,out var movement)||TryRelaxed(plain,timestamp,last,out movement)){last=movement;emit(movement);}
+                else Note(plain);
+            }
         }
         if(used>0)pending.RemoveRange(0,used);
     }
@@ -94,6 +97,14 @@ public sealed class MovementCrypto
     /// Voo e outros modos de movimento: o pacote tem a mesma cabeça (x, y, z e relógio) mas outro tamanho ou tipo. Só aceito se o
     /// layout bater e a posição for contínua com a última confirmada (no máximo 120 m/s), então um pacote de outro tipo não vira posição.
     /// </summary>
+    /// <summary>Formatos de pacote do cliente que não viraram posição (tamanho, tipo e um exemplo): serve para achar o formato do voo.</summary>
+    public static readonly System.Collections.Concurrent.ConcurrentDictionary<string,(int Count,string Sample)> Shapes=new();
+    static void Note(byte[] plain) {
+        if(plain.Length<2)return;
+        string key=$"len{plain.Length}|{plain[0]:x2}{plain[1]:x2}|{(plain.Length>2?plain[2]:0):x2}";
+        if(Shapes.Count>=80&&!Shapes.ContainsKey(key))return;
+        Shapes.AddOrUpdate(key,(1,Convert.ToHexString(plain,0,Math.Min(plain.Length,64))),(_,v)=>(v.Count+1,v.Sample));
+    }
     public static bool TryRelaxed(ReadOnlySpan<byte> p,long timestamp,ClientMovement? previous,out ClientMovement movement) {
         movement=default;
         if(previous is not ClientMovement prev||p.Length<24||p.Length>64||p[1]!=0x37||p[0]>3)return false;
