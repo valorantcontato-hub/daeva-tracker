@@ -69,6 +69,22 @@ void NoteSelf()
     lastSelfNote = key;
     recorder.Note(JsonSerializer.Serialize(new { type = "self", at = DateTime.Now.ToString("o"), entityId = prof?.EntityId, name = prof?.Name, serverId = (int)(prof?.ServerId ?? 0), level = prof?.Level }));
 }
+long lastShapesWrite = 0, lastShapesTotal = 0;
+// Só no seu PC: quais formatos de movimento o jogo manda e o app ainda não entende (diagnóstico do voo). Nada é enviado.
+void WriteMovementShapes()
+{
+    if (Environment.TickCount64 - lastShapesWrite < 5000) return;
+    lastShapesWrite = Environment.TickCount64;
+    long total = DaevaCapture.MovementCrypto.Shapes.Values.Sum(v => (long)v.Count);
+    if (total == lastShapesTotal) return;
+    lastShapesTotal = total;
+    try
+    {
+        var shapes = DaevaCapture.MovementCrypto.Shapes.OrderByDescending(p => p.Value.Count).Select(p => new { shape = p.Key, count = p.Value.Count, sample = p.Value.Sample });
+        File.WriteAllText(Path.Combine(configDir, "movement-shapes.json"), JsonSerializer.Serialize(new { at = DateTime.Now.ToString("o"), shapes }));
+    }
+    catch { }
+}
 void PollRecording()
 {
     NoteSelf();
@@ -133,6 +149,7 @@ while (!cts.IsCancellationRequested)
     if(ownerPid>0) {try {using var owner=System.Diagnostics.Process.GetProcessById(ownerPid);if(owner.HasExited)break;}catch{break;}}
     engine.Tick();
     PollRecording();
+    WriteMovementShapes();
     AnnounceIdentity();
     SendPositions();
     var focus = DaevaCapture.GameWindowFocus.Read();
