@@ -6,7 +6,8 @@ import { normalizeEncounter } from './encounter.js';
 import { autoLinkFromFight } from './profiles.js';
 import { getMe } from './profiles.js';
 import { readBestiary, writeBestiary, imageUrl } from './bestiary-state.js';
-import { findCatalogMonster, monsterPicture } from './monster-catalog.js';
+import { findCatalogMonster, catalogByPetName, monsterPicture } from './monster-catalog.js';
+import { getPetCatalog } from './collection.js';
 import { toast } from './util.js';
 import { isTrainingDummy, isBossEncounter } from './combat-types.js';
 import { listenStream } from './stream.js';
@@ -43,10 +44,11 @@ function countKills(snap) {
   const state = readBestiary(me);
   const kills = state.kills;
   for (const t of killed) {
-    const catalog = findCatalogMonster(t);
-    let m = monsters.find(x => (t.npcCode && x.npcCode === t.npcCode) || (catalog && x.sourceSlug === catalog.sourceSlug) || norm(x.name) === norm(t.name));
+    // O abate pode vir com o nome do mascote ("Cave Bat") em vez do monstro ("Drana Mutated Bat"): resolve pelo mascote.
+    const catalog = findCatalogMonster(t) || catalogByPetName(t.name, getPetCatalog());
+    let m = (catalog && monsters.find(x => x.sourceSlug === catalog.sourceSlug)) || monsters.find(x => (t.npcCode && x.npcCode === t.npcCode) || norm(x.name) === norm(t.name));
     if (!m) {
-      m = { ...catalog, id: catalog?.id || 'npc-' + (t.npcCode || norm(t.name)), npcCode: t.npcCode || 0, name: t.name, region: catalog?.region || snap.dungeon || 'Mundo aberto', level: catalog?.level || null, note: catalog?.note || 'Detectado pela captura', recorded: true };
+      m = { ...catalog, id: catalog?.id || 'npc-' + (t.npcCode || norm(t.name)), npcCode: t.npcCode || 0, name: catalog?.name || t.name, region: catalog?.region || snap.dungeon || 'Mundo aberto', level: catalog?.level || null, note: catalog?.note || 'Detectado pela captura', recorded: true };
       monsters.push(m);
     }
     const before = kills[m.id] || 0;

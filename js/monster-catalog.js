@@ -31,6 +31,22 @@ export function findCatalogMonster(monster) {
   return candidates?.length === 1 ? candidates[0] : null;
 }
 
+/**
+ * O jogo às vezes mostra o abate com o nome do MASCOTE que o monstro dá (ex.: "Cave Bat") e não com o nome do monstro nos dados
+ * ("Drana Mutated Bat"). Se o nome é de um mascote cujo monstro é um só e está no catálogo, devolve esse monstro; se houver mais
+ * de um (ambíguo), não chuta.
+ */
+export function catalogByPetName(name, pets) {
+  const key = monsterNameKey(name);
+  const pet = (pets || []).find(p => monsterNameKey(p.name) === key);
+  if (!pet) return null;
+  const hits = [...new Set((pet.mobs || []).map(m => monsterNameKey(m.name)))]
+    .map(n => (byName.get(n) || []))
+    .filter(list => list.length === 1).map(list => list[0]);
+  const unique = [...new Set(hits)];
+  return unique.length === 1 && (pet.mobs || []).length ? unique[0] : null;
+}
+
 export function monsterPicture(monster) {
   const exact = findCatalogMonster(monster);
   if (exact?.icon) return exact.icon;
